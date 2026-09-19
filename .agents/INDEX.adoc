@@ -9,7 +9,7 @@ _Projet_ : academy-gradle (education.cccp.academy)
 _Derniere mise a jour_ : 2026-09-19 (bootstrap)
 _Session terminee_ : 000 — Bootstrap
 _Sessions precedent_ : 
-_Prochaine session_ : sur demande pilote — définition de l'EPIC academy-gradle (développement du plugin)
+_Prochaine session_ : travailler sur l'EPIC ACADEMY-1 (implémentation de base du plugin) ou affiner le BACKLOG selon les découvertes.
 
 '''
 == REGLES ABSOLUES
