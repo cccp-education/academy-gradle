@@ -1,0 +1,14 @@
+= Academy Plugin Governance
+
+Borough: Bagdad (consommateur d'expérience)
+Plugin: academy-plugin (education.cccp.academy)
+
+Rôles :
+- Présenter le contenu pédagogique (Moodle LMS archive)
+- Assister l'apprenant (opencode agent + BYOK LLM)
+- Aucun VPS - artefact de build mono-utilisateur (archive locale Docker)
+
+Boundaries :
+- Consommateur terminal - ne génère rien
+- Lit les contrats runtime-contracts N0
+- Interagit avec le bureau via MaterialUpdateContract

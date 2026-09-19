@@ -1,0 +1,44 @@
+= PROMPT_REPRISE — academy-gradle
+
+== Mission de la session
+
+Définir les EPICs initiaux pour le plugin academy-gradle (Bagdad) en s'appuyant sur la vision du pipeline de formation (VISION_PIPELINE_FORMATION.adoc) et les décisions actées lors de la séance du 2026-09-17.
+
+Contexte : 
+- Le borough Bagdad (academy-gradle) est le consommateur d'expérience du pipeline de formation.
+- Il doit consommer le matériel produit par le bureau (via MaterialUpdateContract) et offrir une expérience d'apprentissage via Moodle LMS, opencode et BYOK LLM.
+- Aucuns VPS : artefact de build mono-utilisateur (archive locale Docker).
+
+Objectifs de la session :
+1. Lire et comprendre les décisions actées concernant l'academy dans VISION_PIPELINE_FORMATION.adoc (section 3.3 et 9.2).
+2. Définir les EPICs initiaux pour academy-gradle basés sur le contrat runtime-contracts (FormationRuntimePort, etc.) et les besoins fonctionnels.
+3. Créer le BACKLOG.adoc initial avec les EPICs et leurs US découpés.
+4. Configurer les fichiers de gouvernance manquants (SESSION_PROCEDURE.adoc si nécessaire) et vérifier la checklist d'ouverture.
+
+Travaux à effectuer :
+- Lire VISION_PIPELINE_FORMATION.adoc, section 3.3 (Academy) et 9.2 (EPIC ACADEMY).
+- Examiner les contrats runtime-contracts publiés (education.cccp:runtime-contracts:0.0.1) pour comprendre les ports à implémenter.
+- Définir les EPICs suivants (à adapter selon les découvertes) :
+  * ACADEMY-0 : Bootstrap (déjà terminé)
+  * ACADEMY-1 : Implémentation de base du plugin AcademyPlugin (squelette)
+  * ACADEMY-2 : Intégration du contrat FormationRuntimePort (boucle d'assistance)
+  * ACADEMY-3 : Intégration du contrat SessionMemoryContract (suivi apprenant)
+  * ACADEMY-4 : Intégration du contrat MaterialUpdateContract (liaison avec le bureau)
+  * ACADEMY-5 : Intégration du contrat InteractionProtocol (opencode + tools)
+  * ACADEMY-6 : Génération de l'archive Moodle LMS avec cours seedé
+  * ACADEMY-7 : Intégration du BYOK LLM (configuration du fournisseur LLM)
+  * ACADEMY-8 : Webhooks Moodle + bridge opencode (avec Ktor, conformément à la décision D4)
+  * ACADEMY-9 : Support Qualiopi (bilan de session, etc.)
+
+Cependant, pour cette session de bootstrap, nous nous concentrerons sur la définition de la structure et la planification.
+
+Résultat attendu :
+- Un BACKLOG.adoc avec les EPICs ci-dessus en tant que placeholders, prêts à être affinés.
+- Un PROMPT_REPRISE.adoc pour la prochaine session qui détaillera le premier EPIC à travailler.
+
+Notes :
+- Suivre les règles de gouvernance : anglais uniquement dans le code, zéro secret, etc.
+- Le plugin academy-gradle est sous licence Apache 2.0 (comme spécifié dans la vision).
+
+---
+*Prochaine session* : travailler sur l'EPIC ACADEMY-1 (implémentation de base du plugin) ou affiner le BACKLOG selon les découvertes.

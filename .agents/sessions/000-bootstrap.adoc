@@ -1,0 +1,40 @@
+= SESSION RAPPORT — Bootstrap academy-gradle
+
+== Session Summary
+Bootstrap du nouveau borough Bagdad (academy-gradle) en tant que consommateur d'expérience dans le pipeline de formation FPA.
+
+== Accomplis
+- Création de la structure du borough dans `foundry/public/academy-gradle/`
+- Mise en place du plugin Gradle `academy-plugin` avec structure standard
+- Création des fichiers de gouvernance requis :
+  * `AGENT.adoc` - règles absolues
+  * `SESSION_CHECKLIST.adoc` - checklist d'ouverture/fermeture
+  * `INDEX.adoc` - roadmap et statut des EPICs
+  * `PROMPT_REPRISE.adoc` - mission de la session en cours
+- Création du répertoire des sessions et du rapport de session initial
+- Ajout de l'entrée du borough dans `AGENTS.adoc` section "Projets Gouvernés"
+- Compilation réussie du plugin avec `gradle :academy-plugin:compileKotlin`
+- Publication locale réussie avec `gradle :academy-plugin:publishToMavenLocal`
+
+== Décisions prises
+- Confirmation que Bagdad = borough et academy = plugin (convention appliquée)
+- Le borough Bagdad est un consommateur N2 dans le DAG
+- Le plugin restera sous licence Apache 2.0 (conformément à la vision)
+- Architecture suivie : racine consommateur minimale + build indépendant du plugin
+- Aucune logique métier implémentée pour cette session de bootstrap (placeholder)
+
+== Prochaines étapes
+Pour la prochaine session, travailler sur :
+1. Définir les EPICs initiaux pour academy-gradle basés sur VISION_PIPELINE_FORMATION.adoc
+2. Implémenter la logique de base du plugin AcademyPlugin.kt
+3. Commencer l'intégration des contrats runtime-contracts (FormationRuntimePort, etc.)
+4. Définir le BACKLOG.adoc avec les user stories détaillées
+
+== Métriques
+- Fichiers créés : 6 (incluant ce rapport)
+- Ligne de code Kotlin : 1 (placeholder)
+- Publications locales : 1
+- Sessions enregistrées : 1
+
+---
+*Prochaine session* : travailler sur l'EPIC ACADEMY-1 (implémentation de base du plugin) ou affiner le BACKLOG selon les découvertes du VISION_PIPELINE_FORMATION.adoc.
