@@ -1,0 +1,30 @@
+= PROMPT_REPRISE — academy-gradle
+
+== Mission de la prochaine session
+
+Travailler sur l'EPIC ACADEMY-1 : implémentation de base du plugin AcademyPlugin (squelette fonctionnel) ou affiner le BACKLOG selon les découvertes du VISION_PIPELINE_FORMATION.adoc.
+
+Contexte :
+- Le borough Bagdad (academy-gradle) est le consommateur d'expérience du pipeline de formation.
+- Il doit consommer le matériel produit par le bureau (via MaterialUpdateContract) et offrir une expérience d'apprentissage via Moodle LMS, opencode et BYOK LLM.
+- Aucun VPS : artefact de build mono-utilisateur (archive locale Docker).
+
+== État de l'architecture (session 001)
+
+- Architecture article 0124 respectée : racine = consommateur dogfood (`build.gradle.kts` applique `education.cccp.academy` via catalogue), `academy-plugin/` = build indépendant (wrapper propre, catalogue propre, signing, publish).
+- Gouvernance entière dans `academy-plugin/.agents/` (INDEX, PROMPT_REPRISE, BACKLOG, AGENT, SESSION_CHECKLIST, SESSION_PROCEDURE, sessions/).
+- `LICENSE` Apache 2.0 ajoutée. `.gitignore` en place (plus d'artefacts de build trackés).
+- Wrappers Gradle 9.7.1 à la racine ET dans academy-plugin.
+- `publishToMavenLocal` plugin : BUILD SUCCESSFUL (signing GPG OK).
+
+== Points en attente
+
+1. Push du dépôt vers `cccp-education/academy-gradle` (origin configuré, repo créé et vide).
+2. L'EPIC ACADEMY-1 non démarré (placeholder AcademyPlugin.kt inchangé).
+3. Décisions D3 (split runtime agentique edster) et D4 (Ktor) du VISION_PIPELINE_FORMATION.adoc à valider avant ACADEMY-8.
+
+== Rappel des ordres de mission
+
+- BDD/TDD baby-step strict : RED → GREEN → REFACTOR, 1 fichier de test avant le code.
+- DAG N2 : academy importable par N3, jamais N3 → academy.
+- Zéro secret dans le code. `publishToMavenLocal` obligatoire après toute modification de code source.

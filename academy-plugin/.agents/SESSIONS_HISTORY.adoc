@@ -1,0 +1,7 @@
+= SESSIONS_HISTORY — academy-gradle
+
+|===
+| # | Date | Sujet | Points | Résumé
+| 000 | 2026-09-19 | Bootstrap academy-gradle (Bagdad) | 2 | Initialisation du borough : gouvernance (AGENT, SESSION_CHECKLIST, INDEX, PROMPT_REPRISE), structure plugin academy-plugin, placeholder AcademyPlugin.kt, compilation + publishToMavenLocal.
+| 001 | 2026-09-19 | Alignement architecture 0124 + gouvernance + repo Git | 6 | Fusion gouvernance racine → academy-plugin/.agents (git mv 100% rename), .gitignore + untrack artefacts, wrappers 9.7.1, catalogues séparés, build racine consommateur (zéro include), build plugin autonome (toolchain 25, functionalTest, cucumberTest, signing, POM Apache 2.0), licence Apache 2.0, repo cccp-education vérifié. publishToMavenLocal BUILD SUCCESSFUL. Push différé.
+|===

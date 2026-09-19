@@ -1,0 +1,11 @@
+= COMPLETED_TASKS_ARCHIVE — 2026-09 — academy-gradle
+
+_Session 000 (2026-09-19) — Bootstrap_
+
+- ACADEMY-0-0 : Bootstrap academy-gradle — gouvernance, structure plugin, placeholder (2 pts)
+
+_Session 001 (2026-09-19) — Alignement architecture 0124 + gouvernance + repo Git_
+
+- ACADEMY-0-BIS-0 : Fusion gouvernance racine → academy-plugin/.agents (2 pts)
+- ACADEMY-0-BIS-1 : Alignement article 0124 (wrappers, catalogues, builds racine/plugin, signing, .gitignore) (3 pts)
+- ACADEMY-0-BIS-2 : Licence Apache 2.0 + vérification repo GitHub cccp-education (1 pt)

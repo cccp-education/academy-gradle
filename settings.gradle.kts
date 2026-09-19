@@ -1,2 +1,9 @@
+pluginManagement {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
 rootProject.name = "academy-gradle"
-include(":academy-plugin")

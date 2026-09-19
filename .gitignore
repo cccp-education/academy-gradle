@@ -1,0 +1,10 @@
+.gradle/
+/build/
+/academy-plugin/build/
+!gradle/wrapper/gradle-wrapper.jar
+!academy-plugin/gradle/wrapper/gradle-wrapper.jar
+.idea/
+*.iml
+.kotlin/
+local.properties
+*.bak

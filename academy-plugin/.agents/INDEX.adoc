@@ -1,0 +1,96 @@
+= INDEX — Academy Gradle
+:toc:
+:toclevels: 2
+
+_Regles absolues_ : voir `AGENT.adoc`
+_DAG_ : N2 — Plugin Gradle de consommation (Regle 4bis)
+_Projet_ : academy-gradle (education.cccp.academy)
+
+_Derniere mise a jour_ : 2026-09-19 (session 001)
+_Session terminee_ : 001 — Alignement architecture 0124 + gouvernance + repo Git
+_Sessions precedent_ : 000 — Bootstrap
+_Prochaine session_ : travailler sur l'EPIC ACADEMY-1 (implémentation de base du plugin) ou affiner le BACKLOG selon les découvertes.
+
+'''
+== REGLES ABSOLUES
+
+=== 1. COMMITS/GIT — INTERDICTION FORMELLE sans permission
+=== 2. PUBLISH TO MAVEN LOCAL — OBLIGATOIRE après toute modification de code source
+=== 3. DAG N2 — importable par N3 runner-gradle, jamais importe N3
+=== 4. PROCEDURE DE FIN DE SESSION — 6 ETAPES OBLIGATOIRES
+=== 5. HOOK OUVERTURE — Checklist SESSION_CHECKLIST.adoc obligatoire
+
+'''
+== ✅ EPIC ACADEMY-0 — Bootstrap academy-gradle
+
+_Source_ : Session 000. Initialisation du borough academe-gradle : création des fichiers de gouvernance, de la structure du plugin, et du placeholder de code.
+
+_Dependances_ : Aucune.
+
+[cols="1,3,1,1", options="header"]
+|===
+| US | Description | Pts | Statut
+| ACADEMY-0-0
+| *Bootstrap academy-gradle* — création du répertoire, des fichiers de gouvernance (AGENT.adoc, SESSION_CHECKLIST.adoc, INDEX.adoc, PROMPT_REPRISE.adoc), des fichiers de build (settings.gradle.kts, build.gradle.kts), et du code source placeholder (AcademyPlugin.kt).
+| 2
+| ✅ TERMINÉ (S-000)
+|===
+
+_Total_ : 2 US, ~2 pts. _Methode_ : baby-step DDD/TDD/BDD, 1 niveau (seulement le bootstrap).
+_Statut_ : 1/1 US terminées (S-000 cadrage + bootstrap). EPIC ACADEMY-0 CLOS.
+
+'''
+== ✅ EPIC ACADEMY-0-BIS — Mise en conformité architecture 0124 + gouvernance + repo
+
+_Source_ : Session 001. Alignement du borough sur l'architecture « Plugin Indépendant + Racine Consommateur » (article 0124), fusion de la gouvernance dans `academy-plugin/.agents/`, ajout de la licence Apache 2.0, préparation du dépôt GitHub cccp-education.
+
+_Dependances_ : Aucune.
+
+[cols="1,3,1,1", options="header"]
+|===
+| US | Description | Pts | Statut
+| ACADEMY-0-BIS-0
+| *Fusion gouvernance* — déplacement de AGENT.adoc, BACKLOG.adoc, INDEX.adoc, PROMPT_REPRISE.adoc, SESSION_CHECKLIST.adoc, SESSION_PROCEDURE.adoc, sessions/000-bootstrap.adoc de la racine vers academy-plugin/.agents/, suppression du .agents racine. git mv 100% rename.
+| 2
+| ✅ TERMINÉ (S-001)
+| ACADEMY-0-BIS-1
+| *Alignement article 0124* — .gitignore + untrack artefacts, wrappers Gradle 9.7.1 (racine + plugin), catalogue consommateur racine, settings/build racine consommateur (zéro include), catalogue complet plugin, settings plugin autonome, build plugin pattern bureau (toolchain 25, functionalTest, cucumberTest, signing, POM Apache 2.0).
+| 3
+| ✅ TERMINÉ (S-001)
+| ACADEMY-0-BIS-2
+| *Licence + repo* — LICENSE Apache 2.0 ajoutée ; vérification du dépôt GitHub cccp-education/academy-gradle (créé, vide, public, origin configuré).
+| 1
+| ✅ TERMINÉ (S-001)
+|===
+
+_Total_ : 3 US, ~6 pts. _Methode_ : restructuration build + gouvernance pure (pattern S-057/S-063).
+_Statut_ : 3/3 US terminées (S-001). EPIC ACADEMY-0-BIS CLOS. Push vers origin en attente (décision pilote).
+
+'''
+== Sessions
+
+|===
+| # | Date | Type | Sujet | Score
+| 000 | 2026-09-19 | bootstrap | Initialisation du borough academy-gradle | 2/2
+| 001 | 2026-09-19 | architecture | Alignement article 0124 + fusion gouvernance + licence Apache 2.0 + repo Git | 6/6
+|===
+
+'''
+== Portefeuille — Projets Gouvernes
+
+|===
+| Projet | Chemin | Sessions | Derniere maj
+| planner-gradle | `foundry/public/planner-gradle/` | 17 | 2026-06-24
+| codex-gradle | `foundry/public/codex-gradle/` | 26 | 2026-05-22
+| codebase-gradle | `foundry/public/codebase-gradle/codebase-plugin/` | 55 | 2026-05-22
+| quizz-benchmark | `foundry/public/quizz-benchmark-gradle/quizz-benchmark-plugin/` | 6 | 2026-05-11
+| runner-gradle | `foundry/public/runner-gradle/` | 17 | 2026-05-19
+| waiter-gradle | `foundry/public/waiter-gradle/` | 0 (bootstrap) | 2026-05-11
+| training-gradle | `foundry/public/training-gradle/training-plugin/` | 10 | 2026-05-14
+| capsule-gradle | `foundry/public/capsule-gradle/capsule-plugin/` | 11 | 2026-05-19
+| workspace-gradle | `foundry/public/workspace-gradle/` | 1 | 2026-05-17
+| magic-stick | `office/sites/magic-stick/` | 4 | 2026-05-11
+| academy-gradle | `foundry/public/academy-gradle/` | 2 | 2026-09-19
+|===
+
+'''

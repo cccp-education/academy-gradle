@@ -1,0 +1,47 @@
+= SESSION RAPPORT — Alignement architecture 0124 + gouvernance + repo Git
+
+== Session Summary
+Session 001 du borough Bagdad (academy-gradle) : mise en conformité du borough avec l'architecture « Plugin Indépendant + Racine Consommateur » (article 0124), fusion de la gouvernance dans `academy-plugin/.agents/`, ajout de la licence Apache 2.0, et préparation du dépôt Git cccp-education.
+
+== Accomplis
+- Fusion du dossier de gouvernance racine `academy-gradle/.agents/` → `academy-plugin/.agents/` (git mv, 100% rename, zéro perte) :
+  * INDEX.adoc, PROMPT_REPRISE.adoc, SESSION_CHECKLIST.adoc, SESSION_PROCEDURE.adoc
+  * sessions/000-bootstrap.adoc
+  * AGENT.adoc, BACKLOG.adoc (déplacés de la racine)
+- Suppression du dossier `.agents/` racine (devenu vide).
+- Alignement complet sur le pattern article 0124 (modèle bureau-gradle) :
+  * `.gitignore` créé (artefacts de build non trackés) + untrack des artefacts commités (`.gradle/`, `academy-plugin/build/`, `build/`)
+  * Wrappers Gradle 9.7.1 indépendants racinet + plugin (gradlew, gradle/wrapper)
+  * Catalogue consommateur minimal racine `gradle/libs.versions.toml` (alias education.cccp.academy 0.0.1)
+  * `settings.gradle.kts` racine : pluginManagement mavenLocal/Central/Portal, zéro `include()`
+  * `build.gradle.kts` racine : minimal (plugins + repositories) — dogfood
+  * Catalogue complet plugin `academy-plugin/gradle/libs.versions.toml` (kotlin, junit, cucumber, assertj, plugin-publish)
+  * `academy-plugin/settings.gradle.kts` : pluginManagement + dependencyResolutionManagement (build autonome)
+  * `academy-plugin/build.gradle.kts` : pattern bureau — toolchain 25, functionalTest (TestKit), cucumberTest, signing GPG, POM Apache 2.0, website/vcs
+- Suppression du `src/` vide à la racine et des artefacts de build (`build/`, `.kotlin/`).
+- Licence Apache 2.0 ajoutée (`LICENSE`, copie du texte officiel identique aux autres boroughs).
+- Vérification du dépôt GitHub `cccp-education/academy-gradle` : créé, vide, public, droits cheroliv confirmés ; `origin` déjà configuré sur ce remote.
+- `./gradlew publishToMavenLocal` plugin : BUILD SUCCESSFUL (compileKotlin + jar + javadocJar + signing GPG `CBE2926CD46D8E8B` + publications en local).
+
+== Décisions prises
+- La gouvernance du borough vit désormais entièrement dans `academy-plugin/.agents/` (convention bureau-gradle).
+- Le borough respecte l'architecture article 0124 : racine = consommateur dogfood (publishToMavenLocal), `academy-plugin/` = build indépendant et autonome.
+- Zéro logique métier implémentée cette session (placeholder AcademyPlugin.kt inchangé) — session 100% gouvernance/architecture.
+- Le commit et push ne sont PAS inclus dans cette session (décision pilote : commit seul d'abord, push à la session suivante).
+
+== Prochaines étapes
+1. Pousser le dépôt vers `cccp-education/academy-gradle` (git push -u origin main) si autorisé.
+2. Travailler l'EPIC ACADEMY-1 (implémentation de base du plugin AcademyPlugin).
+3. Cadrer l'intégration des runtime-contracts N0 (ACADEMY-2, ACADEMY-3, ACADEMY-4, ACADEMY-5).
+4. Valider les décisions D3 (split runtime agentique edster) et D4 (Ktor) du VISION_PIPELINE_FORMATION.adoc.
+
+== Métriques
+- Fichiers créés : 1 (LICENSE) + 4 rapports/clôture
+- Fichiers déplacés (renames) : 7 (gouvernance)
+- Fichiers untrackés (artefacts supprimés de l'index) : ~50
+- Tests : aucun modifié (plugin placeholder) — `publishToMavenLocal` BUILD SUCCESSFUL
+- Publications locales : 1 (publishToMavenLocal academy-plugin 0.0.1)
+- Sessions enregistrées : 2 (000, 001)
+
+---
+*Prochaine session* : travailler l'EPIC ACADEMY-1 (implémentation de base du plugin) ou affiner le BACKLOG selon les découvertes du VISION_PIPELINE_FORMATION.adoc.
