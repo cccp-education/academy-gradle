@@ -2,29 +2,29 @@
 
 == Mission de la prochaine session
 
-Travailler sur l'EPIC ACADEMY-1 : implémentation de base du plugin AcademyPlugin (squelette fonctionnel) ou affiner le BACKLOG selon les découvertes du VISION_PIPELINE_FORMATION.adoc.
+Travailler sur l'EPIC ACADEMY-1 (socle générateur d'installateurs) ou ACADEMY-6-0 (cadrage installeur hybride) selon l'ordre décidé.
 
 Contexte :
-- Le borough Bagdad (academy-gradle) est le consommateur d'expérience du pipeline de formation.
-- Il doit consommer le matériel produit par le bureau (via MaterialUpdateContract) et offrir une expérience d'apprentissage via Moodle LMS, opencode et BYOK LLM.
-- Aucun VPS : artefact de build mono-utilisateur (archive locale Docker).
+- Le borough Bagdad (academy-gradle) livre une **machine d'expérimentation complète du pipeline cccp.education** (vision actée S-002).
+- Ressource = hôte (Docker + Java Temurin 25 + Gradle 9.7.1) + Docker (Moodle + MariaDB + workspace opencode en session zsh).
+- L'apprenant consomme les plugins education.cccp (bakery, document, slider, capsule…) via Maven Central + Gradle, zéro VPS, mono-utilisateur.
 
-== État de l'architecture (session 001)
+== État de l'architecture (session 002)
 
-- Architecture article 0124 respectée : racine = consommateur dogfood (`build.gradle.kts` applique `education.cccp.academy` via catalogue), `academy-plugin/` = build indépendant (wrapper propre, catalogue propre, signing, publish).
-- Gouvernance entière dans `academy-plugin/.agents/` (INDEX, PROMPT_REPRISE, BACKLOG, AGENT, SESSION_CHECKLIST, SESSION_PROCEDURE, sessions/).
-- `LICENSE` Apache 2.0 ajoutée. `.gitignore` en place (plus d'artefacts de build trackés).
-- Wrappers Gradle 9.7.1 à la racine ET dans academy-plugin.
-- `publishToMavenLocal` plugin : BUILD SUCCESSFUL (signing GPG OK).
+- Orientation recadrée : ACADEMY-6 révisé « installeur hybride » (US-0 cadrage ✅ S-002), ACADEMY-1 pivoté « socle générateur », ordre produit → contrats.
+- BACKLOG.adoc : vision actée, sections détaillées ACADEMY-1/6/5/4/2, table des décisions D-ACADEMY-1..4.
+- Proposition externe `com.example.installer` rejetée (D-ACADEMY-4) : files/ + files.zip supprimés.
+- Architecture article 0124 respectée ; gouvernance dans academy-plugin/.agents ; push origin en attente.
 
-== Points en attente
+== Points en attente / ordre de travail suggéré
 
-1. Push du dépôt vers `cccp-education/academy-gradle` (origin configuré, repo créé et vide).
-2. L'EPIC ACADEMY-1 non démarré (placeholder AcademyPlugin.kt inchangé).
-3. Décisions D3 (split runtime agentique edster) et D4 (Ktor) du VISION_PIPELINE_FORMATION.adoc à valider avant ACADEMY-8.
+1. ACADEMY-1-0 (extension typée `academyInstaller`, pattern Property-based) puis ACADEMY-1-1/1-2.
+2. ACADEMY-6-0 : rédiger `CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` (frontière KINSHASA, contenu des scripts, seed DB, articulation 1/5/6/7).
+3. Push du dépôt vers origin cccp-education/academy-gradle.
 
 == Rappel des ordres de mission
 
 - BDD/TDD baby-step strict : RED → GREEN → REFACTOR, 1 fichier de test avant le code.
 - DAG N2 : academy importable par N3, jamais N3 → academy.
 - Zéro secret dans le code. `publishToMavenLocal` obligatoire après toute modification de code source.
+- Code anglais only (OSS cccp-education), docs gouvernance en français.

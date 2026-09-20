@@ -1,0 +1,35 @@
+= SESSION RAPPORT — Recadrage de l'orientation Academy (installeur hybride)
+
+== Session Summary
+Session 002 du borough Bagdad (academy-gradle) : arbitrage pilote sur l'orientation du borough. Le pilote a confirmé que academy n'est pas qu'un LMS : academy livre une **machine d'expérimentation complète du pipeline cccp.education** — hôte = Docker + Java Temurin 25 + Gradle 9.7.1 ; Docker = Moodle + MariaDB + conteneur workspace opencode en session zsh. Installeur par plateforme (sh/bat), mono-utilisateur, sans VPS.
+
+== Accomplis
+- Suppression des fichiers hors-projet `files/` et `files.zip` (proposition externe `com.example.installer`) — identité non conforme, contenu non implémenté.
+- Recadrage complet du BACKLOG.adoc :
+  * Vision actée (hôte + Docker, opencode hôte OU conteneur lançant les tâches Gradle education.cccp).
+  * ACADEMY-1 pivoté : socle générateur d'installateurs (extension + tâches + agrégat).
+  * ACADEMY-6 révisé : installeur hybride multiplateforme (US-0 cadrage ✅).
+  * Sections détaillées pour ACADEMY-1/6/5/4/2 ; table des décisions D-ACADEMY-1..4.
+- INDEX.adoc : EPIC ACADEMY-0-TER ✅ (2 US), session 002 enregistrée (3/3), portefeuille → 3 sessions.
+- PROMPT_REPRISE.adoc : mission réorientée (ACADEMY-1 ou ACADEMY-6-0), état architecture + points en attente.
+- Aucune modification de code source (gouvernance pure, pattern S-057/S-063).
+
+== Décisions prises
+- D-ACADEMY-1 : la ressource academy = machine d'expérimentation complète (hôte Docker+Java25+Gradle ; Docker Moodle+MariaDB+workspace opencode zsh). Sans VPS, mono-utilisateur.
+- D-ACADEMY-2 : l'installeur par plateforme provisionne l'hôte, génère compose, seede la DB Moodle et les volumes, expose opencode.json — le premier `gradle build` dogfood l'écosystème.
+- D-ACADEMY-3 : le plugin academy est un générateur de ressource de distribution — ne réplique pas KINSHASA (provisionnement dev).
+- D-ACADEMY-4 : `com.example.installer` rejeté ; identité `education.cccp.academy`, code anglais, TDD/BDD baby-step strict.
+
+== Prochaines étapes
+1. ACADEMY-1-0 : extension typée `academyInstaller` (pattern Property-based).
+2. ACADEMY-6-0 : rédiger `CADRAGE_EPIC_ACADEMY_INSTALLER.adoc`.
+3. Push du dépôt vers origin cccp-education/academy-gradle.
+
+== Métriques
+- Fichiers supprimés : 4 (files/ × 3 + files.zip)
+- Fichiers gouvernance modifiés : 3 (BACKLOG, INDEX, PROMPT_REPRISE)
+- Tests : aucun modifié (aucun code source touché)
+- Sessions enregistrées : 3 (000, 001, 002)
+
+---
+*Prochaine session* : ACADEMY-1 (socle générateur) ou ACADEMY-6-0 (cadrage installeur hybride).

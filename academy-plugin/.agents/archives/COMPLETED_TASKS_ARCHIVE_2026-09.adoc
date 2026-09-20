@@ -9,3 +9,8 @@ _Session 001 (2026-09-19) — Alignement architecture 0124 + gouvernance + repo 
 - ACADEMY-0-BIS-0 : Fusion gouvernance racine → academy-plugin/.agents (2 pts)
 - ACADEMY-0-BIS-1 : Alignement article 0124 (wrappers, catalogues, builds racine/plugin, signing, .gitignore) (3 pts)
 - ACADEMY-0-BIS-2 : Licence Apache 2.0 + vérification repo GitHub cccp-education (1 pt)
+
+_Session 002 (2026-09-20) — Recadrage de l'orientation — installeur hybride_
+
+- ACADEMY-0-TER-0 : Recadrage BACKLOG — vision hybride actée, D-ACADEMY-1..4, ACADEMY-1 pivoté, ACADEMY-6 révisé (2 pts)
+- ACADEMY-0-TER-1 : Suppression fichiers hors-projet files/ + files.zip (com.example.installer) (1 pt)

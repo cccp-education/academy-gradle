@@ -4,4 +4,5 @@
 | # | Date | Sujet | Points | Résumé
 | 000 | 2026-09-19 | Bootstrap academy-gradle (Bagdad) | 2 | Initialisation du borough : gouvernance (AGENT, SESSION_CHECKLIST, INDEX, PROMPT_REPRISE), structure plugin academy-plugin, placeholder AcademyPlugin.kt, compilation + publishToMavenLocal.
 | 001 | 2026-09-19 | Alignement architecture 0124 + gouvernance + repo Git | 6 | Fusion gouvernance racine → academy-plugin/.agents (git mv 100% rename), .gitignore + untrack artefacts, wrappers 9.7.1, catalogues séparés, build racine consommateur (zéro include), build plugin autonome (toolchain 25, functionalTest, cucumberTest, signing, POM Apache 2.0), licence Apache 2.0, repo cccp-education vérifié. publishToMavenLocal BUILD SUCCESSFUL. Push différé.
+| 002 | 2026-09-20 | Recadrage de l'orientation — installeur hybride | 3 | Arbitrage pilote : la ressource academy = machine d'expérimentation complète (hôte Docker+Java25+Gradle + Docker Moodle+MariaDB+workspace opencode zsh). Suppression files/ + files.zip (com.example.installer rejeté). BACKLOG recadré (ACADEMY-1 socle générateur, ACADEMY-6 installeur hybride US-0 ✅, D-ACADEMY-1..4). INDEX + PROMPT_REPRISE mis à jour.
 |===

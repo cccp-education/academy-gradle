@@ -6,10 +6,10 @@ _Regles absolues_ : voir `AGENT.adoc`
 _DAG_ : N2 — Plugin Gradle de consommation (Regle 4bis)
 _Projet_ : academy-gradle (education.cccp.academy)
 
-_Derniere mise a jour_ : 2026-09-19 (session 001)
-_Session terminee_ : 001 — Alignement architecture 0124 + gouvernance + repo Git
-_Sessions precedent_ : 000 — Bootstrap
-_Prochaine session_ : travailler sur l'EPIC ACADEMY-1 (implémentation de base du plugin) ou affiner le BACKLOG selon les découvertes.
+_Derniere mise a jour_ : 2026-09-20 (session 002)
+_Session terminee_ : 002 — Recadrage de l'orientation Academy (installeur hybride)
+_Sessions precedent_ : 001 — Alignement article 0124 + gouvernance + repo Git ; 000 — Bootstrap
+_Prochaine session_ : travailler sur l'EPIC ACADEMY-1 (socle générateur d'installateurs, US-0) ou ACADEMY-6-0 (cadrage installeur hybride).
 
 '''
 == REGLES ABSOLUES
@@ -67,12 +67,36 @@ _Total_ : 3 US, ~6 pts. _Methode_ : restructuration build + gouvernance pure (pa
 _Statut_ : 3/3 US terminées (S-001). EPIC ACADEMY-0-BIS CLOS. Push vers origin en attente (décision pilote).
 
 '''
+== ✅ EPIC ACADEMY-0-TER (S-002) — Recadrage de l'orientation Academy (gouvernance pure)
+
+_Source_ : Session 002 (arbitrage pilote). La ressource academy = **machine d'expérimentation complète du pipeline cccp.education** : hôte = Docker + Java Temurin 25 + Gradle 9.7.1 ; Docker = Moodle + MariaDB + conteneur workspace opencode en session zsh. Installeur par plateforme (sh/bat) sans VPS, mono-utilisateur.
+
+_Dependances_ : Aucune.
+
+[cols="1,3,1,1", options="header"]
+|===
+| US | Description | Pts | Statut
+| ACADEMY-0-TER-0
+| *Recadrage BACKLOG* — vision hybride actée (D-ACADEMY-1..4), ACADEMY-1 pivoté vers socle générateur, ACADEMY-6 révisé en installeur hybride (US-0 ✅), ordre des Épics réordonné (produit → contrats).
+| 2
+| ✅ TERMINÉ (S-002)
+| ACADEMY-0-TER-1
+| *Suppression fichiers hors-projet* — files/ + files.zip (proposition externe `com.example.installer`) supprimés du working tree.
+| 1
+| ✅ TERMINÉ (S-002)
+|===
+
+_Total_ : 2 US, ~3 pts. _Methode_ : gouvernance pure.
+_Statut_ : 2/2 US terminées (S-002). EPIC ACADEMY-0-TER CLOS.
+
+'''
 == Sessions
 
 |===
 | # | Date | Type | Sujet | Score
 | 000 | 2026-09-19 | bootstrap | Initialisation du borough academy-gradle | 2/2
 | 001 | 2026-09-19 | architecture | Alignement article 0124 + fusion gouvernance + licence Apache 2.0 + repo Git | 6/6
+| 002 | 2026-09-20 | refonte | Recadrage de l'orientation — installeur hybride (vision actée, D-ACADEMY-1..4) | 3/3
 |===
 
 '''
@@ -90,7 +114,7 @@ _Statut_ : 3/3 US terminées (S-001). EPIC ACADEMY-0-BIS CLOS. Push vers origin 
 | capsule-gradle | `foundry/public/capsule-gradle/capsule-plugin/` | 11 | 2026-05-19
 | workspace-gradle | `foundry/public/workspace-gradle/` | 1 | 2026-05-17
 | magic-stick | `office/sites/magic-stick/` | 4 | 2026-05-11
-| academy-gradle | `foundry/public/academy-gradle/` | 2 | 2026-09-19
+| academy-gradle | `foundry/public/academy-gradle/` | 3 | 2026-09-20
 |===
 
 '''

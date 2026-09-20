@@ -2,7 +2,30 @@
 :toc:
 :toclevels: 2
 
-_Dernière mise à jour_ : 2026-09-19 — academy-gradle S-001 : Alignement architecture article 0124 (racine consommateur + plugin indépendant), fusion gouvernance dans academy-plugin/.agents, licence Apache 2.0, repo GitHub cccp-education vérifié.
+_Dernière mise à jour_ : 2026-09-20 — Recadrage de l'orientation du borough (pilote) : academy fournit la **machine d'expérimentation complète du pipeline cccp.education** via un **installeur hybride multiplateforme** (hôte = Docker + Java 25 + Gradle 9.7.1 ; Docker = Moodle + MariaDB + conteneur workspace opencode en session zsh). La ressource est mono-utilisateur, sans VPS.
+
+'''
+== Vision actée (S-002, arbitrage pilote)
+
+Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient tout ce dont l'apprenant a besoin pour expérimenter la formation du pipeline cccp.education :
+
+```
+┌─────────────────────────────  HOST  ─────────────────────────────┐
+│  Docker        (socle conteneurs)                                │
+│  Java Temurin 25 + Gradle 9.7.1  →  lance les plugins            │
+│      education.cccp (bakery, document, slider, capsule, ...)     │
+└──────────────────────────────┬───────────────────────────────────┘
+                               │ docker compose
+┌───────────────────────────── ▼  DOCKER  ─────────────────────────┐
+│  Moodle 4.x  (LMS formation, cours seedé)                        │
+│  MariaDB     (base Moodle, volumes persistants)                  │
+│  workspace   (session zsh + opencode via conteneur)              │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- L'installeur par plateforme (sh / bat) provisionne l'hôte, télécharge les dépendances, génère le `docker-compose.yml`, seede la base Moodle et les volumes, et génère `opencode.json` exposant les tâches Gradle de l'écosystème.
+- `opencode` fonctionne hôte OU conteneur : il déclenche les tâches Gradle `education.cccp` sur le projet de l'apprenant (les plugins sont consommés depuis Maven Central + Gradle, zéro VPS).
+- Rôle produit : **distribution** de la machine d'expérimentation (ne réplique pas KINSHASA — provisionnement dev ; KINSHASA reste N0).
 
 '''
 == Épics
@@ -11,13 +34,13 @@ _Dernière mise à jour_ : 2026-09-19 — academy-gradle S-001 : Alignement arch
 | Épic | Description | Statut
 | ACADEMY-0 | Bootstrap academy-gradle (création des fichiers de gouvernance, structure du plugin, placeholder de code) | ✅ TERMINÉ (S-000)
 | ACADEMY-0-BIS | Mise en conformité architecture article 0124 + fusion gouvernance + licence Apache 2.0 + repo Git | ✅ TERMINÉ (S-001)
-| ACADEMY-1 | Implémentation de base du plugin AcademyPlugin (squelette fonctionnel) | 🟡 À FAIRE
+| ACADEMY-1 | Socle du plugin générateur d'installateurs (extension, tâches de génération, agrégateur) | 🟡 À FAIRE
+| ACADEMY-6 | Installeur hybride multiplateforme (Docker + Java 25 + Gradle 9.7.1 + compose Moodle/MariaDB/workspace opencode zsh + volumes + DB seedée) | 🟡 À FAIRE (cadrage US-0 ✅ S-002)
+| ACADEMY-5 | Intégration du contrat InteractionProtocol (exposition de opencode.json + session zsh opencode lançant les tâches Gradle de l'écosystème) | 🟡 À FAIRE
+| ACADEMY-7 | Intégration du BYOK LLM (configuration du fournisseur LLM : OLLAMA_LOCAL, OLLAMA_CLOUD, GEMINI, HUGGINGFACE, CUSTOM) | 🟡 À FAIRE
+| ACADEMY-4 | Intégration du contrat MaterialUpdateContract (liaison avec le bureau pour recevoir le matériel versionné) | 🟡 À FAIRE
 | ACADEMY-2 | Intégration du contrat FormationRuntimePort (boucle d'assistance startSession/executeTurn/endSession) | 🟡 À FAIRE
 | ACADEMY-3 | Intégration du contrat SessionMemoryContract (suivi apprenant : progression, comprehension, weakPoints, annotations) | 🟡 À FAIRE
-| ACADEMY-4 | Intégration du contrat MaterialUpdateContract (liaison avec le bureau pour recevoir le matériel versionné) | 🟡 À FAIRE
-| ACADEMY-5 | Intégration du contrat InteractionProtocol (exposition de opencode et des tools à l'apprenant) | 🟡 À FAIRE
-| ACADEMY-6 | Génération de l'archive Moodle LMS avec cours seedé (artefact de build mono-utilisateur) | 🟡 À FAIRE
-| ACADEMY-7 | Intégration du BYOK LLM (configuration du fournisseur LLM : OLLAMA_LOCAL, OLLAMA_CLOUD, GEMINI, HUGGINGFACE, CUSTOM) | 🟡 À FAIRE
 | ACADEMY-8 | Webhooks Moodle + bridge opencode (avec Ktor, conformément à la décision D4 du VISION_PIPELINE_FORMATION.adoc) | 🟡 À FAIRE
 | ACADEMY-9 | Support Qualiopi (bilan de session, traces, conformité aux critères) | 🟡 À FAIRE
 |===
@@ -37,16 +60,62 @@ _Dernière mise à jour_ : 2026-09-19 — academy-gradle S-001 : Alignement arch
 | ACADEMY-0-BIS-2 | Licence Apache 2.0 + vérification repo GitHub cccp-education/academy-gradle
 |===
 
-=== ACADEMY-1 : Implémentation de base du plugin AcademyPlugin
+=== ACADEMY-1 : Socle du plugin générateur d'installateurs
 
 *Statut* : 🟡 À FAIRE
 
 [cols="2,3", options="header"]
 |===
 | US | Description
-| ACADEMY-1-0 | Créer une implémentation fonctionnelle de base du plugin AcademyPlugin.kt qui enregistre correctement son identité et peut être chargé par Gradle
-| ACADEMY-1-1 | Ajouter la logique de base pour initialiser les composants nécessaires au fonctionnement du plugin
-| ACADEMY-1-2 | Écrire des tests unitaires pour vérifier le chargement et l'initialisation du plugin
+| ACADEMY-1-0 | Extension typée `academyInstaller` (applicationName, applicationVersion, javaVersion, gradleVersion, targets, compose options, credentials via env) — pattern Property-based
+| ACADEMY-1-1 | Tâches `generateLinuxInstaller` / `generateWindowsInstaller` / `generateMacInstaller` / `buildAllInstallers` (agrégat) — registration + dépendances
+| ACADEMY-1-2 | Tests unitaires : chargement du plugin, défauts d'extension, aggregation correcte
+|===
+
+=== ACADEMY-6 : Installeur hybride multiplateforme (machine d'expérimentation)
+
+*Statut* : 🟡 À FAIRE — US-0 (cadrage) ✅ S-002
+
+*Orientation actée (S-002)* : la ressource contient TOUT pour expérimenter la formation :
+- Hôte : Docker + Java Temurin 25 + Gradle 9.7.1 (lance les plugins education.cccp).
+- Docker : Moodle + MariaDB (volumes persistants + base seedée) + conteneur workspace zsh+opencode.
+- opencode (hôte ou conteneur) déclenche les tâches Gradle de l'écosystème sur le projet apprenant.
+
+[cols="2,3", options="header"]
+|===
+| US | Description
+| ACADEMY-6-0 | Cadrage architecture (gouvernance pure) : frontière installateur/KINSHASA, contenu des scripts, seed DB, articulation ACADEMY-1/5/6/7, doc CADRAGE_EPIC_ACADEMY_INSTALLER.adoc
+| ACADEMY-6-1 | Générateur d'installateur Linux (`.sh`) : bootstrap Docker, téléchargement Java Temurin 25, Gradle 9.7.1, PATH/JAVA_HOME/alternatives, garde idempotence
+| ACADEMY-6-2 | Générateur d'installateur Windows (`.bat`) : vérif admin, PowerShell downloads, variables d'environnement, profil 64-bit
+| ACADEMY-6-3 | Générateur d'installateur macOS (`.sh`) : Homebrew/cask Docker Desktop, détection arch, Java/Gradle via brew, sans sudo
+| ACADEMY-6-4 | Génération `docker-compose.yml` : services Moodle + MariaDB + workspace opencode zsh, volumes persistants, network, healthchecks, variables `.env`
+| ACADEMY-6-5 | Seed de la base Moodle + configuration volumes (première optimisation, création des répertoires/droits, fichiers de config) au premier `compose up`
+| ACADEMY-6-6 | Dogfooding : build réel de l'installeur Linux sur un conteneur éphémère, validation des étapes 1→7 (dépendances → validation)
+| ACADEMY-6-7 | Cucumber BDD : scénarios installeur (contenu, idempotence, agrégation, opencode.json)
+|===
+
+=== ACADEMY-5 : Intégration du contrat InteractionProtocol (opencode)
+
+*Statut* : 🟡 À FAIRE
+
+[cols="2,3", options="header"]
+|===
+| US | Description
+| ACADEMY-5-0 | Cadrage InteractionProtocol — articulation opencode.json ↔ tâches Gradle education.cccp, session zsh dans le conteneur workspace
+| ACADEMY-5-1 | Exposition des tâches Gradle de l'écosystème (bakery, document, slider, capsule, runner…) via le fichier de configuration opencode
+| ACADEMY-5-2 | Provision d'un projet consommateur `education.cccp` dans le workspace (catalogue + premier `gradle build` dogfood)
+|===
+
+=== ACADEMY-4 : Intégration du contrat MaterialUpdateContract
+
+*Statut* : 🟡 À FAIRE
+
+[cols="2,3", options="header"]
+|===
+| US | Description
+| ACADEMY-4-0 | Implémenter l'interface MaterialUpdateContract depuis les runtime-contracts N0
+| ACADEMY-4-1 | Recevoir le matériel versionné produit par le bureau (SPG/SPD/slides/quiz) dans le workspace apprenant
+| ACADEMY-4-2 | Alimenter le cours Moodle seedé depuis le matériel reçu (liens ACADEMY-6-5)
 |===
 
 === ACADEMY-2 : Intégration du contrat FormationRuntimePort
@@ -62,7 +131,18 @@ _Dernière mise à jour_ : 2026-09-19 — academy-gradle S-001 : Alignement arch
 | ACADEMY-2-3 | Implémenter la méthode endSession pour terminer proprement une session et générer le bilan
 |===
 
-*Note* : Les autres sections détaillées des Épics seront créées au fur et à mesure que le travail avance sur chaque Épic.
+*Note* : Les sections détaillées des Épics ACADEMY-3, ACADEMY-7, ACADEMY-8, ACADEMY-9 seront rédigées au fil des sessions, selon les découvertes.
+
+'''
+== Décisions structurantes
+
+|===
+| ID | Décision | Session
+| D-ACADEMY-1 | La ressource academy = machine d'expérimentation complète du pipeline cccp.education : hôte = Docker + Java 25 + Gradle 9.7.1 ; Docker = Moodle + MariaDB + workspace opencode zsh. Sans VPS, mono-utilisateur. | S-002
+| D-ACADEMY-2 | L'installateur par plateforme (sh/bat) provisionne l'hôte, génère compose, seede la DB Moodle et les volumes, expose opencode.json — le premier `gradle build` dogfood l'écosystème. | S-002
+| D-ACADEMY-3 | Le plugin academy est un générateur de ressource de distribution — il ne réplique pas KINSHASA (provisionnement dev), qui reste N0. | S-002
+| D-ACADEMY-4 | `com.example.installer` (proposition externe) rejetée : l'identité reste `education.cccp.academy`, code anglais only, TDD/BDD baby-step strict. fichiers `files/` et `files.zip` supprimés. | S-002
+|===
 
 '''
 == Historique des mises à jour
@@ -71,13 +151,14 @@ _Dernière mise à jour_ : 2026-09-19 — academy-gradle S-001 : Alignement arch
 | Date | Description
 | 2026-09-19 | Création initiale du BACKLOG avec les Épics placeholder basés sur VISION_PIPELINE_FORMATION.adoc
 | 2026-09-19 | S-001 : ajout EPIC ACADEMY-0-BIS ✅ TERMINÉ (architecture 0124, gouvernance, licence, repo)
+| 2026-09-20 | S-002 : recadrage de l'orientation — vision hybride actée (D-ACADEMY-1..4), suppression files/ + files.zip, ACADEMY-1 pivoté vers socle générateur, ACADEMY-6 révisé en « installeur hybride » (US-0 cadrage ✅), ordre des Épics réordonné
 |===
 
 '''
 == TODOs
 
-[ ] Définir précisément les dépendances nécessaires pour les runtime-contracts
-[ ] Examiner les exemples d'implémentation dans les autres boroughs (training, capsule, etc.)
-[ ] Commencer l'implémentation de l'EPIC ACADEMY-1 lors de la prochaine session
-[ ] Vérifier la conformité avec les décisions actées dans VISION_PIPELINE_FORMATION.adoc (sections 3.3, 9.2, 8.2)
 [ ] Push vers origin cccp-education/academy-gradle (repo vide créé, origin configuré)
+[ ] ACADEMY-1-0 : extension typée `academyInstaller` (pattern Property-based) — prochaine session
+[ ] ACADEMY-6-0 : rédiger `CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` (frontières, contenu des scripts, seed DB, articulation 1/5/6/7)
+[ ] Vérifier la conformité avec les décisions actées dans VISION_PIPELINE_FORMATION.adoc (sections 3.3, 9.2, 8.2)
+[ ] Définir précisément les dépendances nécessaires pour les runtime-contracts (N0, quand ACADEMY-4/2/3)

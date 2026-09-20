@@ -1,14 +1,14 @@
 = TEST_COVERAGE_ANALYSIS — academy-gradle
 
-_Dernière mise à jour_ : 2026-09-19 (session 001)
+_Dernière mise à jour_ : 2026-09-20 (session 002)
 
 == État des tests
 
-Aucun test de code modifié cette session — l'EPIC ACADEMY-0-BIS était de la restructuration de build (architecture article 0124) et de la gouvernance pure.
+Sessions 001 et 002 : aucune modification de code source (restructuration de build + gouvernance pure) — aucun test modifié.
 
 ## Ce qui est couvert
 
-- `publishToMavenLocal` du plugin : BUILD SUCCESSFUL (signing GPG, publications locales).
+- `publishToMavenLocal` du plugin : BUILD SUCCESSFUL (signing GPG, publications locales, S-001).
 - Le build racine reste à valider par dogfooding (dépend du plugin publié localement).
 
 ## Ce qui est à couvrir
@@ -19,4 +19,5 @@ Aucun test de code modifié cette session — l'EPIC ACADEMY-0-BIS était de la 
 
 | Date | Tests | Résultat |
 | 2026-09-19 | Aucun (session build/gouvernance) | N/A |
+| 2026-09-20 | Aucun (session recadrage gouvernance) | N/A |
 |===
