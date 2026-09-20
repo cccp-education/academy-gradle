@@ -2,27 +2,28 @@
 
 == Mission de la prochaine session
 
-Travailler sur l'EPIC ACADEMY-1 (socle générateur d'installateurs) ou ACADEMY-6-0 (cadrage installeur hybride) selon l'ordre décidé.
+Travailler sur l'EPIC ACADEMY-6 (installeur hybride) — ordre acté **1 → 6 → 5 → 7**.
+Première US : **ACADEMY-6-1** (installeur Linux raffermi : arch aarch64, persistence `JAVA_HOME`/`PATH`/`~/.local/bin`, exit Docker documenté).
 
 Contexte :
-- Le borough Bagdad (academy-gradle) livre une **machine d'expérimentation complète du pipeline cccp.education** (vision actée S-002).
+- Le borough Bagdad (academy-gradle) livre une **machine d'expérimentation complète du pipeline cccp.education** (vision actée S-002, D-ACADEMY-1..4).
 - Ressource = hôte (Docker + Java Temurin 25 + Gradle 9.7.1) + Docker (Moodle + MariaDB + workspace opencode en session zsh).
 - L'apprenant consomme les plugins education.cccp (bakery, document, slider, capsule…) via Maven Central + Gradle, zéro VPS, mono-utilisateur.
 
-== État de l'architecture (session 002)
+== État de l'architecture (session 003)
 
-- Orientation recadrée : ACADEMY-6 révisé « installeur hybride » (US-0 cadrage ✅ S-002), ACADEMY-1 pivoté « socle générateur », ordre produit → contrats.
-- BACKLOG.adoc : vision actée, sections détaillées ACADEMY-1/6/5/4/2, table des décisions D-ACADEMY-1..4.
-- Proposition externe `com.example.installer` rejetée (D-ACADEMY-4) : files/ + files.zip supprimés.
-- Architecture article 0124 respectée ; gouvernance dans academy-plugin/.agents ; push origin en attente.
+- **ACADEMY-1 TERMINÉ (3/3 US)** : socle générateur d'installateurs. Extension `academyInstaller` Property-based (8 properties), domaine pur `education.cccp.academy.installer` (TargetOs / InstallerPlatform / InstallerFile / InstallerScriptGenerator), tâches generateLinux/Windows/MacInstaller + buildAllInstallers (thin-wrapper GenerateInstallerTask). Gate `check` VERT (10 unit + 2 functional + cucumberTestInstaller 5/5), publishToMavenLocal VERT.
+- **ACADEMY-6-0 cadrage rédigé** → `.agents/CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` (5 constats, 9 décisions D-ACADEMY-6-1..9, US 6-1..7 découpées, options écartées, articulation 1→6→5→7).
+- Push vers origin cccp-education/academy-gradle effectué en clôture S-003.
 
 == Points en attente / ordre de travail suggéré
 
-1. ACADEMY-1-0 (extension typée `academyInstaller`, pattern Property-based) puis ACADEMY-1-1/1-2.
-2. ACADEMY-6-0 : rédiger `CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` (frontière KINSHASA, contenu des scripts, seed DB, articulation 1/5/6/7).
-3. Push du dépôt vers origin cccp-education/academy-gradle.
+1. ACADEMY-6-1 (Linux) : aarch64, persistence PATH/JAVA_HOME `~/.profile` + symlinks `~/.local/bin`, message exit Docker documenté (+4 unit + 1 FT).
+2. ACADEMY-6-2 (Windows profil 64-bit), ACADEMY-6-3 (macOS Rosetta zéro sudo).
+3. ACADEMY-6-4 (docker-compose.yml complet : network/volumes/healthchecks/.env), ACADEMY-6-5 (seed DB data-only), ACADEMY-6-6 (dogfooding conteneur), ACADEMY-6-7 (Cucumber étendu).
+4. Ensuite ACADEMY-5 (opencode.json + session zsh) puis ACADEMY-7 (BYOK LLM).
 
-== Rappel des ordres de mission
+## Rappel des ordres de mission
 
 - BDD/TDD baby-step strict : RED → GREEN → REFACTOR, 1 fichier de test avant le code.
 - DAG N2 : academy importable par N3, jamais N3 → academy.

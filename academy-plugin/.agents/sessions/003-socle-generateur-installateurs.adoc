@@ -1,0 +1,55 @@
+= SESSION RAPPORT — Socle générateur d'installateurs (ACADEMY-1) + Cadrage ACADEMY-6-0
+
+:date: 2026-09-20
+:session: 003
+:epic: ACADEMY-1 (TERMINÉ) + ACADEMY-6-0 (cadrage)
+:methode: Baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR)
+
+== Session Summary
+
+Session 003 du borough Bagdad (academy-gradle) : livraison du **socle
+générateur d'installateurs** (EPIC ACADEMY-1, 3/3 US) puis rédaction du
+**cadrage architecture ACADEMY-6-0** (`CADRAGE_EPIC_ACADEMY_INSTALLER.adoc`).
+Build : Gradle 9.7.1, Kotlin 2.4.10, toolchain Java 25, cucumber 7.34.3.
+
+## Accomplis
+
+- ACADEMY-1-0 — extension typée `academyInstaller` (Property-based) + plugin wiring :
+  * `AcademyInstallerExtension` (abstract, 8 properties : applicationName, applicationVersion, javaVersion, gradleVersion, targets, outputDir, composeEnabled, credentialsEnvPrefix)
+  * `AcademyPlugin` — `wireDefaults` (conventions, l'applicationVersion dérive de `project.version`) + `registerInstallerTasks`
+  * RedConfirmé piège `Project.apply` (masque stdlib) + import `org.gradle.api.Project` manquant.
+- ACADEMY-1-1 — domaine pur `education.cccp.academy.installer` :
+  * `TargetOs` enum (LINUX/WINDOWS/MACOS, scriptName + dirName)
+  * `InstallerPlatform` data class + invariants (chars non blank, javaVersion numérique `\d+`)
+  * `InstallerScriptGenerator` object pur `render(platform): List<InstallerFile>`
+  * Scripts 100% déterministes, zéro I/O : Docker check, Temurin/JDK + Gradle téléchargés, `JAVA_HOME`+`PATH` persistés (Linux `~/.profile` et symlinks `~/.local/bin` ; Windows `setx` ; macOS Homebrew cask sans sudo), garde idempotence `~/.academy/.installed-<version>`, prefix credentials via environnement (jamais embarquées), scaffold compose en heredoc si `composeEnabled`.
+- ACADEMY-1-2 — tâches + tests :
+  * `GenerateInstallerTask` (thin-wrapper abstract DefaultTask, `@DisableCachingByDefault` package `org.gradle.work`, `@Input targetOs`, `@Internal installerExtension`, `@OutputDirectory outputDir`)
+  * Registration `generateLinuxInstaller` / `generateWindowsInstaller` / `generateMacInstaller` / `buildAllInstallers` (dependOn les 3)
+  * 10 tests unit (3 plugin + 7 generator) + 2 functional TestKit PASSED.
+- BDD (pattern S-082) — `academy_installer.feature` `@installer` 5 scénarios + runner `AcademyInstallerCucumberRunner` + `cucumberTestInstaller` TaskSpec câblé à `check`.
+- Gates : `./gradlew check` BUILD SUCCESSFUL (unit + functional + `cucumberTestInstaller` 5/5), `validatePlugins` VERT, `publishToMavenLocal` BUILD SUCCESSFUL.
+- ACADEMY-6-0 — `CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` : 5 constats, 9 décisions (D-ACADEMY-6-1..9), découpage US précis (6-1..7), options écartées, articulation ACADEMY-1 → 6 → 5 → 7.
+
+== Décisions prises
+
+- Décisions d'implémentation ACADEMY-1 : domaine pur hors Gradle (testable), tasks thin-wrapper, agrégat `buildAllInstallers`, conventions par défaut dérivées de `project.version`, zéro secret.
+- Décisions de cadrage ACADEMY-6 (D-ACADEMY-6-1..9, voir `CADRAGE_EPIC_ACADEMY_INSTALLER.adoc`).
+- BDD : runner dédié par feature (pattern S-082), `cucumberTestInstaller` seul branché à `check` (le `cucumberTest` générique reste registré sans branchage pour éviter la double exécution).
+
+== Prochaines étapes
+
+1. ACADEMY-6-1 (Linux raffermi : arch aarch64, persistence PATH/JAVA_HOME) — ordre 1 → 6 → 5 → 7.
+2. Puis ACADEMY-6-2 (Windows profil 64-bit), ACADEMY-6-3 (macOS), ACADEMY-6-4 (compose), ACADEMY-6-5 (seed), ACADEMY-6-6 (dogfooding), ACADEMY-6-7 (Cucumber étendu).
+3. Push du dépôt vers origin cccp-education/academy-gradle (exécuté en clôture S-003).
+
+== Métriques
+
+- Fichiers source créés : 6 (AcademyPlugin réécrit, AcademyInstallerExtension, AcademyPluginTest, TargetOs, InstallerPlatform, InstallerFile, InstallerScriptGenerator, InstallerScriptGeneratorTest, GenerateInstallerTask, AcademyInstallerFunctionalTest → 9 au total)
+- Fichiers BDD créés : 4 (features, steps, runner, junit-platform.properties) + build.gradle.kts modifié
+- Tests : 10 unit + 2 functional + 5 scénarios cucumber = 17 checks, 0 FAIL
+- Documents gouvernance : BACKLOG, INDEX, PROMPT_REPRISE, SESSIONS_HISTORY, TEST_COVERAGE_ANALYSIS, archive + CADRAGE_EPIC_ACADEMY_INSTALLER.adoc
+- Sessions enregistrées : 4 (000, 001, 002, 003)
+
+---
+*Prochaine session* : ACADEMY-6-1 (Linux) — ordre acté 1 → 6 → 5 → 7.

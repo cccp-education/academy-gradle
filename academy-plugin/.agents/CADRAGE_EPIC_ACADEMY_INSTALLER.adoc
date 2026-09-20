@@ -1,0 +1,145 @@
+= Cadrage EPIC ACADEMY-6 — Installeur hybride multiplateforme (machine d'expérimentation)
+:date: 2026-09-20
+:session: 003
+:epic: ACADEMY-6
+:origine: BACKLOG academie + recadrage S-002 (D-ACADEMY-1..4) + socle ACADEMY-1 livré S-003
+:methode: Cadrage (gouvernance pure complété S-003) — pattern S-057/S-063
+:statut: CADRÉ — implémentation ACADEMY-6-1..7 séquencée après ACADEMY-1
+
+== Contexte
+
+Depuis le recadrage pilote S-002 (D-ACADEMY-1..4), le borough Bagdad livre
+une **machine d'expérimentation complète** du pipeline cccp.education via
+un **installeur hybride multiplateforme** :
+
+```
+┌─────────────────────────────  HOST  ─────────────────────────────┐
+│  Docker        (socle conteneurs)                                │
+│  Java Temurin 25 + Gradle 9.7.1  →  lance les plugins            │
+│      education.cccp (bakery, document, slider, capsule, ...)     │
+└──────────────────────────────┬───────────────────────────────────┘
+                               │ docker compose
+┌───────────────────────────── ▼  DOCKER  ─────────────────────────┐
+│  Moodle 4.x  (LMS formation, cours seedé)                        │
+│  MariaDB     (base Moodle, volumes persistants)                  │
+│  workspace   (session zsh + opencode via conteneur)              │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+La ressource est **mono-utilisateur, sans VPS**. L'installeur par
+plateforme (sh/bat) provisionne l'hôte, télécharge les dépendances,
+génère le `docker-compose.yml`, seede la base Moodle et les volumes, et
+génère `opencode.json` exposant les tâches Gradle de l'écosystème
+(D-ACADEMY-2).
+
+La session S-003 a livré le **socle générateur d'installateurs**
+(ACADEMY-1, 0/0/0 split) : extension typée `academyInstaller`
+(Property-based), domaine pur `education.cccp.academy.installer`
+(`TargetOs`, `InstallerPlatform`, `InstallerFile`,
+`InstallerScriptGenerator`), tâches `generateLinuxInstaller` /
+`generateWindowsInstaller` / `generateMacInstaller` /
+`buildAllInstallers` (thin-wrapper `GenerateInstallerTask`), coverage
+unitaire + functional TestKit + Cucumber BDD (`academy_installer.feature`,
+runner S-082). Ce cadrage tranche la **forme définitive** des scripts et
+l'articulation avec les Épics voisins.
+
+== Constats (audit S-003, état réel du code)
+
+. *Le socle ACADEMY-1 livre un scaffold* : scripts 100% déterministes
+   (rendu pur, zéro I/O), pins Java/Gradle inlinés, bootstrap Docker (check
+   shell Linux / cask Homebrew macOS / admin + PowerShell Windows),
+   garde d'idempotence (`~/.academy/.installed-<version>`), préfixe de
+   credentials via environnement (`ENV_PREFIX`) sans jamais embarquer de
+   valeur, scaffold compose (Moodle + MariaDB + workspace opencode zsh)
+   en heredoc uniquement quand `composeEnabled=true`.
+. *Le canonical du socle est volontairement naïf* ($ sous `~/.academy`,
+   Temurin/Linux via curl+tar x64, Windows via adoptium API + `setx`,
+   macOS via Homebrew) — il satisfait les 7 tests de la feature mais doit
+   être raffermi par plateforme (ACADEMY-6-1/2/3) : architecture multiple,
+   Java/Gradle alternatives/PATH persistants côté hôte, profiles Windows,
+   absence de `sudo` côté macOS.
+. *Le `${ENV_PREFIX}*` n'est pas encore lu par un job* : le scaffold
+   documente la convention, aucun service compose ne consomme une variable.
+   ACADEMY-6-4 doit matérialiser le `.env` et sa documentation.
+. *Le compose scaffold est un squelette* : services nommés, ports, volumes,
+   healthchecks, réseau et seed DB **absents** (ACADEMY-6-4/6-5).
+. *Aucune articulation avec ACADEMY-5 (opencode.json)* : le `run.sh` /
+   `opencode.json` de la machine n'est pas généré. Le dogfooding
+   (ACADEMY-6-6) exigera l'installeur + opencode + premier `gradle build`.
+. *Frontière KINSHASA* : le plugin academy **ne provisionne pas** de
+   runtime LLM distant (pas de Playwright/Colab/ports rotation) — il
+   *distribue* une machine locale ; KINSHASA (N0) reste le provisionnement
+   dev cross-borough. Aucune dépendance compile à ajouter.
+
+== Décisions
+
+|===
+| ID | Décision | US rattachée
+| D-ACADEMY-6-1 | L'installeur reste **un rendu pur par plateforme** étendu dans `InstallerScriptGenerator` (jamais de script au repo ni de blob) — la ressource est *générée* au `gradle build` du consommateur (D-ACADEMY-2). | 6-1/2/3
+| D-ACADEMY-6-2 | Linux : `install.sh` bootstrap Docker (doc + exit si absent), Temurin via `APT`/`curl` selon arch (`x86_64`/`aarch64`), Gradle `services.gradle.org`, `JAVA_HOME` + `PATH` persistés dans `~/.profile`, `gradle` proxy via `~/.local/bin` symlinks. Garde idempotence conservée (layer S-003). | 6-1
+| D-ACADEMY-6-3 | Windows : `.bat` admin (`net session`), downloads PowerShell (Temurin API + zip Gradle), `setx` `JAVA_HOME`/`PATH` (profil 64-bit documenté), fonctionne sur Windows 11. | 6-2
+| D-ACADEMY-6-4 | macOS : `.sh` Homebrew (`brew install --cask docker`, `openjdk@25`, `gradle`), `uname -m` pour Rosetta, **zéro sudo**. | 6-3
+| D-ACADEMY-6-5 | Le `docker-compose.yml` généré est **complet et directement exécutable** : services Moodle + MariaDB + workspace, network dédié, volumes nommés persistants, ports exposés (Moodle 8080), healthchecks, course seedée via entrypoint dédié, variables depuis `.env`. | 6-4/6-5
+| D-ACADEMY-6-6 | Le seed DB est **data-only** au premier `compose up` (entrypoint s'il n'existe pas) : création répertoires/configuration Moodle, import d'un cours minimal (matériel SPG/SPD quand ACADEMY-4 le fournit). Zéro migration destructive, idempotent. | 6-5
+| D-ACADEMY-6-7 | Articulation 1/5/6/7 : ACADEMY-1 = socle d'extension+tâches (déjà acté S-003) ; ACADEMY-6 = contenu définitif des scripts + compose + seed (cet EPIC) ; ACADEMY-5 = `opencode.json` + session zsh (consomme le workspace du conteneur) ; ACADEMY-7 = fournisseur LLM (alimente le `.env`/convention de l'installeur, jamais la valeur). Les ordres : ACADEMY-1 → 6 → 5 → 7. | articulation
+| D-ACADEMY-6-8 | ACADEMY-6 n'ajoute **aucune dépendance compile** (reste un pur générateur). Le dogfooding ACADEMY-6-6 est une validation manuelle/CI documentée, pas un test de build. | 6-6
+| D-ACADEMY-6-9 | Chaque US produit des tests à son niveau : unitaire pur + extension ; functional TestKit pour l'exécution réelle ; Cucumber pour le contenu (idempotence, agrégation, absence de secret). Baby-step DDD/TDD/BDD strict, English only. | 6-1..7
+|===
+
+== Découpage des US
+
+|===
+| US | Livrable | Tests
+| ACADEMY-6-0 | Ce cadrage (`CADRAGE_EPIC_ACADEMY_INSTALLER.adoc`) | zéro code
+| ACADEMY-6-1 | Linux raffermi : arch `aarch64`, persist `JAVA_HOME`/PATH/`~/.local/bin`, exit Docker documenté | +4 unit + 1 FT
+| ACADEMY-6-2 | Windows : profil 64-bit, PowerShell robuste, `setx` documenté | +4 unit + 1 FT
+| ACADEMY-6-3 | macOS : Homebrew cask, `uname -m` Rosetta, zéro sudo (déjà verrouillé) | +3 unit
+| ACADEMY-6-4 | `docker-compose.yml` complet : network, volumes, healthchecks, `.env` | +5 unit
+| ACADEMY-6-5 | Seed DB data-only au premier up (entrypoint idempotent, course minimale) | +4 unit + BDD
+| ACADEMY-6-6 | Dogfooding : conteneur éphémère, installeur Linux réel, étapes 1→7 | validation manuelle
+| ACADEMY-6-7 | Cucumber BDD installeur étendu (contenu OS, compose, idempotence, erreurs) | +6 scénarios
+|===
+
+== Options écartées
+
+- **Ressource pré-générée binaire/zip au repo** : contredit D-ACADEMY-2 (la
+  ressource est *générée* par le plugin à chaque build) et la Loi de
+  l'Économie d'Encre (artefacts volatils). Écartée.
+- **Atlas/Ansible/Puppet pour le provisionnement hôte** : sur-dimensionné
+  pour une machine mono-utilisateur, ajoute une dépendance runtime.
+  Écarté (le shell natif suffit).
+- **Installeur unique multi-OS (un script bash universel + branches)** :
+  le `.bat` Windows reste structurellement distinct (admin, PowerShell,
+  `setx`) ; un hybride unique alourdit la maintenance et les tests.
+  Écarté (D-ACADEMY-6-1 : un rendu par `TargetOs`).
+- **Répliquer le provisionnement KINSHASA (Playwright/Colab/ports)** :
+  hors mission — D-ACADEMY-3 tranche : academy distribue, KINSHASA provisionne le dev cross-borough. Écarté.
+- **Persister les credentials dans opencode.json/`.env`** : interdit (zéro
+  secret, D-ACADEMY-4 + règle Secrets gouvernance). Le `.env` de
+  ACADEMY-6-5 contient seulement des noms/URLs, valeurs attendues à
+  l'exécution.
+
+== Articulation des Épics
+
+```
+ACADEMY-1 (socle générateur)  ──▶ ACADEMY-6 (contenu définitif: hôte/scripts/compose/seed)
+                                        │
+                    ┌───────────────────┼───────────────────┐
+                    ▼                   ▼                   ▼
+            ACADEMY-5 (InteractionProtocol/opencode.json + session zsh)
+                                        │
+                                        ▼
+            ACADEMY-7 (BYOK LLM fournisseur → convention .env, jamais de valeur)
+```
+
+ACADEMY-2/3/4 (contrats FormationRuntime / SessionMemory / MaterialUpdate)
+reçoivent le matériel une fois la machine fonctionnelle (ACADEMY-6-5 seed)
+— ils restent séquencés après cet EPIC.
+
+== Gates
+
+- `./gradlew check` VERT (unit + functional + `cucumberTestInstaller`).
+- `./gradlew publishToMavenLocal` VERT après chaque modification.
+- `validatePlugins` VERT.
+- Zéro secret (grep `TOKEN|SECRET|PASSWORD|API_KEY` = 0).
+- Backward compat : extension et tâches ACADEMY-1 inchangées.

@@ -80,7 +80,29 @@ tasks.named<Test>("test") {
     filter { excludeTestsMatching("*.scenarios.*") }
 }
 
-tasks.check { dependsOn(cucumberTest) }
+// ── ACADEMY-1-2 — Dedicated Cucumber runner for academy_installer.feature (pattern S-082) ──
+// Scoped to AcademyInstallerCucumberRunner so only the installer feature runs.
+val cucumberTestInstaller by tasks.registering(Test::class) {
+    group = "verification"
+    description = "Runs the academy_installer.feature Cucumber suite (ACADEMY-1-2)"
+    testClassesDirs = sourceSets.getByName("test").output.classesDirs
+    classpath = configurations.getByName("testRuntimeClasspath") +
+        sourceSets.getByName("test").output +
+        sourceSets.getByName("main").output
+    useJUnitPlatform {
+        excludeEngines("junit-jupiter")
+    }
+    filter {
+        includeTestsMatching("education.cccp.academy.bdd.AcademyInstallerCucumberRunner")
+    }
+    systemProperty("cucumber.junit-platform.naming-strategy", "long")
+    systemProperty("cucumber.features", "src/test/resources/features/academy_installer.feature")
+    systemProperty("cucumber.filter.tags", "@installer and not @wip and not @integration")
+    shouldRunAfter(tasks.named("test"))
+    outputs.upToDateWhen { false }
+}
+
+tasks.check { dependsOn(cucumberTestInstaller) }
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()

@@ -6,10 +6,10 @@ _Regles absolues_ : voir `AGENT.adoc`
 _DAG_ : N2 — Plugin Gradle de consommation (Regle 4bis)
 _Projet_ : academy-gradle (education.cccp.academy)
 
-_Derniere mise a jour_ : 2026-09-20 (session 002)
-_Session terminee_ : 002 — Recadrage de l'orientation Academy (installeur hybride)
-_Sessions precedent_ : 001 — Alignement article 0124 + gouvernance + repo Git ; 000 — Bootstrap
-_Prochaine session_ : travailler sur l'EPIC ACADEMY-1 (socle générateur d'installateurs, US-0) ou ACADEMY-6-0 (cadrage installeur hybride).
+_Derniere mise a jour_ : 2026-09-20 (session 003)
+_Session terminee_ : 003 — Socle générateur d'installateurs (ACADEMY-1) + cadrage ACADEMY-6-0
+_Sessions precedent_ : 002 — Recadrage de l'orientation Academy (installeur hybride) ; 001 — Alignement article 0124 + gouvernance + repo Git ; 000 — Bootstrap
+_Prochaine session_ : ACADEMY-6-1 (installeur Linux raffermi) — ordre acté 1 → 6 → 5 → 7.
 
 '''
 == REGLES ABSOLUES
@@ -90,6 +90,33 @@ _Total_ : 2 US, ~3 pts. _Methode_ : gouvernance pure.
 _Statut_ : 2/2 US terminées (S-002). EPIC ACADEMY-0-TER CLOS.
 
 '''
+== ✅ EPIC ACADEMY-1 — Socle générateur d'installateurs
+
+_Source_ : Session 003. Extension typée `academyInstaller` (Property-based), domaine pur `education.cccp.academy.installer`, tâches de génération par plateforme + agrégat, tests unit + functional + Cucumber BDD (runner dédié S-082).
+
+_Dependances_ : Aucune.
+
+[cols="1,3,1,1", options="header"]
+|===
+| US | Description | Pts | Statut
+| ACADEMY-1-0
+| *Extension + plugin wiring* — `AcademyInstallerExtension` (8 properties), `AcademyPlugin.wireDefaults` (conventions, applicationVersion := project.version), registration des 4 tâches.
+| 3
+| ✅ TERMINÉ (S-003)
+| ACADEMY-1-1
+| *Domaine pur installateur* — TargetOs / InstallerPlatform (+ invariants) / InstallerFile / InstallerScriptGenerator.render() (scripts bash/bat déterministes, zéro I/O).
+| 3
+| ✅ TERMINÉ (S-003)
+| ACADEMY-1-2
+| *Tests* — 3 unit plugin + 7 unit generator + 2 functional TestKit + 5 scénarios cucumber `academy_installer.feature` (runner `AcademyInstallerCucumberRunner`, `cucumberTestInstaller` branché à check).
+| 3
+| ✅ TERMINÉ (S-003)
+|===
+
+_Total_ : 3 US, ~9 pts. _Methode_ : baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR).
+_Statut_ : 3/3 US terminées (S-003). EPIC ACADEMY-1 CLOS. Gates : check VERT (10 unit + 2 functional + 5 cucumber), validatePlugins VERT, publishToMavenLocal VERT.
+
+'''
 == Sessions
 
 |===
@@ -97,6 +124,7 @@ _Statut_ : 2/2 US terminées (S-002). EPIC ACADEMY-0-TER CLOS.
 | 000 | 2026-09-19 | bootstrap | Initialisation du borough academy-gradle | 2/2
 | 001 | 2026-09-19 | architecture | Alignement article 0124 + fusion gouvernance + licence Apache 2.0 + repo Git | 6/6
 | 002 | 2026-09-20 | refonte | Recadrage de l'orientation — installeur hybride (vision actée, D-ACADEMY-1..4) | 3/3
+| 003 | 2026-09-20 | développement | Socle générateur d'installateurs (ACADEMY-1 3/3 US, BDD 5 scénarios) + cadrage ACADEMY-6-0 | 17/17
 |===
 
 '''
@@ -114,7 +142,7 @@ _Statut_ : 2/2 US terminées (S-002). EPIC ACADEMY-0-TER CLOS.
 | capsule-gradle | `foundry/public/capsule-gradle/capsule-plugin/` | 11 | 2026-05-19
 | workspace-gradle | `foundry/public/workspace-gradle/` | 1 | 2026-05-17
 | magic-stick | `office/sites/magic-stick/` | 4 | 2026-05-11
-| academy-gradle | `foundry/public/academy-gradle/` | 3 | 2026-09-20
+| academy-gradle | `foundry/public/academy-gradle/` | 4 | 2026-09-20
 |===
 
 '''
