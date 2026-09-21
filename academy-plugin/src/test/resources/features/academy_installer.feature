@@ -85,12 +85,14 @@ Feature: Academy installer generation (ACADEMY-1)
     When the installer generator renders the platform
     Then the script contains "portainer/portainer-ce"
 
-  Scenario: the unpublished workspace image is deferred with a TODO
+  Scenario: the workspace service is provisioned with a generable image and the opencode agent
     Given a platform targeting "linux"
     And compose embedding enabled
     When the installer generator renders the platform
-    Then the script does not contain "cccp-education/academy-workspace"
-    And the script contains "TODO ACADEMY-5"
+    Then the script contains "cccp-education/academy-workspace"
+    And the script contains "Dockerfile"
+    And the script contains "FROM gradle:9.7.1-jdk25"
+    And the script does not contain "TODO ACADEMY-5"
 
   Scenario: env documents the moodle runtime variables without values
     Given a platform targeting "linux"
@@ -185,12 +187,13 @@ Feature: Academy installer generation (ACADEMY-1)
     And the script contains "$APP_DIR/.env"
     And the script contains "$APP_DIR/seed/seed.sh"
 
-  Scenario: opencode configuration is deferred until the workspace image is published
+  Scenario: opencode configuration and learner guide are generated with the workspace image
     Given a platform targeting "linux"
     And compose embedding enabled
     When the installer generator renders the platform
-    Then the script does not contain "opencode.json"
-    And the script contains "TODO ACADEMY-5"
+    Then the script contains "opencode.json"
+    And the script contains "AGENTS.md"
+    And the script does not contain "TODO ACADEMY-5"
 
   Scenario: credentials are a convention, never embedded values
     Given a platform targeting "linux"

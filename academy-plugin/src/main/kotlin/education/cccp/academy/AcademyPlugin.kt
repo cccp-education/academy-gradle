@@ -33,6 +33,9 @@ class AcademyPlugin : Plugin<Project> {
         extension.outputDir.convention(project.layout.buildDirectory.dir("academy/installers"))
         extension.composeEnabled.convention(true)
         extension.credentialsEnvPrefix.convention("ACADEMY_")
+        extension.openCodeEnabled.convention(true)
+        extension.openCodeModel.convention("gpt-oss:120b-cloud")
+        extension.openCodeProviderUrl.convention("http://ollama:11434/v1")
     }
 
     private fun registerInstallerTasks(project: Project, extension: AcademyInstallerExtension) {

@@ -199,14 +199,18 @@ class InstallerScriptGeneratorTest {
     }
 
     @Test
-    fun `workspace service stays deferred until the academy image is published`() {
+    fun `workspace service is provisioned with the generated image and the opencode agent (ACADEMY-5)`() {
         val script = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
 
-        assertFalse(
+        assertTrue(
             script.contains("cccp-education/academy-workspace"),
-            "the unpublished workspace image must not be an active service (it would break compose up)",
+            "the workspace image must now be a real, generable service (ACADEMY-5)",
         )
-        assertTrue(script.contains("TODO ACADEMY-5"), "the deferred workspace service must be marked as a TODO")
+        assertTrue(script.contains("build:"), "the workspace image must be built from the generated Dockerfile")
+        assertTrue(script.contains("./project:/workspace"), "the learner project must be mounted into the workspace")
+        assertTrue(script.contains("Dockerfile"), "the generated Dockerfile must be written by the installer")
+        assertTrue(script.contains("opencode.json"), "opencode.json must now be generated (ACADEMY-5)")
+        assertTrue(script.contains("AGENTS.md"), "AGENTS.md (opencode anchor) must now be generated (ACADEMY-5)")
     }
 
     @Test
@@ -270,8 +274,12 @@ class InstallerScriptGeneratorTest {
         assertTrue(script.contains("command -v docker"), "linux installer must check the Docker engine")
         assertFalse(script.contains("JAVA_HOME"), "the host must not provision Java (D-ACADEMY-6-10)")
         assertFalse(script.contains("temurin"), "the host must not download Temurin (D-ACADEMY-6-10)")
+        assertFalse(script.contains("adoptium"), "the host must not download Adoptium (D-ACADEMY-6-10)")
         assertFalse(script.contains("services.gradle.org"), "the host must not download Gradle (D-ACADEMY-6-10)")
-        assertFalse(script.contains("jdk"), "the host must not install a JDK (D-ACADEMY-6-10)")
+        assertTrue(
+            script.contains("FROM gradle:9.7.1-jdk25"),
+            "the toolchain lives in the workspace image, never on the host (D-ACADEMY-6-10)",
+        )
     }
 
     @Test
@@ -329,11 +337,13 @@ class InstallerScriptGeneratorTest {
     }
 
     @Test
-    fun `opencode configuration is deferred with the workspace service`() {
+    fun `opencode configuration is generated with the workspace service (ACADEMY-5)`() {
         val script = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
 
-        assertFalse(script.contains("opencode.json"), "opencode.json must not be generated before ACADEMY-5")
-        assertTrue(script.contains("TODO ACADEMY-5"), "the deferred opencode/workspace step must be traced")
+        assertTrue(script.contains("opencode.json"), "opencode.json must be generated with the workspace service")
+        assertTrue(script.contains("AGENTS.md"), "the learner guide AGENTS.md must be generated")
+        assertTrue(script.contains("\$APP_DIR/project/opencode.json"), "opencode config must land in the mounted learner project")
+        assertFalse(script.contains("TODO ACADEMY-5"), "the deferred-workspace TODO is resolved by ACADEMY-5")
     }
 
     @Test

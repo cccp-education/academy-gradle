@@ -6,10 +6,10 @@ _Regles absolues_ : voir `AGENT.adoc`
 _DAG_ : N2 — Plugin Gradle de consommation (Regle 4bis)
 _Projet_ : academy-gradle (education.cccp.academy)
 
-_Derniere mise a jour_ : 2026-09-21 (session 008)
-_Session terminee_ : 008 — ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ : Cucumber BDD étendu (contenu OS, chemins, idempotence, erreurs, opencode.json différé) + alignement du contenu OS sur D-ACADEMY-6-10 (hôte = Docker uniquement, zéro provisioning Java/Gradle hôte) ; ACADEMY-6-1/2/3 CADUQUES absorbés
-_Sessions precedent_ : 007 — ACADEMY-6-6 TERMINÉ (dogfooding bout-en-bout, 5 écarts corrigés) ; 006 — ACADEMY-6-5 TERMINÉ (seed DB data-only) ; 005 — ACADEMY-6-4 TERMINÉ (compose complet) ; 004 — Révisions pilote du scaffold compose ; 003 — Socle générateur (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation ; 001 — Alignement article 0124 ; 000 — Bootstrap
-_Prochaine session_ : ACADEMY-5 (opencode.json + session zsh, contient le TODO workspace à réinsérer dans `composeBody()`) — puis ACADEMY-7 (BYOK LLM).
+_Derniere mise a jour_ : 2026-09-21 (session 009)
+_Session terminee_ : 009 — ACADEMY-5 TERMINÉ : exposition agent (opencode) — domaine pur `academy.opencode` (6 fichiers : `OpenCodeConfig`/`OpenCodePlugin`/`OpenCodeCatalog` 11 plugins publics/`OpenCodeConfigGenerator`/`LearnerGuideGenerator`/`WorkspaceDockerfileGenerator`) + service `workspace` (profile `agent`, TODO S-007 résolu) + `$APP_DIR/project/{Dockerfile,opencode.json,AGENTS.md}` générés (parité Linux/Windows) + extension 3 properties ; dogfooding réel (Dockerfile buildé, `opencode 1.18.31` en tant que `learner`, bug install-root corrigé D-ACADEMY-5-11) ; ACADEMY-5-2 absorbée
+_Sessions precedent_ : 008 — ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ ; 007 — ACADEMY-6-6 TERMINÉ (dogfooding bout-en-bout) ; 006 — ACADEMY-6-5 TERMINÉ (seed DB data-only) ; 005 — ACADEMY-6-4 TERMINÉ (compose complet) ; 004 — Révisions pilote du scaffold compose ; 003 — Socle générateur (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation ; 001 — Alignement article 0124 ; 000 — Bootstrap
+_Prochaine session_ : ACADEMY-7 (BYOK LLM — `ByokLlmConfig` → `opencode.json` multi-provider) — puis ACADEMY-8 (webhooks + bridge Ktor) et ACADEMY-2/3/4 (ports N0).
 
 '''
 == REGLES ABSOLUES
@@ -164,6 +164,37 @@ _Statut_ : **EPIC ACADEMY-6 TERMINÉ (S-008)** — ACADEMY-6-0 ✅ + **ACADEMY-6
 _Gates S-008_ : `clean check validatePlugins` VERT (28 unit + 6 functional + 21 scénarios Cucumber), `publishToMavenLocal` VERT, dogfooding `sh -n` + `docker compose config` VALIDES, zéro provisioning hôte (grep 0), zéro secret, zéro `mariadb` en prod.
 
 '''
+== ✅ EPIC ACADEMY-5 — Intégration du contrat InteractionProtocol (opencode)
+
+_Source_ : Session 009. Exposition de l'agent opencode au stagiaire : `opencode.json` + `AGENTS.md` générés, session zsh dans le conteneur `workspace` (image générée sur `gradle:9.7.1-jdk25`), inventaire des tâches Gradle `education.cccp` publiques.
+
+_Dependances_ : ACADEMY-1 (socle) ✅, ACADEMY-6 (compose/seed) ✅.
+
+[cols="1,3,1,1", options="header"]
+|===
+| US | Description | Pts | Statut
+| ACADEMY-5-0
+| *Cadrage* — `CADRAGE_EPIC_ACADEMY_5_OPENCODE.adoc` (constats, D-ACADEMY-5-1..11, options écartées). Découverte : l'image officielle `ghcr.io/anomalyco/opencode` est Alpine-minimal (inapte Gradle) → Dockerfile généré sur `gradle:9.7.1-jdk25`.
+| 3
+| ✅ TERMINÉ (S-009)
+| ACADEMY-5-1
+| *Domaine pur + wiring* — domaine `academy.opencode` (6 fichiers), extension 3 properties, service `workspace` (profile `agent`), `$APP_DIR/project/{Dockerfile,opencode.json,AGENTS.md}` (parité Linux/Windows). Dogfooding réel : build image + `opencode 1.18.31` en tant que `learner` ; bug install-root corrigé (D-ACADEMY-5-11).
+| 8
+| ✅ TERMINÉ (S-009)
+| ACADEMY-5-2
+| *Provision du projet consommateur* — **absorbée par 5-1** : le `project/` généré (Dockerfile + opencode.json + AGENTS.md + README du premier `gradle build`) est le projet consommateur.
+| —
+| ✅ ABSORBÉE (S-009)
+|===
+
+_Total_ : 2 US, ~11 pts. _Methode_ : baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR).
+_Statut_ : **EPIC ACADEMY-5 TERMINÉ (S-009)** — ACADEMY-5-0 ✅ + ACADEMY-5-1 ✅ + ACADEMY-5-2 ✅ absorbée.
+
+_Gates S-009_ : `clean check validatePlugins` VERT (50 unit + 7 functional + 21 scénarios installer + 5 scénarios opencode), `publishToMavenLocal` VERT, dogfooding `sh -n` + `docker compose config` + `jq` + `docker build` VALIDES, `opencode --version` en tant que `learner`, zéro secret.
+
+'''
+
+'''
 == Sessions
 
 |===
@@ -177,6 +208,7 @@ _Gates S-008_ : `clean check validatePlugins` VERT (28 unit + 6 functional + 21 
 | 006 | 2026-09-22 | développement | ACADEMY-6-5 TERMINÉ — seed DB data-only (service one-shot `moodle-seed`, entrypoint idempotent, SQL `WHERE NOT EXISTS`) + parité structurelle Linux/Windows + idempotence prouvée PostgreSQL 16 réel | 5/5
 | 007 | 2026-09-21 | développement | ACADEMY-6-6 TERMINÉ — dogfooding bout-en-bout : 5 écarts découverts + corrigés (Moodle réel 5.2.3, contrat env `DB_*`/`MOODLE_*`, portainer-ce, workspace différé) ; run réel complet prouvé | 5/5
 | 008 | 2026-09-21 | développement | ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ — Cucumber BDD étendu (contenu OS, chemins, idempotence, erreurs, opencode.json différé) + hôte = Docker uniquement (D-ACADEMY-6-10 appliqué) ; 6-1/2/3 CADUQUES absorbés | 5/5
+| 009 | 2026-09-21 | développement | ACADEMY-5 TERMINÉ — exposition agent opencode : domaine `academy.opencode` (6 fichiers, 11 plugins catalogués), service `workspace` (profile agent, TODO S-007 résolu), `$APP_DIR/project/{Dockerfile,opencode.json,AGENTS.md}` générés (parité Linux/Windows), extension 3 properties ; dogfooding réel (build image, `opencode 1.18.31` learner, bug install-root D-ACADEMY-5-11) | 11/11
 |===
 
 '''
@@ -194,7 +226,7 @@ _Gates S-008_ : `clean check validatePlugins` VERT (28 unit + 6 functional + 21 
 | capsule-gradle | `foundry/public/capsule-gradle/capsule-plugin/` | 11 | 2026-05-19
 | workspace-gradle | `foundry/public/workspace-gradle/` | 1 | 2026-05-17
 | magic-stick | `office/sites/magic-stick/` | 4 | 2026-05-11
-| academy-gradle | `foundry/public/academy-gradle/` | 5 | 2026-09-22
+| academy-gradle | `foundry/public/academy-gradle/` | 9 | 2026-09-21
 |===
 
 '''

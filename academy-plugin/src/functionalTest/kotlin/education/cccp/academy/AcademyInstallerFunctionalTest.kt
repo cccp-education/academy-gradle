@@ -116,10 +116,11 @@ class AcademyInstallerFunctionalTest {
             )
             assertFalse(script.contains("moodle:4.5"), "the non-existent placeholder image must be gone")
             assertTrue(script.contains("portainer/portainer-ce"), "portainer must use the maintained CE image")
-            assertFalse(
+            assertTrue(
                 script.contains("cccp-education/academy-workspace"),
-                "the unpublished workspace image must not block compose up",
+                "the workspace image must now be a buildable service (ACADEMY-5)",
             )
+            assertTrue(script.contains("Dockerfile"), "the workspace Dockerfile must be written by the installer")
             assertTrue(script.contains("DB_TYPE"), "moodle must wire PostgreSQL via the real contract")
             assertTrue(script.contains("MOODLE_USERNAME"), "moodle auto-install requires the admin variables")
         }
@@ -189,6 +190,32 @@ class AcademyInstallerFunctionalTest {
             assertFalse(script.contains("JAVA_HOME"), "the host must not provision Java (D-ACADEMY-6-10)")
             assertFalse(script.contains("services.gradle.org"), "the host must not download Gradle (D-ACADEMY-6-10)")
         }
+    }
+
+    @Test
+    fun `workspace image opencode config and learner guide are written as real files`() {
+        writeBuild(
+            """
+            plugins {
+                id("education.cccp.academy")
+            }
+            """.trimIndent(),
+        )
+
+        val result = runner("buildAllInstallers").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":buildAllInstallers")?.outcome)
+
+        val linux = File(projectDir, "build/academy/installers/linux/install.sh").readText()
+        assertTrue(linux.contains("cat > \"\$APP_DIR/project/Dockerfile\" <<'EOF'"), "linux must write the workspace Dockerfile")
+        assertTrue(linux.contains("cat > \"\$APP_DIR/project/opencode.json\" <<'EOF'"), "linux must write opencode.json")
+        assertTrue(linux.contains("cat > \"\$APP_DIR/project/AGENTS.md\" <<'EOF'"), "linux must write the learner guide")
+        assertTrue(linux.contains("FROM gradle:9.7.1-jdk25"), "the Dockerfile must base on the pinned gradle image")
+
+        val windows = File(projectDir, "build/academy/installers/windows/install.bat").readText()
+        assertTrue(windows.contains("> \"%APP_DIR%\\project\\Dockerfile\" ("), "windows must write the workspace Dockerfile (parity)")
+        assertTrue(windows.contains("> \"%APP_DIR%\\project\\opencode.json\" ("), "windows must write opencode.json (parity)")
+        assertTrue(windows.contains("FROM gradle:9.7.1-jdk25"), "windows Dockerfile must base on the pinned gradle image (parity)")
     }
 
     private fun writeBuild(content: String) {

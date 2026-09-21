@@ -1,0 +1,144 @@
+= Cadrage EPIC ACADEMY-5 — Intégration du contrat InteractionProtocol (opencode)
+:date: 2026-09-21
+:session: 009
+:epic: ACADEMY-5
+:origine: BACKLOG academy + PROMPT_REPRISE S-008 + VISION_PIPELINE_FORMATION.adoc § 3.3/9.2 + CADRAGE_EPIC_RUNTIME_AGENTIQUE.adoc § 6
+:methode: Cadrage (gouvernance pure) — pattern S-057/S-063
+:statut: CADRÉ — implémentation ACADEMY-5-1 séquencée dans la même session
+
+== Contexte
+
+ACADEMY-6 (installeur hybride multiplateforme) est **TERMINÉ (S-008)** : les
+trois scripts (Linux/macOS/Windows) génèrent un scaffold compose complet
+(Moodle + PostgreSQL + Ollama + Portainer), seedé data-only, directement
+exécutable. Le service `workspace` (session zsh + opencode) est **différé**
+(TODO `ACADEMY-5` dans `composeBody()`) car son image
+`cccp-education/academy-workspace:latest` **n'existe pas**.
+
+La vision (§ 3.3 `VISION_PIPELINE_FORMATION.adoc`) acte qu'academy expose
+trois capacités au stagiaire : **Moodle LMS** (le cours, ✅ ACADEMY-6) +
+**opencode** (l'agent) + **BYOK LLM** (ACADEMY-7). ACADEMY-5 branche
+l'**agent opencode** : il expose les tâches Gradle `education.cccp` de
+l'écosystème et fournit le guide d'apprentissage.
+
+== Constats (audit S-009, état réel du code et du workspace)
+
+. *Le TODO workspace est bloqué par une image inexistante* : le point
+   d'insertion `# TODO ACADEMY-5` (`InstallerScriptGenerator.composeBody()`)
+   attend un service `workspace` dont l'image `cccp-education/academy-workspace`
+   **n'est nulle part** (grep cross-workspace : zéro Dockerfile, zéro CI de
+   publication). Publier une image custom est un chantier infra (registry
+   cccp-education, rebuild à chaque bump de l'écosystème) sans lien avec la
+   mission « exposer opencode ».
+. *`ghcr.io/anomalyco/opencode` est réelle mais **insuffisante*** (vérifié
+   `docker manifest inspect` **et** `docker run` S-009) : l'image officielle est
+   **Alpine-minimal** — ni `zsh`, ni `bash`, ni `git`, ni Java, ni Gradle
+   (seul `/bin/sh`). Elle **ne peut pas** exécuter les tâches Gradle de
+   l'écosystème, et ne satisfait pas « session zsh » (D-ACADEMY-1). La
+   constatation invalide l'hypothèse « image officielle telle quelle ».
+. *Base réelle du workspace = `gradle:9.7.1-jdk25`* (vérifié `docker run`
+   S-009) : Ubuntu 26.04, root, `bash` + `git` + `curl` + `unzip` + `apt-get`
+   présents, Java 25 + Gradle 9.7.1 inclus — **exactement** les pins
+   documentaires de D-ACADEMY-6-10, et zsh installable par `apt-get`. C'est la
+   base du `Dockerfile` workspace généré (D-ACADEMY-5-1 révisée).
+. *`opencode.json` n'est généré nulle part* : le scaffold ACADEMY-6 s'arrête au
+   compose + seed. Aucun fichier de configuration opencode n'est produit, alors
+   que la vision (§ 3.3) en fait le point d'exposition des tâches Gradle.
+. *Le contrat N0 est disponible mais partiellement dormant* :
+   `runtime-contracts` (MEMPHIS N0, **publié Central 0.0.1**, BOM 0.0.47)
+   contient `InteractionProtocol` (`fun nextTurn(current: FormationTurn):
+   FormationTurn?`), `FormationTurn`, `FormationRuntimePort`, `SessionBootstrap`,
+   `ByokLlmConfig`, `ToolExposure`, `SessionMemoryContract`, `LearnerProfile`.
+   Le cadrage RUNTIME-AGENTIQUE (§ 6) tranche : **academy est l'implémenteur**.
+   Mais `ToolExposure` lui-même est *data-only* (une règle `foundry/public/*`),
+   pas un manifeste de tâches ; la boucle `FormationRuntimePort` exige un
+   runtime LLM (BYOK, ACADEMY-7) qui n'existe pas encore.
+. *L'écosystème des tâches Gradle est réel et cataloguable* (vérifié source
+   S-009, jamais deviné — leçon S-007 `moodle:4.5`) : 12 boroughs publics
+   exposent des tâches dans des groupes `education.cccp`. Les domaines
+   fonctionnels de la vision (formation) sont : bakery `generateSite`,
+   slider `generateDeck`/`generateDeckPipeline`, capsule
+   `generateCapsuleVideo`, document `bookPipeline`/`generateDocument`,
+   plantuml `generatePlantumlDiagrams`, graphify `collectAndVerify`.
+. *`AGENTS.md` est le point d'ancrage opencode* (documentation officielle) :
+   opencode découvre automatiquement `AGENTS.md` à la racine du projet. Le
+   guide apprenant (comment lancer une formation avec l'agent) doit donc être
+   généré dans le workspace, pas dans le plugin.
+. *La frontière `ToolExposure` est un guardrail physique* : l'apprenant
+   n'invoque que `foundry/public/*` ; `foundry/private/*` (training, edster,
+   workspace) est hors périmètre. Le `opencode.json` généré doit donc
+   **n'exposer que les plugins publics** et zéro secret.
+
+== Décisions
+
+|===
+| ID | Décision | US rattachée
+| D-ACADEMY-5-1 | **Workspace = `Dockerfile` généré sur la base `gradle:9.7.1-jdk25`** (Ubuntu 26.04 : bash + git + curl + unzip + apt-get + Java 25 + Gradle 9.7.1), qui installe `zsh` (apt) + `opencode` (script officiel `https://opencode.ai/install`), crée l'utilisateur `learner` et déclare le `WORKDIR`/volume du projet. **L'image officielle `ghcr.io/anomalyco/opencode` est Alpine-minimal** (ni shell évolué, ni git, ni Java/Gradle) → inapte à exécuter les tâches Gradle : écartée comme image unique, le binaire `opencode` reste installé par le script officiel. L'image `academy-workspace` est **générée à côté du compose** (`$APP_DIR/Dockerfile`) et construite par `docker compose build` — zéro registry, zéro publication. | 5-1
+| D-ACADEMY-5-2 | **`opencode.json` est généré par le plugin** (rendu pur, pattern D-ACADEMY-6-1) — jamais un blob au repo. Contenu : `$schema`, `model` (`ollama/<modèle>`), `provider` (Ollama embarqué pointant `http://ollama:11434/v1` par défaut, cohérent avec le service compose), `instructions` (`AGENTS.md`). Le guardrail `foundry/public` est porté par le catalogue (`OpenCodeCatalog`) et documenté dans `AGENTS.md` — pas par une clé `permission` d'opencode (décision S-009 : opencode n'a pas de notion de « borough », la clé n'aurait aucun effet). Zéro secret : le fournisseur LLM réel est l'affaire d'ACADEMY-7 (BYOK). | 5-1
+| D-ACADEMY-5-3 | **Domaine pur `education.cccp.academy.opencode`** (`opencode` ≠ `installer`) : `OpenCodeConfig` (data class immutable + invariants) + `OpenCodeCatalog` (tâches Gradle publiques vérifiées par domaine, source unique) + `OpenCodeConfigGenerator` (object pur → JSON déterministe, zéro I/O). Le JSON est *construit par concaténation déterministe*, pas par une lib de sérialisation (zéro dépendance compile — D-ACADEMY-6-8). | 5-1
+| D-ACADEMY-5-4 | **`AGENTS.md` apprenant généré** (`LearnerGuideGenerator`, object pur) : identité du workspace, inventaire des tâches Gradle exposées (lues depuis `OpenCodeCatalog`), démarche pas-à-pas (build → compose up → opencode → tâche). Point d'ancrage officiel opencode. | 5-1
+| D-ACADEMY-5-5 | **Extension étendue de 3 properties** (`academyInstaller { }`) : `openCodeEnabled` (défaut `true`), `openCodeModel` (défaut `gpt-oss:120b-cloud`), `openCodeProviderUrl` (défaut `http://ollama:11434/v1`). Backward compat totale : les properties ACADEMY-1/6 sont inchangées. | 5-1
+| D-ACADEMY-5-6 | **Le service `workspace` rétabli dans `composeBody()`** (remplace le TODO), avec le projet apprenant monté en volume (`./project:/workspace`), `depends_on: ollama`, réseau `academy-net`, `profiles: ["agent"]` (opt-in : `docker compose --profile agent up` — la formation Moodle reste le défaut, l'agent est optionnel). | 5-1
+| D-ACADEMY-5-11 | **opencode installé EN TANT QUE `learner` dans l'image** — découvert par dogfooding S-009 : un install lancé après `USER root` atterrit dans `/root/.opencode`, invisible au `learner` (`$HOME`) → `command not found` au runtime. Le Dockerfile bascule `USER learner` **avant** l'install et fixe `ENV HOME=/home/learner`. Prouvé par build réel + `opencode --version` = 1.18.31 en tant que `learner`. | 5-1
+| D-ACADEMY-5-7 | **`opencode.json` + `AGENTS.md` écrits sous `$APP_DIR/project/`** par le scaffold (parité structurelle Linux/Windows via source unique partagée — leçon S-005/S-006), aux côtés de `docker-compose.yml`/`.env`/`seed/`. Le `project/` est le workspace monté dans le conteneur. | 5-1
+| D-ACADEMY-5-8 | **L'implémentation des contrats `FormationRuntimePort`/`InteractionProtocol` reste hors session** : elle exige un runtime LLM (BYOK, ACADEMY-7) et un pont Gradle↔opencode (ACADEMY-8 Ktor). ACADEMY-5 livre l'**exposition** (config agent + guide + service), pas la boucle de session. Recadrage du BACKLOG : ACADEMY-5-0/1/2 tenus, l'implémentation des ports N0 migre en ACADEMY-2/3. | 5-0
+| D-ACADEMY-5-9 | **Aucune dépendance compile ajoutée** (D-ACADEMY-6-8 reconduite) : ni Jackson (JSON rendu par concaténation), ni runtime-contracts (les contrats N0 sont consommés plus tard, en ACADEMY-2/3). Zéro bump BOM. | 5-1
+| D-ACADEMY-5-10 | **Exposition = 11 plugins publics catalogués** (`education.cccp.{planner,codex,codebase,slider,document,capsule,plantuml,graphify,hyperframes,bakery,readme}`), chacun avec ses tâches de domaine formation, **vérifiées dans le source** (S-009). `academy` lui-même n'est pas exposé (il *est* le consommateur). Guardrail : zéro plugin `foundry/private` (training, edster, workspace, waiter, quizz). | 5-1
+|===
+
+== Découpage des US
+
+|===
+| US | Livrable | Tests
+| ACADEMY-5-0 | Ce cadrage (`CADRAGE_EPIC_ACADEMY_5_OPENCODE.adoc`) | zéro code
+| ACADEMY-5-1 | Domaine `academy.opencode` (`OpenCodeConfig`, `OpenCodeCatalog`, `OpenCodeConfigGenerator`, `LearnerGuideGenerator`) + extension 3 properties + task wiring + scaffold `$APP_DIR/project/` + service `workspace` (image officielle, profile `agent`) | +~18 unit + BDD + 1 FT
+| ACADEMY-5-2 | *(absorbée par 5-1)* : provision du projet consommateur `education.cccp` dans `project/` — catalogue + `AGENTS.md` + `opencode.json` + README du premier `gradle build` | dogfooding
+|===
+
+== Options écartées
+
+- **Publier `cccp-education/academy-workspace:latest`** (image maison
+  Java+Gradle+opencode) : chantier infra (registry, CI, rebuild par bump
+  d'écosystème) sans lien avec la mission, et redondant — l'image officielle
+  opencode suffit, le toolchain Java/Gradle peut venir d'un second service
+  ou du projet hôte. Écartée (D-ACADEMY-5-1).
+- **Générer `opencode.json` avec un builder JSON typé** (Jackson/kotlinx) :
+  ajoute une dépendance compile pour un fichier de ~20 lignes déterministes
+  (Loi de l'Économie d'Encre + D-ACADEMY-6-8). Écartée (D-ACADEMY-5-3).
+- **Implémenter `FormationRuntimePort` maintenant** : exige BYOK (ACADEMY-7)
+  + bridge Ktor (ACADEMY-8) + un LLM réel ; la machine serait non
+  exécutable sans eux (leçon S-007). Écartée, séquencée (D-ACADEMY-5-8).
+- **Exposer les tâches `foundry/private`** (training `generateSPG`/`generateSPD`) :
+  contredit le guardrail `ToolExposure` (frontière physique public/privé,
+  CADRAGE_EPIC_RUNTIME_AGENTIQUE § 6). Écartée.
+- **Modifier le `opencode.json` global du pilote** : le fichier appartient à
+  la machine de dev (`/home/cheroliv/workspace/opencode.json`, hors repo) ;
+  academy génère son propre fichier dans le workspace apprenant. Écartée.
+
+== Articulation des Épics
+
+```
+ACADEMY-6 (installeur + compose + seed) ✅ S-008
+        │
+        ▼
+ACADEMY-5 (exposition agent : opencode.json + AGENTS.md + service workspace)  ← CETTE SESSION
+        │
+        ├─▶ ACADEMY-7 (BYOK LLM : fournisseur réel → provider du opencode.json)
+        │
+        └─▶ ACADEMY-8 (webhooks Moodle + bridge Ktor)
+                    │
+                    ▼
+        ACADEMY-2/3/4 (FormationRuntimePort / SessionMemoryContract / MaterialUpdateContract)
+```
+
+== Gates
+
+- `./gradlew check` VERT (unit + functional + `cucumberTestInstaller`).
+- `./gradlew publishToMavenLocal` VERT après modification.
+- `validatePlugins` VERT.
+- Zéro secret (grep `TOKEN|SECRET|PASSWORD|API_KEY` = 0).
+- Backward compat : extension ACADEMY-1 + 3 properties ACADEMY-5, scripts
+  ACADEMY-6 inchangés hors service `workspace` + `project/`.
+- Dogfooding : `sh -n` VALIDE (linux/macos), `docker compose config` VALIDE,
+  `opencode.json` parse `jq` VALIDE, grep `foundry/private` sur les scripts = 0.
+</content>

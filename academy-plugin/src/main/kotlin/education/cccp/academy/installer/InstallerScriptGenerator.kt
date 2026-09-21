@@ -1,5 +1,9 @@
 package education.cccp.academy.installer
 
+import education.cccp.academy.opencode.LearnerGuideGenerator
+import education.cccp.academy.opencode.OpenCodeConfigGenerator
+import education.cccp.academy.opencode.WorkspaceDockerfileGenerator
+
 /**
  * Pure installer script generator (ACADEMY-1-1) — renders a deterministic,
  * per-target platform installer scaffold. No I/O, no Gradle types: a pure
@@ -178,7 +182,23 @@ object InstallerScriptGenerator {
         "        condition: service_healthy",
         "    networks:",
         "      - academy-net",
-        "  # TODO ACADEMY-5: add the opencode workspace service once its image is published",
+        "  workspace:",
+        "    build:",
+        "      context: ./project",
+        "      dockerfile: Dockerfile",
+        "    image: cccp-education/academy-workspace:latest",
+        "    volumes:",
+        "      - \"./project:/workspace\"",
+        "    working_dir: /workspace",
+        "    environment:",
+        "      OLLAMA_HOST: \${OLLAMA_HOST}",
+        "    depends_on:",
+        "      ollama:",
+        "        condition: service_started",
+        "    networks:",
+        "      - academy-net",
+        "    profiles:",
+        "      - agent",
         "  postgres:",
         "    image: postgres:16",
         "    environment:",
@@ -327,7 +347,32 @@ object InstallerScriptGenerator {
         appendLine("cat > \"\$APP_DIR/seed/seed-course.sql\" <<'EOF'")
         seedCourseSqlBody().forEach { appendLine(it) }
         appendLine("EOF")
+        appendOpenCodeScaffold(platform)
         appendLine("echo \"[academy] compose scaffold written - edit \$APP_DIR/.env and \$APP_DIR/docker-compose.yml before running docker compose up\"")
+    }
+
+    /**
+     * Writes the learner workspace files (ACADEMY-5) — the generated
+     * `Dockerfile`, `opencode.json` and `AGENTS.md` — under `$APP_DIR/project/`,
+     * the directory mounted into the workspace container. Only when
+     * [InstallerPlatform.openCodeEnabled]; the content is rendered by the pure
+     * `education.cccp.academy.opencode` generators (single source shared by
+     * every platform, structural parity).
+     */
+    private fun StringBuilder.appendOpenCodeScaffold(platform: InstallerPlatform) {
+        if (!platform.openCodeEnabled) return
+        val config = platform.openCodeConfig()
+        appendLine("mkdir -p \"\$APP_DIR/project\"")
+        appendLine("echo \"[academy] writing the opencode workspace (Dockerfile, opencode.json, AGENTS.md)...\"")
+        appendLine("cat > \"\$APP_DIR/project/Dockerfile\" <<'EOF'")
+        WorkspaceDockerfileGenerator.render(config).trimEnd().lines().forEach { appendLine(it) }
+        appendLine("EOF")
+        appendLine("cat > \"\$APP_DIR/project/opencode.json\" <<'EOF'")
+        OpenCodeConfigGenerator.render(config).trimEnd().lines().forEach { appendLine(it) }
+        appendLine("EOF")
+        appendLine("cat > \"\$APP_DIR/project/AGENTS.md\" <<'EOF'")
+        LearnerGuideGenerator.render(config).trimEnd().lines().forEach { appendLine(it) }
+        appendLine("EOF")
     }
 
     private fun StringBuilder.appendWindowsComposeScaffold(platform: InstallerPlatform) {
@@ -347,7 +392,29 @@ object InstallerScriptGenerator {
         appendLine("> \"%APP_DIR%\\seed\\seed-course.sql\" (")
         seedCourseSqlBody().forEach { appendLine("echo ${escapeCmd(it)}") }
         appendLine(")")
+        appendWindowsOpenCodeScaffold(platform)
         appendLine("rem Edit %APP_DIR%\\.env and %APP_DIR%\\docker-compose.yml before running docker compose up")
+    }
+
+    /**
+     * Windows writer of the learner workspace files (ACADEMY-5) — renders the
+     * *same* content as the bash heredoc ([appendOpenCodeScaffold]) through the
+     * batch `> file (` redirection, so Linux/Windows parity is structural.
+     */
+    private fun StringBuilder.appendWindowsOpenCodeScaffold(platform: InstallerPlatform) {
+        if (!platform.openCodeEnabled) return
+        val config = platform.openCodeConfig()
+        appendLine("rem opencode workspace (ACADEMY-5)")
+        appendLine("if not exist \"%APP_DIR%\\project\" mkdir \"%APP_DIR%\\project\"")
+        appendLine("> \"%APP_DIR%\\project\\Dockerfile\" (")
+        WorkspaceDockerfileGenerator.render(config).trimEnd().lines().forEach { appendLine("echo ${escapeCmd(it)}") }
+        appendLine(")")
+        appendLine("> \"%APP_DIR%\\project\\opencode.json\" (")
+        OpenCodeConfigGenerator.render(config).trimEnd().lines().forEach { appendLine("echo ${escapeCmd(it)}") }
+        appendLine(")")
+        appendLine("> \"%APP_DIR%\\project\\AGENTS.md\" (")
+        LearnerGuideGenerator.render(config).trimEnd().lines().forEach { appendLine("echo ${escapeCmd(it)}") }
+        appendLine(")")
     }
 
     /**

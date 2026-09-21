@@ -104,6 +104,30 @@ val cucumberTestInstaller by tasks.registering(Test::class) {
 
 tasks.check { dependsOn(cucumberTestInstaller) }
 
+// ── ACADEMY-5-1 — Dedicated Cucumber runner for academy_opencode.feature (pattern S-082) ──
+// Scoped to AcademyOpenCodeCucumberRunner so only the opencode feature runs.
+val cucumberTestOpenCode by tasks.registering(Test::class) {
+    group = "verification"
+    description = "Runs the academy_opencode.feature Cucumber suite (ACADEMY-5-1)"
+    testClassesDirs = sourceSets.getByName("test").output.classesDirs
+    classpath = configurations.getByName("testRuntimeClasspath") +
+        sourceSets.getByName("test").output +
+        sourceSets.getByName("main").output
+    useJUnitPlatform {
+        excludeEngines("junit-jupiter")
+    }
+    filter {
+        includeTestsMatching("education.cccp.academy.bdd.AcademyOpenCodeCucumberRunner")
+    }
+    systemProperty("cucumber.junit-platform.naming-strategy", "long")
+    systemProperty("cucumber.features", "src/test/resources/features/academy_opencode.feature")
+    systemProperty("cucumber.filter.tags", "@opencode and not @wip and not @integration")
+    shouldRunAfter(tasks.named("test"))
+    outputs.upToDateWhen { false }
+}
+
+tasks.check { dependsOn(cucumberTestOpenCode) }
+
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     testLogging {

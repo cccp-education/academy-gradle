@@ -15,6 +15,10 @@ package education.cccp.academy.installer
  * @param gradleVersion Gradle version pin of the workspace image (never blank)
  * @param composeEnabled whether the script embeds the docker-compose scaffold
  * @param credentialsEnvPrefix env prefix the credentials are read from
+ * @param openCodeEnabled whether the workspace service, `opencode.json` and
+ *   `AGENTS.md` are provisioned (ACADEMY-5)
+ * @param openCodeModel learner agent model rendered into `opencode.json`
+ * @param openCodeProviderUrl OpenAI-compatible provider URL rendered into `opencode.json`
  */
 data class InstallerPlatform(
     val os: TargetOs,
@@ -24,6 +28,9 @@ data class InstallerPlatform(
     val gradleVersion: String,
     val composeEnabled: Boolean,
     val credentialsEnvPrefix: String,
+    val openCodeEnabled: Boolean = true,
+    val openCodeModel: String = "gpt-oss:120b-cloud",
+    val openCodeProviderUrl: String = "http://ollama:11434/v1",
 ) {
     init {
         require(applicationName.isNotBlank()) { "applicationName must not be blank" }
@@ -31,5 +38,14 @@ data class InstallerPlatform(
         require(javaVersion.matches(Regex("\\d+"))) { "javaVersion must be numeric major, got: $javaVersion" }
         require(gradleVersion.isNotBlank()) { "gradleVersion must not be blank" }
         require(credentialsEnvPrefix.isNotBlank()) { "credentialsEnvPrefix must not be blank" }
+        require(openCodeModel.isNotBlank()) { "openCodeModel must not be blank" }
+        require(openCodeProviderUrl.isNotBlank()) { "openCodeProviderUrl must not be blank" }
     }
+
+    /** Resolved opencode exposure configuration (ACADEMY-5). */
+    fun openCodeConfig(): education.cccp.academy.opencode.OpenCodeConfig =
+        education.cccp.academy.opencode.OpenCodeConfig(
+            providerUrl = openCodeProviderUrl,
+            model = openCodeModel,
+        )
 }

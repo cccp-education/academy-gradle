@@ -1,0 +1,133 @@
+= Session 009 — ACADEMY-5 : exposition agent (opencode.json + AGENTS.md + service workspace)
+
+:date: 2026-09-21
+:session: 009
+:epic: ACADEMY-5
+:us: ACADEMY-5-0 (cadrage) + ACADEMY-5-1 (implémentation) + ACADEMY-5-2 (absorbée)
+:methode: Baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR) — 3 niveaux unit/functional/cucumber
+
+== Mission
+
+Suite de l'EPIC ACADEMY-6 (TERMINÉ S-008), US ACADEMY-5 — intégration de
+l'exposition agent : `opencode.json` + session zsh dans le conteneur workspace,
+exposition des tâches Gradle `education.cccp`, et le TODO laissé S-007
+(réinsérer le service `workspace`).
+
+== Constats (audit d'ouverture S-009)
+
+. *Le TODO workspace bloquait sur une image inexistante* :
+   `cccp-education/academy-workspace` n'existe nulle part (grep cross-workspace).
+. *Découverte 1* : `ghcr.io/anomalyco/opencode` **existe** mais est
+   **Alpine-minimal** — ni `zsh`, ni `bash`, ni `git`, ni Java, ni Gradle
+   (`docker run` réel). Elle ne peut pas exécuter les tâches Gradle.
+. *Découverte 2* : `gradle:9.7.1-jdk25` (vérifié `docker run`) est **Ubuntu
+   26.04** avec Java 25 + Gradle 9.7.1 + `git` + `curl` + `apt-get` — exactement
+   les pins documentaires de D-ACADEMY-6-10. C'est la base du Dockerfile.
+. *`opencode.json`/`AGENTS.md` n'étaient générés nulle part* (ACADEMY-6 s'arrête
+   au compose + seed).
+. *L'écosystème des tâches Gradle est cataloguable* : 11 boroughs publics, tâches
+   **vérifiées dans le source** (leçon S-007 : ne jamais deviner un nom).
+
+== Décisions (cadrage S-057, doc `CADRAGE_EPIC_ACADEMY_5_OPENCODE.adoc`)
+
+D-ACADEMY-5-1..11. Les structurantes : workspace = **Dockerfile généré** sur
+`gradle:9.7.1-jdk25` (pas l'image opencode Alpine) ; `opencode.json` + `AGENTS.md`
+**générés** par le plugin (rendu pur, zéro dépendance) ; domaine pur
+`education.cccp.academy.opencode` ; service `workspace` en profile `agent`
+(opt-in) ; l'implémentation des ports N0 (FormationRuntimePort/InteractionProtocol)
+reste séquencée en ACADEMY-2/3 (exige BYOK + bridge Ktor) ; **ACADEMY-5-2
+absorbée par 5-1** (le projet consommateur est le `project/` généré).
+
+== RED (prouvé)
+
+Tests écrits **avant** le code (prod au HEAD) :
+
+* `OpenCodeCatalogTest` (7), `OpenCodeConfigGeneratorTest` (6),
+  `LearnerGuideGeneratorTest` (4), `WorkspaceDockerfileGeneratorTest` (5) ;
+* `InstallerScriptGeneratorTest` — 2 tests migrés (le workspace n'est plus
+  « différé » mais généré) + 1 migré hôte ;
+* `academy_opencode.feature` (5 scénarios `@opencode`) + `AcademyOpenCodeCucumberRunner`
+  + `AcademyOpenCodeSteps` (glue dédiée, pattern S-088) ;
+* `AcademyInstallerFunctionalTest` — 1 TestKit (écriture réelle des fichiers) + 1 migré.
+
+RED prouvé : **compilation échouée** (`Unresolved reference 'OpenCodeConfig'`,
+`'OpenCodeCatalog'`, `'OpenCodeConfigGenerator'`, `'LearnerGuideGenerator'`,
+`'WorkspaceDockerfileGenerator'`) — le compilateur Kotlin est le RED statique
+(assertion de type), pattern codex S-229.
+
+== GREEN (prouvé)
+
+Domaine pur `education.cccp.academy.opencode` créé (5 fichiers prod) :
+
+* `OpenCodeConfig` (data class + invariants) ;
+* `OpenCodePlugin` (id/role/tasks + invariants) ;
+* `OpenCodeCatalog` (11 plugins publics, tâches vérifiées S-009) ;
+* `OpenCodeConfigGenerator` (JSON par concaténation, zéro lib) ;
+* `LearnerGuideGenerator` (`AGENTS.md` : workflow réel + inventaire catalogue) ;
+* `WorkspaceDockerfileGenerator` (base `gradle:9.7.1-jdk25` + zsh + opencode + `learner`).
+
+Wiring : extension +3 properties (`openCodeEnabled`/`openCodeModel`/
+`openCodeProviderUrl`), `InstallerPlatform` +3 champs, `GenerateInstallerTask`
+résolution, `InstallerScriptGenerator` service `workspace` (profile `agent`) +
+`appendOpenCodeScaffold`/`appendWindowsOpenCodeScaffold` (source unique → parité
+structurelle), `build.gradle.kts` runner `cucumberTestOpenCode`.
+
+== REFACTOR + Dogfooding (preuve réelle — leçon S-007)
+
+`publishToMavenLocal` + `buildAllInstallers` sur le consommateur racine, puis
+**exécution réelle** de l'installeur Linux dans un HOME isolé :
+
+* `sh -n seed.sh` → VALIDE ; `jq opencode.json` → VALIDE ;
+* `docker compose config` → VALIDE ; services = postgres/moodle/moodle-seed/
+  ollama/portainer + `workspace` en profile `agent` ;
+* **`docker build` du Dockerfile généré → SUCCÈS** ;
+* `docker run … echo` → `whoami=learner`, `zsh`, `gradle 9.7.1`, `java 25`,
+  `git`… **et `opencode --version` = 1.18.31**.
+
+*Bug trouvé par le dogfooding* (D-ACADEMY-5-11) : le build-time
+`RUN curl … opencode.ai/install | bash` s'exécutait après `USER root` →
+install dans `/root/.opencode`, invisible au `learner` (`command not found`).
+Correctif : `USER learner` **avant** l'install + `ENV HOME=/home/learner`.
+Prouvé par rebuild réel (`Successfully added opencode to $PATH in
+/home/learner/.bashrc`) puis `opencode --version` en tant que `learner`.
+
+== Gates
+
+* `./gradlew clean check validatePlugins` → **BUILD SUCCESSFUL** —
+  **50 unit + 7 functional + 21 scénarios installer + 5 scénarios opencode**,
+  0 FAIL.
+* `./gradlew publishToMavenLocal` → **BUILD SUCCESSFUL**.
+* Zéro secret (matches seulement des KDoc documentant la convention) ;
+  zéro `mariadb` ; zéro `foundry/private` hors documentation du guardrail.
+* Parité Linux/Windows du service `workspace` + des 3 fichiers `project/`.
+
+== Fichiers modifiés
+
+[cols="2,3", options="header"]
+|===
+| Fichier | Nature
+| `src/main/kotlin/.../opencode/{OpenCodeConfig,OpenCodePlugin,OpenCodeCatalog,OpenCodeConfigGenerator,LearnerGuideGenerator,WorkspaceDockerfileGenerator}.kt` | prod — domaine pur (6 fichiers)
+| `src/main/kotlin/.../installer/InstallerScriptGenerator.kt` | prod — service `workspace` + writers opencode (bash/batch)
+| `src/main/kotlin/.../installer/InstallerPlatform.kt` | prod — 3 champs + `openCodeConfig()`
+| `src/main/kotlin/.../AcademyInstallerExtension.kt` | prod — 3 properties
+| `src/main/kotlin/.../AcademyPlugin.kt` / `GenerateInstallerTask.kt` | prod — wiring
+| `build.gradle.kts` | build — runner `cucumberTestOpenCode`
+| `src/test/kotlin/.../opencode/*.kt` | tests — 22 unit
+| `src/test/kotlin/.../installer/InstallerScriptGeneratorTest.kt` | tests — 2 migrés + 1 migré hôte
+| `src/test/kotlin/.../AcademyPluginTest.kt` | tests — 3 assertions extension
+| `src/test/resources/features/academy_installer.feature` | BDD — 2 scénarios migrés
+| `src/test/resources/features/academy_opencode.feature` | BDD — 5 scénarios `@opencode`
+| `src/test/scenarios/.../bdd/AcademyOpenCodeCucumberRunner.kt` + `AcademyOpenCodeSteps.kt` | BDD — runner + glue
+| `src/functionalTest/.../AcademyInstallerFunctionalTest.kt` | functional — 1 ajouté + 1 migré
+| `.agents/CADRAGE_EPIC_ACADEMY_5_OPENCODE.adoc` | gouvernance — cadrage
+|===
+
+== Note de clôture — méthode
+
+Règle du **delta source** appliquée : à l'ouverture, git propre depuis S-008 →
+compilation seule, aucun test rejoué « pour confirmer ». Tests lancés après
+codage (RED prouvé par échec de compilation) puis à la clôture (GREEN). Le
+dogfooding (build réel de l'image + `opencode --version`) est la preuve que
+le scaffold s'exécute vraiment — il a attrapé un bug que les tests verts
+laissaient passer (pattern S-007).
+</content>

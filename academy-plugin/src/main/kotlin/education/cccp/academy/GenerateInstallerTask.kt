@@ -47,6 +47,9 @@ abstract class GenerateInstallerTask : DefaultTask() {
             gradleVersion = extension.gradleVersion.get(),
             composeEnabled = extension.composeEnabled.get(),
             credentialsEnvPrefix = extension.credentialsEnvPrefix.get(),
+            openCodeEnabled = extension.openCodeEnabled.get(),
+            openCodeModel = extension.openCodeModel.get(),
+            openCodeProviderUrl = extension.openCodeProviderUrl.get(),
         )
 
         val platformDir = File(outputDir.get().asFile, platform.os.dirName).apply { mkdirs() }

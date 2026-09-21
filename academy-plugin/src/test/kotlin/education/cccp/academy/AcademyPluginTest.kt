@@ -41,6 +41,9 @@ class AcademyPluginTest {
         )
         assertTrue(extension.composeEnabled.get())
         assertEquals("ACADEMY_", extension.credentialsEnvPrefix.get())
+        assertTrue(extension.openCodeEnabled.get())
+        assertEquals("gpt-oss:120b-cloud", extension.openCodeModel.get())
+        assertEquals("http://ollama:11434/v1", extension.openCodeProviderUrl.get())
     }
 
     @Test

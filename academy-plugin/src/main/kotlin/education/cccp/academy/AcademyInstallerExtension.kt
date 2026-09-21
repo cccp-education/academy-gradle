@@ -59,4 +59,18 @@ abstract class AcademyInstallerExtension {
 
     /** Environment variable prefix the generated scripts read credentials from. */
     abstract val credentialsEnvPrefix: Property<String>
+
+    /**
+     * Whether the scaffold provisions the learner workspace service — the
+     * generated workspace image (`Dockerfile` on the pinned gradle base), the
+     * `opencode.json` configuration and the `AGENTS.md` learner guide
+     * (ACADEMY-5). Defaults to `true`.
+     */
+    abstract val openCodeEnabled: Property<Boolean>
+
+    /** Model the learner agent uses by default (ACADEMY-5). */
+    abstract val openCodeModel: Property<String>
+
+    /** OpenAI-compatible provider base URL the agent points to (ACADEMY-5). */
+    abstract val openCodeProviderUrl: Property<String>
 }

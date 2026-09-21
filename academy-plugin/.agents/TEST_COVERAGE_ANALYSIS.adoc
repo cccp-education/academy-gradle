@@ -1,6 +1,6 @@
 = TEST_COVERAGE_ANALYSIS — academy-gradle
 
-_Dernière mise à jour_ : 2026-09-21 (session 008)
+_Dernière mise à jour_ : 2026-09-21 (session 009)
 
 == État des tests
 
@@ -11,18 +11,21 @@ Session 005 : ACADEMY-6-4 terminé — compose complet (network, volumes nommés
 Session 006 : ACADEMY-6-5 terminé — seed DB data-only (service one-shot `moodle-seed`, entrypoint idempotent, SQL `WHERE NOT EXISTS`) + parité structurelle Linux/Windows (`seedScriptBody()`/`seedCourseSqlBody()`) + idempotence prouvée PostgreSQL 16 réel.
 Session 007 : ACADEMY-6-6 terminé — dogfooding bout-en-bout (5 écarts de scaffold inexécutable corrigés).
 Session 008 : ACADEMY-6-7 terminé — Cucumber BDD étendu (contenu OS, chemins, idempotence, erreurs, `opencode.json` différé) + **hôte = Docker uniquement (D-ACADEMY-6-10 appliqué : zéro provisioning Java/Gradle hôte)** ; ACADEMY-6-1/2/3 CADUQUES absorbés.
+Session 009 : **ACADEMY-5 terminé** — exposition agent opencode. Domaine pur `academy.opencode` (`OpenCodeConfig`/`OpenCodePlugin`/`OpenCodeCatalog`/`OpenCodeConfigGenerator`/`LearnerGuideGenerator`/`WorkspaceDockerfileGenerator`), service `workspace` (profile `agent`), `$APP_DIR/project/{Dockerfile,opencode.json,AGENTS.md}` générés (parité Linux/Windows), extension +3 properties. Les 2 scénarios « workspace/opencode différés » migrés en « générés ». Dogfooding réel : build image + `opencode 1.18.31` learner (bug install-root D-ACADEMY-5-11).
 
 ## Ce qui est couvert
 
 - **ACADEMY-1-0 (wiring)** : `AcademyPluginTest` (3 unit) — chargement du plugin, conventions d'extension par défaut, aggregation des 3 plateformes, surcharges (applicationName/outputDir).
 - **ACADEMY-1-1 (domaine)** : `InstallerScriptGeneratorTest` (25 unit) — contenu Linux (pins toolchain documentaires, garde idempotence versionnée `~/.academy/.installed-`), scaffold compose conditionnel, **compose complet Linux (network `academy-net`, volumes nommés `postgres-data`/`ollama-models`/`portainer-data`, healthcheck `pg_isready`, `.env` + `POSTGRES_PASSWORD=` vide, Moodle `pgsql`)**, **seed DB data-only (service one-shot `moodle-seed`, entrypoint `poll mdl_course` + `psql -f seed-course.sql`, SQL `INSERT ... WHERE NOT EXISTS` sur `idnumber='academy-seed'`)** , convention credentials (prefix seulement, jamais de valeur), rendu Windows (admin, PowerShell, **escape cmd `2^>^&1`**), macOS (Homebrew, sans sudo), **hôte Docker-only sur les 3 OS (absence `JAVA_HOME`/`temurin`/`adoptium`/`services.gradle.org`/`setx JAVA_HOME`)**, **erreurs « Docker requis » + exit non-zéro**, **marqueur d'idempotence versionné**, **staging compose sous `$APP_DIR`**, **`opencode.json` différé (TODO ACADEMY-5)**, invariants de plateforme, composition du path relatif, **parité Windows du contrat compose + seed**.
 - **ACADEMY-1-2 / 6-4 / 6-5 / 6-7 (intégration)** : `AcademyInstallerFunctionalTest` (6 TestKit) — `buildAllInstallers` écrit les 3 fichiers dans le layout attendu ; applicationName/outputDir custom honorés via TestKit Gradle runner ; **écriture réelle de `docker-compose.yml` + `.env` + `seed/seed.sh` + `seed/seed-course.sql` sur disque** (bash `cat >` et batch `> ... (`) avec network/volumes/healthcheck/seed assertés sur les deux plateformes ; **hôte Docker-only (aucun provisioning hôte dans les scripts générés)**.
-- **BDD (pattern S-082)** : `cucumberTestInstaller` — feature `academy_installer.feature` `@installer` (21 scénarios : linux bash deterministe toolchain, compose only when enabled + postgres/ollama/portainer, compose complet Linux, **hôte Docker-only Linux/Windows/macOS**, **erreurs Docker requis**, **staging compose sous `$APP_DIR`**, **opencode.json différé**, credentials convention, windows batch admin + docker bootstrap, macos Homebrew sans sudo, parité Windows du contrat compose complet, **seed service one-shot, seed entrypoint idempotent, seed sql data-only, parité Windows des fichiers seed**). Steps domaine pur (zéro Gradle/IO).
+- **BDD (pattern S-082)** : `cucumberTestInstaller` — feature `academy_installer.feature` `@installer` (21 scénarios : linux bash deterministe toolchain, compose only when enabled + postgres/ollama/portainer, compose complet Linux, **hôte Docker-only Linux/Windows/macOS**, **erreurs Docker requis**, **staging compose sous `$APP_DIR`**, **workspace généré (Dockerfile + opencode.json + AGENTS.md)**, credentials convention, windows batch admin + docker bootstrap, macos Homebrew sans sudo, parité Windows du contrat compose complet, **seed service one-shot, seed entrypoint idempotent, seed sql data-only, parité Windows des fichiers seed**). Steps domaine pur (zéro Gradle/IO). `cucumberTestOpenCode` — feature `academy_opencode.feature` `@opencode` (5 scénarios : config ollama, JSON balancé, pas de credential, guide inventoriant les tâches publiques, image basée `gradle:9.7.1-jdk25`). Steps domaine pur (`AcademyOpenCodeSteps`, pattern S-088).
+- **ACADEMY-5-1 (domaine `academy.opencode`)** : 22 unit — `OpenCodeCatalogTest` (7 : namespace public, zéro borough privé, tâche par plugin, entry points formation, `tasksFor` inconnu = null, `allTasks` déterministe, invariants), `OpenCodeConfigGeneratorTest` (6 : schema+provider ollama, JSON balancé, déterminisme, modèle configurable, zéro credential, invariants), `LearnerGuideGeneratorTest` (4 : identité+workflow, inventaire catalogue, guardrail, zéro credential), `WorkspaceDockerfileGeneratorTest` (5 : base gradle pinnée, zsh+opencode+learner, **install après `USER learner` + `HOME`**, workdir+cmd, zéro credential).
 
 ## Ce qui est à couvrir
 
-- ACADEMY-5 (opencode.json + session zsh + réinsertion du service `workspace` dans `composeBody()`), ACADEMY-7 (BYOK LLM), contrats ACADEMY-4/2/3 : pas de tests tant que non implémentés.
-- ACADEMY-6-1/2/3 : **CADUQUES (S-008)** — aucun raffermissement hôte à couvrir (hôte = Docker only).
+- ACADEMY-7 (BYOK LLM multi-provider dans `opencode.json`), ACADEMY-8 (webhooks + bridge Ktor), ACADEMY-2/3/4 (ports N0) : pas de tests tant que non implémentés.
+- ACADEMY-6-1/2/3 : **CADUQUES (S-008)**.
+- ACADEMY-5 : `ToolExposure` (N0) non encore consommé par le code (guardrail porté par `OpenCodeCatalog`) — à brancher en ACADEMY-2.
 
 ## Évolution future
 
@@ -35,4 +38,5 @@ Session 008 : ACADEMY-6-7 terminé — Cucumber BDD étendu (contenu OS, chemins
 | 2026-09-22 | 16 unit + 4 functional (dont seed sur disque) + 11 scénarios cucumber (dont seed ×4) — RED prouvé (unit/cucumber/functional) | 0 FAIL — `check` VERT + `validatePlugins` VERT |
 | 2026-09-21 | 21 unit + 5 functional + 15 scénarios cucumber (dogfooding 5 écarts) | 0 FAIL — `check` VERT + `validatePlugins` VERT |
 | 2026-09-21 | 28 unit + 6 functional + 21 scénarios cucumber (hôte Docker-only, chemins, erreurs, opencode.json différé) — RED prouvé aux 3 niveaux (unit 6 failed / cucumber 6 failed / functional 1 failed) | 0 FAIL — `check` VERT + `validatePlugins` VERT + `publishToMavenLocal` VERT |
+| 2026-09-21 | **50 unit + 7 functional + 21 scénarios installer + 5 scénarios opencode** (exposition agent : domaine `academy.opencode`, workspace généré) — RED prouvé par échec de compilation | 0 FAIL — `check` VERT + `validatePlugins` VERT + `publishToMavenLocal` VERT + dogfooding `docker build` + `opencode 1.18.31` |
 |===
