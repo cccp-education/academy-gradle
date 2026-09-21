@@ -6,10 +6,10 @@ _Regles absolues_ : voir `AGENT.adoc`
 _DAG_ : N2 — Plugin Gradle de consommation (Regle 4bis)
 _Projet_ : academy-gradle (education.cccp.academy)
 
-_Derniere mise a jour_ : 2026-09-22 (session 004)
-_Session terminee_ : 004 — Révisions pilote du scaffold compose (Ollama, Portainer, PostgreSQL)
-_Sessions precedent_ : 003 — Socle générateur d'installateurs (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation Academy (installeur hybride) ; 001 — Alignement article 0124 + gouvernance + repo Git ; 000 — Bootstrap
-_Prochaine session_ : ACADEMY-6-4 (suite : network/volumes/healthcheck PostgreSQL/.env) puis ACADEMY-6-5 (seed DB) — ordre acté 1 → 6 → 5 → 7.
+_Derniere mise a jour_ : 2026-09-22 (session 005)
+_Session terminee_ : 005 — ACADEMY-6-4 TERMINÉ : compose complet (network, volumes nommés, healthcheck PostgreSQL, `.env`) + parité structurelle Linux/Windows
+_Sessions precedent_ : 004 — Révisions pilote du scaffold compose (Ollama, Portainer, PostgreSQL) ; 003 — Socle générateur d'installateurs (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation Academy (installeur hybride) ; 001 — Alignement article 0124 + gouvernance + repo Git ; 000 — Bootstrap
+_Prochaine session_ : ACADEMY-6-5 (seed DB data-only au premier `compose up`) puis ACADEMY-6-6/6-7 — ordre acté 1 → 6 → 5 → 7.
 
 '''
 == REGLES ABSOLUES
@@ -138,9 +138,9 @@ Desktop, transverse Windows), D-ACADEMY-6-13 (PostgreSQL remplace MariaDB).
 | 8
 | ✅ TERMINÉ (S-003)
 | ACADEMY-6-4
-| *Scaffold compose* — Moodle + **PostgreSQL** + **Ollama** + **Portainer** + workspace opencode zsh, parité Linux/macOS + Windows. Reste : network dédié, volumes nommés, healthcheck PostgreSQL, `.env`.
+| *Scaffold compose* — Moodle + **PostgreSQL** + **Ollama** + **Portainer** + workspace opencode zsh, parité Linux/macOS + Windows. Network dédié, volumes nommés, healthcheck PostgreSQL, `.env` documenté livrés (S-005).
 | 5
-| 🟡 EN COURS (S-004 — volet compose livré, suite à planifier)
+| ✅ TERMINÉ (S-005)
 | ACADEMY-6-1/2/3
 | *Raffermissement Linux/Windows/macOS* — partiellement caducs pour le provisioning hôte Java/Gradle (D-ACADEMY-6-10) — recadrer avant implémentation.
 | —
@@ -159,7 +159,7 @@ Desktop, transverse Windows), D-ACADEMY-6-13 (PostgreSQL remplace MariaDB).
 | 🟡 À FAIRE
 |===
 
-_Statut_ : ACADEMY-6-0 ✅ + ACADEMY-6-4 (volet compose) ✅ S-004. Gates S-004 : check VERT (12 unit + 2 functional + 5 cucumber), publishToMavenLocal VERT, zéro `mariadb` en prod.
+_Statut_ : ACADEMY-6-0 ✅ + **ACADEMY-6-4 ✅ TERMINÉ S-005** (compose complet : network `academy-net`, volumes `postgres-data`/`ollama-models`/`portainer-data`, healthcheck `pg_isready` + `service_healthy`, Moodle `pgsql`, `.env` noms-seuls ; parité structurelle `composeBody()`/`envBody()` Linux/Windows ; dogfooding `docker compose config` VALIDE). Gates S-005 : check VERT (26 unit + 14 cucumber + 3 functional = 43 checks), publishToMavenLocal VERT, validatePlugins VERT, zéro `mariadb` en prod, zéro secret hardcodé.
 
 '''
 == Sessions
@@ -171,6 +171,7 @@ _Statut_ : ACADEMY-6-0 ✅ + ACADEMY-6-4 (volet compose) ✅ S-004. Gates S-004 
 | 002 | 2026-09-20 | refonte | Recadrage de l'orientation — installeur hybride (vision actée, D-ACADEMY-1..4) | 3/3
 | 003 | 2026-09-20 | développement | Socle générateur d'installateurs (ACADEMY-1 3/3 US, BDD 5 scénarios) + cadrage ACADEMY-6-0 | 17/17
 | 004 | 2026-09-22 | développement | Révisions pilote du scaffold compose (Ollama + Portainer + PostgreSQL, parité Linux/Windows) | 5/5
+| 005 | 2026-09-22 | développement | ACADEMY-6-4 TERMINÉ — compose complet (network, volumes nommés, healthcheck PostgreSQL, `.env`) + parité structurelle Linux/Windows + dogfooding `docker compose config` | 5/5
 |===
 
 '''
@@ -188,7 +189,7 @@ _Statut_ : ACADEMY-6-0 ✅ + ACADEMY-6-4 (volet compose) ✅ S-004. Gates S-004 
 | capsule-gradle | `foundry/public/capsule-gradle/capsule-plugin/` | 11 | 2026-05-19
 | workspace-gradle | `foundry/public/workspace-gradle/` | 1 | 2026-05-17
 | magic-stick | `office/sites/magic-stick/` | 4 | 2026-05-11
-| academy-gradle | `foundry/public/academy-gradle/` | 4 | 2026-09-20
+| academy-gradle | `foundry/public/academy-gradle/` | 5 | 2026-09-22
 |===
 
 '''

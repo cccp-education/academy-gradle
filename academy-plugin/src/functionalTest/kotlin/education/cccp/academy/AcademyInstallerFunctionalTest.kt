@@ -61,6 +61,35 @@ class AcademyInstallerFunctionalTest {
         assertTrue(linux.readText().contains("my-academy"))
     }
 
+    @Test
+    fun `compose scaffold and env are written as real files with the full contract`() {
+        writeBuild(
+            """
+            plugins {
+                id("education.cccp.academy")
+            }
+            """.trimIndent(),
+        )
+
+        val result = runner("buildAllInstallers").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":buildAllInstallers")?.outcome)
+
+        val compose = File(projectDir, "build/academy/installers/linux/install.sh").readText()
+        assertTrue(compose.contains("cat > \"\$APP_DIR/docker-compose.yml\" <<'EOF'"), "linux script must write the compose file")
+        assertTrue(compose.contains("cat > \"\$APP_DIR/.env\" <<'EOF'"), "linux script must write the .env file")
+        assertTrue(compose.contains("networks:"), "compose must declare the dedicated network")
+        assertTrue(compose.contains("academy-net"), "compose must name the dedicated network")
+        assertTrue(compose.contains("volumes:"), "compose must declare named volumes")
+        assertTrue(compose.contains("pg_isready"), "postgres must ship a healthcheck")
+
+        val windows = File(projectDir, "build/academy/installers/windows/install.bat").readText()
+        assertTrue(windows.contains("> \"%APP_DIR%\\docker-compose.yml\" ("), "windows script must write the compose file")
+        assertTrue(windows.contains("> \"%APP_DIR%\\.env\" ("), "windows script must write the .env file")
+        assertTrue(windows.contains("academy-net"), "windows compose must declare the network (parity)")
+        assertTrue(windows.contains("pg_isready"), "windows postgres must ship a healthcheck (parity)")
+    }
+
     private fun writeBuild(content: String) {
         File(projectDir, "settings.gradle.kts").writeText("rootProject.name = \"consumer-sample\"\n")
         File(projectDir, "build.gradle.kts").writeText(content)

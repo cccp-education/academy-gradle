@@ -168,53 +168,115 @@ object InstallerScriptGenerator {
         appendLine("endlocal")
     }
 
+    /**
+     * Canonical `docker-compose.yml` body shared by every platform (D-ACADEMY-6-5)
+     * — the single source of truth that guarantees cross-platform parity: the
+     * bash heredoc and the batch echo writer both render exactly these lines.
+     *
+     * It is complete and directly executable: dedicated network, named
+     * persistent volumes, port mappings (Moodle 8080, Ollama 11434, Portainer
+     * 9000), healthchecks (PostgreSQL `pg_isready`, Ollama, Portainer), Moodle
+     * wired to PostgreSQL (`pgsql`) and values sourced from `.env` — never
+     * embedded.
+     */
+    private fun composeBody(): List<String> = listOf(
+        "services:",
+        "  moodle:",
+        "    image: moodle:4.5",
+        "    ports:",
+        "      - \"8080:8080\"",
+        "    environment:",
+        "      MOODLE_DATABASE_TYPE: pgsql",
+        "      MOODLE_DATABASE_HOST: postgres",
+        "      MOODLE_DATABASE_NAME: \${POSTGRES_DB}",
+        "      MOODLE_DATABASE_PASSWORD: \${POSTGRES_PASSWORD}",
+        "    depends_on:",
+        "      postgres:",
+        "        condition: service_healthy",
+        "    networks:",
+        "      - academy-net",
+        "  postgres:",
+        "    image: postgres:16",
+        "    environment:",
+        "      POSTGRES_DB: \${POSTGRES_DB}",
+        "      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}",
+        "    volumes:",
+        "      - postgres-data:/var/lib/postgresql/data",
+        "    healthcheck:",
+        "      test: [\"CMD-SHELL\", \"pg_isready -U postgres\"]",
+        "      interval: 10s",
+        "      timeout: 5s",
+        "      retries: 5",
+        "    networks:",
+        "      - academy-net",
+        "  ollama:",
+        "    image: ollama/ollama",
+        "    volumes:",
+        "      - ollama-models:/root/.ollama",
+        "    ports:",
+        "      - \"11434:11434\"",
+        "    healthcheck:",
+        "      test: [\"CMD\", \"ollama\", \"list\"]",
+        "      interval: 30s",
+        "      timeout: 10s",
+        "      retries: 3",
+        "    networks:",
+        "      - academy-net",
+        "  portainer:",
+        "    image: portainer/portainer",
+        "    ports:",
+        "      - \"9000:9000\"",
+        "    volumes:",
+        "      - portainer-data:/data",
+        "      - \"/var/run/docker.sock:/var/run/docker.sock\"",
+        "    healthcheck:",
+        "      test: [\"CMD\", \"wget\", \"-q\", \"--spider\", \"http://localhost:9000\"]",
+        "      interval: 30s",
+        "      timeout: 10s",
+        "      retries: 3",
+        "    networks:",
+        "      - academy-net",
+        "  workspace:",
+        "    image: cccp-education/academy-workspace:latest",
+        "    volumes:",
+        "      - \"./workspace:/home/opencode/workspace\"",
+        "    networks:",
+        "      - academy-net",
+        "",
+        "networks:",
+        "  academy-net:",
+        "    driver: bridge",
+        "",
+        "volumes:",
+        "  postgres-data:",
+        "  ollama-models:",
+        "  portainer-data:",
+    )
+
+    /**
+     * `.env` body — documents the runtime configuration **names only**; values
+     * are provided by the learner at runtime and never committed (Secrets rule,
+     * D-ACADEMY-6-5). `POSTGRES_PASSWORD` is intentionally left empty.
+     */
+    private fun envBody(): List<String> = listOf(
+        "# Academy runtime configuration - names only, values are provided at runtime (never committed)",
+        "POSTGRES_DB=moodle",
+        "POSTGRES_PASSWORD=",
+        "MOODLE_DATABASE_TYPE=pgsql",
+        "OLLAMA_HOST=http://ollama:11434",
+    )
+
     private fun StringBuilder.appendComposeScaffold(platform: InstallerPlatform) {
         if (!platform.composeEnabled) return
         appendLine("mkdir -p \"\$APP_DIR\"")
         appendLine("echo \"[academy] writing docker-compose.yml scaffold...\"")
         appendLine("cat > \"\$APP_DIR/docker-compose.yml\" <<'EOF'")
-        appendLine("services:")
-        appendLine("  moodle:")
-        appendLine("    image: moodle:4.5")
-        appendLine("    ports:")
-        appendLine("      - \"8080:8080\"")
-        appendLine("    depends_on:")
-        appendLine("      - postgres")
-        appendLine("  postgres:")
-        appendLine("    image: postgres:16")
-        appendLine("    environment:")
-        appendLine("      POSTGRES_PASSWORD: changeme")
-        appendLine("      POSTGRES_DB: moodle")
-        appendLine("    volumes:")
-        appendLine("      - postgres-data:/var/lib/postgresql/data")
-        appendLine("  ollama:")
-        appendLine("    image: ollama/ollama")
-        appendLine("    volumes:")
-        appendLine("      - ollama-models:/root/.ollama")
-        appendLine("    ports:")
-        appendLine("      - \"11434:11434\"")
-        appendLine("    healthcheck:")
-        appendLine("      test: [\"CMD\", \"ollama\", \"list\"]")
-        appendLine("      interval: 30s")
-        appendLine("      timeout: 10s")
-        appendLine("      retries: 3")
-        appendLine("  portainer:")
-        appendLine("    image: portainer/portainer")
-        appendLine("    ports:")
-        appendLine("      - \"9000:9000\"")
-        appendLine("    volumes:")
-        appendLine("      - \"/var/run/docker.sock:/var/run/docker.sock\"")
-        appendLine("    healthcheck:")
-        appendLine("      test: [\"CMD\", \"wget\", \"-q\", \"--spider\", \"http://localhost:9000\"]")
-        appendLine("      interval: 30s")
-        appendLine("      timeout: 10s")
-        appendLine("      retries: 3")
-        appendLine("  workspace:")
-        appendLine("    image: cccp-education/academy-workspace:latest")
-        appendLine("    volumes:")
-        appendLine("      - \"./workspace:/home/opencode/workspace\"")
+        composeBody().forEach { appendLine(it) }
         appendLine("EOF")
-        appendLine("echo \"[academy] compose scaffold written - edit \$APP_DIR/docker-compose.yml before running docker compose up\"")
+        appendLine("cat > \"\$APP_DIR/.env\" <<'EOF'")
+        envBody().forEach { appendLine(it) }
+        appendLine("EOF")
+        appendLine("echo \"[academy] compose scaffold written - edit \$APP_DIR/.env and \$APP_DIR/docker-compose.yml before running docker compose up\"")
     }
 
     private fun StringBuilder.appendWindowsComposeScaffold(platform: InstallerPlatform) {
@@ -222,46 +284,11 @@ object InstallerScriptGenerator {
         appendLine("rem Compose scaffold")
         appendLine("if not exist \"%APP_DIR%\" mkdir \"%APP_DIR%\"")
         appendLine("> \"%APP_DIR%\\docker-compose.yml\" (")
-        appendLine("echo services:")
-        appendLine("echo   moodle:")
-        appendLine("echo     image: moodle:4.5")
-        appendLine("echo     ports:")
-        appendLine("echo       - \"8080:8080\"")
-        appendLine("echo     depends_on:")
-        appendLine("echo       - postgres")
-        appendLine("echo   postgres:")
-        appendLine("echo     image: postgres:16")
-        appendLine("echo     environment:")
-        appendLine("echo       POSTGRES_PASSWORD: changeme")
-        appendLine("echo       POSTGRES_DB: moodle")
-        appendLine("echo     volumes:")
-        appendLine("echo       - postgres-data:/var/lib/postgresql/data")
-        appendLine("echo   ollama:")
-        appendLine("echo     image: ollama/ollama")
-        appendLine("echo     volumes:")
-        appendLine("echo       - ollama-models:/root/.ollama")
-        appendLine("echo     ports:")
-        appendLine("echo       - \"11434:11434\"")
-        appendLine("echo     healthcheck:")
-        appendLine("echo       test: [\"CMD\", \"ollama\", \"list\"]")
-        appendLine("echo       interval: 30s")
-        appendLine("echo       timeout: 10s")
-        appendLine("echo       retries: 3")
-        appendLine("echo   portainer:")
-        appendLine("echo     image: portainer/portainer")
-        appendLine("echo     ports:")
-        appendLine("echo       - \"9000:9000\"")
-        appendLine("echo     volumes:")
-        appendLine("echo       - \"/var/run/docker.sock:/var/run/docker.sock\"")
-        appendLine("echo     healthcheck:")
-        appendLine("echo       test: [\"CMD\", \"wget\", \"-q\", \"--spider\", \"http://localhost:9000\"]")
-        appendLine("echo       interval: 30s")
-        appendLine("echo       timeout: 10s")
-        appendLine("echo       retries: 3")
-        appendLine("echo   workspace:")
-        appendLine("echo     image: cccp-education/academy-workspace:latest")
-        appendLine("echo     volumes:")
-        appendLine("echo       - \"./workspace:/home/opencode/workspace\"")
+        composeBody().forEach { appendLine("echo $it") }
         appendLine(")")
+        appendLine("> \"%APP_DIR%\\.env\" (")
+        envBody().forEach { appendLine("echo $it") }
+        appendLine(")")
+        appendLine("rem Edit %APP_DIR%\\.env and %APP_DIR%\\docker-compose.yml before running docker compose up")
     }
 }

@@ -74,6 +74,39 @@ class InstallerScriptGeneratorTest {
     }
 
     @Test
+    fun `compose scaffold declares a dedicated network named volumes and a documented env file`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
+
+        assertTrue(script.contains("networks:"), "compose must declare a dedicated network")
+        assertTrue(script.contains("academy-net"), "compose must name the dedicated network")
+        assertTrue(script.contains("volumes:"), "compose must declare named volumes")
+        assertTrue(script.contains("postgres-data:"), "postgres data must be a named volume")
+        assertTrue(script.contains("ollama-models:"), "ollama models must be a named volume")
+        assertTrue(script.contains("portainer-data:"), "portainer data must be a named volume")
+        assertTrue(script.contains("pg_isready"), "postgres service must ship a healthcheck")
+        assertTrue(script.contains(".env"), "compose must document the .env file")
+        assertTrue(script.contains("POSTGRES_PASSWORD="), ".env must document POSTGRES_PASSWORD without a value")
+        assertTrue(script.contains("MOODLE_DATABASE_TYPE"), "moodle service must be wired to postgres")
+        assertTrue(script.contains("pgsql"), "moodle database type must be pgsql")
+    }
+
+    @Test
+    fun `windows compose scaffold mirrors the complete linux contract`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.WINDOWS)).single().content
+
+        assertTrue(script.contains("networks:"), "windows compose must declare the dedicated network (parity)")
+        assertTrue(script.contains("academy-net"), "windows compose must name the dedicated network (parity)")
+        assertTrue(script.contains("postgres-data:"), "windows postgres data must be a named volume (parity)")
+        assertTrue(script.contains("ollama-models:"), "windows ollama models must be a named volume (parity)")
+        assertTrue(script.contains("portainer-data:"), "windows portainer data must be a named volume (parity)")
+        assertTrue(script.contains("pg_isready"), "windows postgres service must ship a healthcheck (parity)")
+        assertTrue(script.contains(".env"), "windows compose must document the .env file (parity)")
+        assertTrue(script.contains("POSTGRES_PASSWORD="), "windows .env must document POSTGRES_PASSWORD without a value (parity)")
+        assertTrue(script.contains("MOODLE_DATABASE_TYPE"), "windows moodle service must be wired to postgres (parity)")
+        assertTrue(script.contains("pgsql"), "windows moodle database type must be pgsql (parity)")
+    }
+
+    @Test
     fun `credentials never hold values - only the env prefix convention`() {
         val script = InstallerScriptGenerator.render(
             platform(credentialsPrefixShallBe = "MY_ACADEMY_"),

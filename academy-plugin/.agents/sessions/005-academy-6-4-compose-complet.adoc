@@ -1,0 +1,120 @@
+= Session 005 — ACADEMY-6-4 : compose complet (network, volumes, healthcheck, .env) + parité Windows
+
+:date: 2026-09-22
+:session: 005
+:epic: ACADEMY-6
+:us: ACADEMY-6-4 (TERMINÉ)
+:methode: Baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR)
+
+== Mission
+
+Compléter le `docker-compose.yml` généré (suite de S-004, ordre acté
+**1 → 6 → 5 → 7**) : network dédié, volumes nommés (PostgreSQL + Ollama +
+Portainer), healthcheck PostgreSQL, fichier `.env` documenté (noms seulement,
+zéro valeur — règle Secrets), **parité Linux/macOS + Windows cadenassée**.
+
+== Constats (audit d'ouverture)
+
+. Le scaffold compose S-004 déclarait 5 services mais **aucun** `networks:`,
+   `volumes:` (top-level), healthcheck PostgreSQL, ni `.env` — D-ACADEMY-6-5
+   (« complet et directement exécutable ») n'était que partiellement satisfait.
+. Moodle n'était **pas** câblé à PostgreSQL (`MOODLE_DATABASE_TYPE`/`pgsql`
+   absents) : le service était déclaré mais la connexion DB non configurée.
+. `POSTGRES_PASSWORD: changeme` était **hardcodé** dans le compose — contredit
+   la règle Secrets et D-ACADEMY-6-5 (« valeurs depuis `.env` »).
+. Les deux writers compose (`appendComposeScaffold` bash heredoc /
+   `appendWindowsComposeScaffold` batch echo) **dupliquaient** 78 lignes de
+   YAML : risque structurel de divergence cross-plateforme (constat S-004
+   déjà matérialisé une fois).
+
+== RED (prouvé)
+
+Tests étendus avant le code :
+* `InstallerScriptGeneratorTest` — 2 tests : `compose scaffold declares a
+  dedicated network named volumes and a documented env file` (Linux) +
+  `windows compose scaffold mirrors the complete linux contract` (parité,
+  assertions identiques) ;
+* `academy_installer.feature` — 2 scénarios `@installer` : mêmes contrats
+  côté Linux et côté Windows (parité BDD).
+
+`./gradlew test --tests "...InstallerScriptGeneratorTest"` → **BUILD FAILED
+— 14 tests, 2 failed** (14 = 12 existants + 2 nouveaux).
+`./gradlew cucumberTestInstaller` → **2 scénarios FAILED** (4 failed au total
+dans la tâche, dont les 2 scénarios via le runner).
+
+== GREEN (prouvé)
+
+`InstallerScriptGenerator.kt` :
+* **REFACTOR anti-duplication** (cause racine du drift S-004) : extraction de
+  `composeBody(): List<String>` et `envBody(): List<String>` — **source unique
+  de vérité** rendue par le heredoc bash (`appendComposeScaffold`) *et* par le
+  writer batch (`appendWindowsComposeScaffold` → `echo $it`). La parité n'est
+  plus assertée a posteriori, elle est **structurellement garantie**.
+* Network dédié `academy-net` (`driver: bridge`) sur les 5 services.
+* Volumes nommés top-level `postgres-data`, `ollama-models`, `portainer-data`.
+* Healthcheck PostgreSQL `pg_isready -U postgres` (10s/5s/5) + `depends_on:
+  postgres: condition: service_healthy` côté Moodle.
+* Moodle câblé PostgreSQL : `MOODLE_DATABASE_TYPE: pgsql`,
+  `MOODLE_DATABASE_HOST: postgres`.
+* Secrets supprimés : `POSTGRES_PASSWORD`/`POSTGRES_DB` lus depuis `${...}` /
+  `.env` (valeur vide) — **plus aucun secret hardcodé**.
+
+`AcademyInstallerExtension.kt` : KDoc `composeEnabled` mis à jour (`.env`
+documenté, valeurs runtime).
+
+Tests ajoutés :
+* unit : 2 tests (`InstallerScriptGeneratorTest` → 9 tests) ;
+* functional TestKit : 1 test (`compose scaffold and env are written as real
+  files with the full contract`) — verrouille l'écriture réelle
+  `cat > .../docker-compose.yml` + `cat > .../.env` côté bash et
+  `> ...\docker-compose.yml` + `> ...\.env` côté batch, avec assertions
+  network/volumes/healthcheck sur les deux plateformes ;
+* BDD : 2 scénarios (`academy_installer.feature` → 7 scénarios).
+
+== Dogfooding réel (validation externe)
+
+`./gradlew buildAllInstallers` sur le projet consommateur racine → 3
+installeurs générés. Extraction du heredoc compose → `docker compose config
+--quiet` → **COMPOSE VALIDE** (seuls warnings attendus `POSTGRES_DB`/
+`POSTGRES_PASSWORD` non définis, valeurs runtime — comportement voulu).
+Confirme que le YAML généré est **directement exécutable**, pas seulement
+asserté par grep.
+
+== Gates
+
+* `./gradlew clean check` → **BUILD SUCCESSFUL** (26 unit + 14 cucumber
+  + 3 functional = **43 checks, 0 FAIL**), `validatePlugins` VERT.
+* `./gradlew publishToMavenLocal` → **BUILD SUCCESSFUL**.
+* grep `mariadb` en `src/main` → **ZÉRO**.
+* grep secrets en `src/main` → seules les clés de configuration
+  (`.env`/`${POSTGRES_PASSWORD}`), **aucune valeur**.
+
+== Décisions de session
+
+. **Parité structurelle > parité assertée** : un corps compose unique partagé
+   par les deux writers supprime la classe de bug S-004 (divergence par
+   duplication) au lieu de la surveiller.
+. **Zéro secret hardcodé** : la valeur `changeme` de S-004 est remplacée par
+   une lecture `.env` (`POSTGRES_PASSWORD=` vide) — cohérent règle Secrets +
+   D-ACADEMY-6-5.
+. **Compose validé par l'outil** (dogfooding `docker compose config`) et non
+   par grep seul — preuve d'exécutabilité réelle.
+
+== Fichiers modifiés
+
+|===
+| Fichier | Nature
+| `src/main/kotlin/.../installer/InstallerScriptGenerator.kt` | prod — `composeBody`/`envBody` partagés + network/volumes/healthcheck/.env
+| `src/main/kotlin/.../AcademyInstallerExtension.kt` | KDoc
+| `src/test/kotlin/.../installer/InstallerScriptGeneratorTest.kt` | tests — 2 unit (Linux + parité Windows)
+| `src/test/resources/features/academy_installer.feature` | BDD — 2 scénarios
+| `src/functionalTest/kotlin/.../AcademyInstallerFunctionalTest.kt` | functional — 1 testTestKit (compose + .env sur disque)
+|===
+
+== Reste à faire (ACADEMY-6)
+
+`ACADEMY-6-5` (seed DB data-only au premier `compose up`, entrypoint
+idempotent, course minimale) — **prochaine session**. Puis 6-6 (dogfooding
+conteneur), 6-7 (Cucumber étendu). 6-1/2/3 (raffermissement Linux/Windows/
+macOS) restent **partiellement caducs** pour le provisioning hôte Java/Gradle
+(D-ACADEMY-6-10) et devront être recadrés avant implémentation.

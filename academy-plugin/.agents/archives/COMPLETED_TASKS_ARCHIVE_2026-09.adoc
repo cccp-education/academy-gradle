@@ -25,3 +25,7 @@ _Session 003 (2026-09-20) — Socle générateur d'installateurs (ACADEMY-1) + c
 _Session 004 (2026-09-22) — Révisions pilote du scaffold compose (Ollama, Portainer, PostgreSQL)_
 
 - ACADEMY-6-4 (volet compose scaffold) : gouvernance actée (D-6-10→13) + swap `mariadb:11`→`postgres:16` sur Linux/macOS et Windows + parité Windows `ollama`/`portainer` — RED prouvé (3 failed) → GREEN (12/12, check VERT) (5 pts)
+
+_Session 005 (2026-09-22) — ACADEMY-6-4 TERMINÉ : compose complet + parité structurelle Linux/Windows_
+
+- ACADEMY-6-4 : `docker-compose.yml` complet et exécutable — network dédié `academy-net`, volumes nommés `postgres-data`/`ollama-models`/`portainer-data`, healthcheck PostgreSQL `pg_isready` + `depends_on: service_healthy`, Moodle câblé `pgsql`, `.env` généré (noms seulement). REFACTOR `composeBody()`/`envBody()` = source unique partagée bash/batch (parité structurelle). Tests : 2 unit + 1 functional TestKit + 2 scénarios BDD. Dogfooding `docker compose config` VALIDE. Gates : 43 checks 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT (5 pts)

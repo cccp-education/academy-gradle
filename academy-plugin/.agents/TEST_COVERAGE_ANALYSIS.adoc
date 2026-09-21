@@ -1,23 +1,24 @@
 = TEST_COVERAGE_ANALYSIS — academy-gradle
 
-_Dernière mise à jour_ : 2026-09-22 (session 004)
+_Dernière mise à jour_ : 2026-09-22 (session 005)
 
 == État des tests
 
 Sessions 000-002 : aucune modification de code source (bootstrap, architecture, gouvernance).
 Session 003 : implémentation EPIC ACADEMY-1 (socle générateur d'installateurs) — première vraie couverture de code.
 Session 004 : révisions pilote du scaffold compose (postgres + ollama + portainer, parité Linux/Windows).
+Session 005 : ACADEMY-6-4 terminé — compose complet (network, volumes nommés, healthcheck PostgreSQL, `.env`) + parité structurelle (source unique `composeBody()`/`envBody()`).
 
 ## Ce qui est couvert
 
 - **ACADEMY-1-0 (wiring)** : `AcademyPluginTest` (3 unit) — chargement du plugin, conventions d'extension par défaut, aggregation des 3 plateformes, surcharges (applicationName/outputDir).
-- **ACADEMY-1-1 (domaine)** : `InstallerScriptGeneratorTest` (8 unit) — contenu Linux (pins toolchain, garde idempotence `~/.academy/.installed-`), scaffold compose conditionnel, convention credentials (prefix seulement, jamais de valeur), rendu Windows (admin, PowerShell, setx), macOS (Homebrew, sans sudo), composition du path relatif, **scaffold compose Postgres + Ollama + Portainer sur Linux ET Windows (parité)**.
-- **ACADEMY-1-2 (intégration)** : `AcademyInstallerFunctionalTest` (2 TestKit) — `buildAllInstallers` écrit les 3 fichiers dans le layout attendu ; applicationName/outputDir custom honorés via TestKit Gradle runner.
-- **BDD (pattern S-082)** : `cucumberTestInstaller` — feature `academy_installer.feature` `@installer` (5 scénarios : linux bash deterministe toolchain, compose only when enabled + postgres/ollama/portainer, credentials convention, windows batch admin/setx, macos Homebrew sans sudo). Steps domaine pur (zéro Gradle/IO).
+- **ACADEMY-1-1 (domaine)** : `InstallerScriptGeneratorTest` (9 unit) — contenu Linux (pins toolchain, garde idempotence `~/.academy/.installed-`), scaffold compose conditionnel, **compose complet Linux (network `academy-net`, volumes nommés `postgres-data`/`ollama-models`/`portainer-data`, healthcheck `pg_isready`, `.env` + `POSTGRES_PASSWORD=` vide, Moodle `pgsql`)**, convention credentials (prefix seulement, jamais de valeur), rendu Windows (admin, PowerShell, setx), macOS (Homebrew, sans sudo), composition du path relatif, **parité Windows du contrat compose complet (assertions identiques)**.
+- **ACADEMY-1-2 / 6-4 (intégration)** : `AcademyInstallerFunctionalTest` (3 TestKit) — `buildAllInstallers` écrit les 3 fichiers dans le layout attendu ; applicationName/outputDir custom honorés via TestKit Gradle runner ; **écriture réelle de `docker-compose.yml` + `.env` sur disque (bash `cat >` et batch `> ... (`) avec network/volumes/healthcheck assertés sur les deux plateformes**.
+- **BDD (pattern S-082)** : `cucumberTestInstaller` — feature `academy_installer.feature` `@installer` (7 scénarios : linux bash deterministe toolchain, compose only when enabled + postgres/ollama/portainer, **compose complet Linux (network/volumes/healthcheck/.env/pgsql)**, credentials convention, windows batch admin/setx, macos Homebrew sans sudo, **parité Windows du contrat compose complet**). Steps domaine pur (zéro Gradle/IO).
 
 ## Ce qui est à couvrir
 
-- EPIC ACADEMY-6 : raffermissement Linux (arch aarch64, persistence PATH/JAVA_HOME, partiellement caduc D-6-10), Windows profil 64-bit, macOS Rosetta, compose complet (network/volumes/healthchecks/.env, healthcheck PostgreSQL), seed DB, dogfooding conteneur (validation manuelle), Cucumber étendu (erreurs, idempotence).
+- EPIC ACADEMY-6 : seed DB data-only (6-5), dogfooding conteneur (6-6, validation manuelle `docker compose config` déjà verte S-005), Cucumber étendu (6-7 : erreurs, idempotence) ; raffermissement Linux (arch aarch64, persistence PATH/JAVA_HOME, partiellement caduc D-6-10), Windows profil 64-bit, macOS Rosetta.
 - ACADEMY-5 (opencode.json), ACADEMY-7 (BYOK LLM), contrats ACADEMY-4/2/3 : pas de tests tant que non implémentés.
 
 ## Évolution future
@@ -27,4 +28,5 @@ Session 004 : révisions pilote du scaffold compose (postgres + ollama + portain
 | 2026-09-20 | Aucun (session recadrage gouvernance) | N/A |
 | 2026-09-20 | 10 unit + 2 functional + 5 cucumber (17 checks) | 0 FAIL — `check` VERT |
 | 2026-09-22 | 12 unit (dont parité Windows) + 2 functional + 5 cucumber | 0 FAIL — `check` VERT |
+| 2026-09-22 | 26 unit (dont compose complet Linux/Windows) + 3 functional (compose+env sur disque) + 14 cucumber (7 scénarios × 2 runners) | 0 FAIL — `check` VERT (43 checks) |
 |===

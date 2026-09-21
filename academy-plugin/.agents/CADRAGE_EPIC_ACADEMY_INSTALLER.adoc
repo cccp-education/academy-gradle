@@ -81,7 +81,7 @@ l'articulation avec les Épics voisins.
 | D-ACADEMY-6-2 | Linux : `install.sh` bootstrap Docker (doc + exit si absent), Temurin via `APT`/`curl` selon arch (`x86_64`/`aarch64`), Gradle `services.gradle.org`, `JAVA_HOME` + `PATH` persistés dans `~/.profile`, `gradle` proxy via `~/.local/bin` symlinks. Garde idempotence conservée (layer S-003). | 6-1
 | D-ACADEMY-6-3 | Windows : `.bat` admin (`net session`), downloads PowerShell (Temurin API + zip Gradle), `setx` `JAVA_HOME`/`PATH` (profil 64-bit documenté), fonctionne sur Windows 11. | 6-2
 | D-ACADEMY-6-4 | macOS : `.sh` Homebrew (`brew install --cask docker`, `openjdk@25`, `gradle`), `uname -m` pour Rosetta, **zéro sudo**. | 6-3
-| D-ACADEMY-6-5 | Le `docker-compose.yml` généré est **complet et directement exécutable** : services Moodle + PostgreSQL + Ollama + Portainer + workspace, network dédié, volumes nommés persistants, ports exposés (Moodle 8080, Ollama 11434, Portainer 9000), healthchecks, course seedée via entrypoint dédié, variables depuis `.env`. | 6-4/6-5
+| D-ACADEMY-6-5 | Le `docker-compose.yml` généré est **complet et directement exécutable** : services Moodle + PostgreSQL + Ollama + Portainer + workspace, network dédié, volumes nommés persistants, ports exposés (Moodle 8080, Ollama 11434, Portainer 9000), healthchecks, course seedée via entrypoint dédié, variables depuis `.env`. — **✅ vérifié S-005** : `docker compose config` VALIDE ; **parité structurelle** Linux/Windows par source unique `composeBody()`/`envBody()` (le YAML est rendu identiquement par le heredoc bash et le writer batch). | 6-4/6-5
 | D-ACADEMY-6-6 | Le seed DB est **data-only** au premier `compose up` (entrypoint s'il n'existe pas) : création répertoires/configuration Moodle, import d'un cours minimal (matériel SPG/SPD quand ACADEMY-4 le fournit). Zéro migration destructive, idempotent. | 6-5
 | D-ACADEMY-6-7 | Articulation 1/5/6/7 : ACADEMY-1 = socle d'extension+tâches (déjà acté S-003) ; ACADEMY-6 = contenu définitif des scripts + compose + seed (cet EPIC) ; ACADEMY-5 = `opencode.json` + session zsh (consomme le workspace du conteneur) ; ACADEMY-7 = fournisseur LLM (alimente le `.env`/convention de l'installeur, jamais la valeur). Les ordres : ACADEMY-1 → 6 → 5 → 7. | articulation
 | D-ACADEMY-6-8 | ACADEMY-6 n'ajoute **aucune dépendance compile** (reste un pur générateur). Le dogfooding ACADEMY-6-6 est une validation manuelle/CI documentée, pas un test de build. | 6-6
@@ -100,7 +100,7 @@ l'articulation avec les Épics voisins.
 | ACADEMY-6-1 | Linux raffermi : arch `aarch64`, persist `JAVA_HOME`/PATH/`~/.local/bin`, exit Docker documenté | +4 unit + 1 FT
 | ACADEMY-6-2 | Windows : profil 64-bit, PowerShell robuste, `setx` documenté | +4 unit + 1 FT
 | ACADEMY-6-3 | macOS : Homebrew cask, `uname -m` Rosetta, zéro sudo (déjà verrouillé) | +3 unit
-| ACADEMY-6-4 | `docker-compose.yml` complet : network, volumes, healthchecks, `.env` | +5 unit
+| ACADEMY-6-4 | `docker-compose.yml` complet : network, volumes, healthchecks, `.env` | +5 unit — ✅ TERMINÉ S-005 (dogfooding `docker compose config` VALIDE)
 | ACADEMY-6-5 | Seed DB data-only au premier up (entrypoint idempotent, course minimale) | +4 unit + BDD
 | ACADEMY-6-6 | Dogfooding : conteneur éphémère, installeur Linux réel, étapes 1→7 | validation manuelle
 | ACADEMY-6-7 | Cucumber BDD installeur étendu (contenu OS, compose, idempotence, erreurs) | +6 scénarios

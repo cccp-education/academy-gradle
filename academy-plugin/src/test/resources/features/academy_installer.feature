@@ -38,6 +38,36 @@ Feature: Academy installer generation (ACADEMY-1)
     When the installer generator renders the platform
     Then the script does not contain "docker-compose.yml"
 
+  Scenario: compose scaffold declares network named volumes postgres healthcheck and env file
+    Given a platform targeting "linux"
+    And compose embedding enabled
+    When the installer generator renders the platform
+    Then the script contains "networks:"
+    And the script contains "academy-net"
+    And the script contains "postgres-data:"
+    And the script contains "ollama-models:"
+    And the script contains "portainer-data:"
+    And the script contains "pg_isready"
+    And the script contains ".env"
+    And the script contains "POSTGRES_PASSWORD="
+    And the script contains "MOODLE_DATABASE_TYPE"
+    And the script contains "pgsql"
+
+  Scenario: windows compose scaffold mirrors the complete linux contract
+    Given a platform targeting "windows"
+    And compose embedding enabled
+    When the installer generator renders the platform
+    Then the script contains "networks:"
+    And the script contains "academy-net"
+    And the script contains "postgres-data:"
+    And the script contains "ollama-models:"
+    And the script contains "portainer-data:"
+    And the script contains "pg_isready"
+    And the script contains ".env"
+    And the script contains "POSTGRES_PASSWORD="
+    And the script contains "MOODLE_DATABASE_TYPE"
+    And the script contains "pgsql"
+
   Scenario: credentials are a convention, never embedded values
     Given a platform targeting "linux"
     And credential env prefix "MY_ACADEMY_"
