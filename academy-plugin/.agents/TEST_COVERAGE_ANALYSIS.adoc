@@ -1,6 +1,6 @@
 = TEST_COVERAGE_ANALYSIS — academy-gradle
 
-_Dernière mise à jour_ : 2026-09-21 (session 009)
+_Dernière mise à jour_ : 2026-09-21 (session 010)
 
 == État des tests
 
@@ -12,6 +12,7 @@ Session 006 : ACADEMY-6-5 terminé — seed DB data-only (service one-shot `mood
 Session 007 : ACADEMY-6-6 terminé — dogfooding bout-en-bout (5 écarts de scaffold inexécutable corrigés).
 Session 008 : ACADEMY-6-7 terminé — Cucumber BDD étendu (contenu OS, chemins, idempotence, erreurs, `opencode.json` différé) + **hôte = Docker uniquement (D-ACADEMY-6-10 appliqué : zéro provisioning Java/Gradle hôte)** ; ACADEMY-6-1/2/3 CADUQUES absorbés.
 Session 009 : **ACADEMY-5 terminé** — exposition agent opencode. Domaine pur `academy.opencode` (`OpenCodeConfig`/`OpenCodePlugin`/`OpenCodeCatalog`/`OpenCodeConfigGenerator`/`LearnerGuideGenerator`/`WorkspaceDockerfileGenerator`), service `workspace` (profile `agent`), `$APP_DIR/project/{Dockerfile,opencode.json,AGENTS.md}` générés (parité Linux/Windows), extension +3 properties. Les 2 scénarios « workspace/opencode différés » migrés en « générés ». Dogfooding réel : build image + `opencode 1.18.31` learner (bug install-root D-ACADEMY-5-11).
+Session 010 : **ACADEMY-7 terminé** — BYOK LLM multi-provider. Domaine pur `academy.byok` (`ByokProviderSpec`/`ByokProviderCatalog`), `OpenCodeConfig` +2 champs, `OpenCodeConfigGenerator` multi-provider, `LearnerGuideGenerator` BYOK concret, extension +2 properties, `.env` nom-seul + compose transmet la variable. Dépendance N0 `runtime-contracts` (supersede D-ACADEMY-5-9). Dogfooding réel GEMINI + défaut.
 
 ## Ce qui est couvert
 
@@ -20,12 +21,16 @@ Session 009 : **ACADEMY-5 terminé** — exposition agent opencode. Domaine pur 
 - **ACADEMY-1-2 / 6-4 / 6-5 / 6-7 (intégration)** : `AcademyInstallerFunctionalTest` (6 TestKit) — `buildAllInstallers` écrit les 3 fichiers dans le layout attendu ; applicationName/outputDir custom honorés via TestKit Gradle runner ; **écriture réelle de `docker-compose.yml` + `.env` + `seed/seed.sh` + `seed/seed-course.sql` sur disque** (bash `cat >` et batch `> ... (`) avec network/volumes/healthcheck/seed assertés sur les deux plateformes ; **hôte Docker-only (aucun provisioning hôte dans les scripts générés)**.
 - **BDD (pattern S-082)** : `cucumberTestInstaller` — feature `academy_installer.feature` `@installer` (21 scénarios : linux bash deterministe toolchain, compose only when enabled + postgres/ollama/portainer, compose complet Linux, **hôte Docker-only Linux/Windows/macOS**, **erreurs Docker requis**, **staging compose sous `$APP_DIR`**, **workspace généré (Dockerfile + opencode.json + AGENTS.md)**, credentials convention, windows batch admin + docker bootstrap, macos Homebrew sans sudo, parité Windows du contrat compose complet, **seed service one-shot, seed entrypoint idempotent, seed sql data-only, parité Windows des fichiers seed**). Steps domaine pur (zéro Gradle/IO). `cucumberTestOpenCode` — feature `academy_opencode.feature` `@opencode` (5 scénarios : config ollama, JSON balancé, pas de credential, guide inventoriant les tâches publiques, image basée `gradle:9.7.1-jdk25`). Steps domaine pur (`AcademyOpenCodeSteps`, pattern S-088).
 - **ACADEMY-5-1 (domaine `academy.opencode`)** : 22 unit — `OpenCodeCatalogTest` (7 : namespace public, zéro borough privé, tâche par plugin, entry points formation, `tasksFor` inconnu = null, `allTasks` déterministe, invariants), `OpenCodeConfigGeneratorTest` (6 : schema+provider ollama, JSON balancé, déterminisme, modèle configurable, zéro credential, invariants), `LearnerGuideGeneratorTest` (4 : identité+workflow, inventaire catalogue, guardrail, zéro credential), `WorkspaceDockerfileGeneratorTest` (5 : base gradle pinnée, zsh+opencode+learner, **install après `USER learner` + `HOME`**, workdir+cmd, zéro credential).
+- **ACADEMY-7-1 (domaine `academy.byok`)** : 21 unit — `ByokProviderSpecTest` (4 : identité, défauts null, invariants blank, invariants conditionnels), `ByokProviderCatalogTest` (7 : mapping total, ollama local sans clé, ollama-cloud endpoint+`OLLAMA_API_KEY`, gemini `@ai-sdk/google`+`GEMINI_API_KEY`, huggingface router+`HF_TOKEN`, custom, catalogue source unique), `OpenCodeConfigByokTest` (10 : **byte-identité ACADEMY-5 par défaut**, ollama-cloud, gemini sans baseURL, huggingface, custom, custom env var blank KO, custom baseUrl KO, JSON balancé pour tous les providers, **zéro valeur de clé pour tous les providers**), `LearnerGuideByokTest` (4 : runtime embarqué « no key », provider externe nomme la variable, custom env var, zéro valeur).
+- **ACADEMY-7-2 (chaîne BYOK)** : 7 unit — `InstallerScriptByokTest` (runtime embarqué sans variable, provider externe documente le nom sans valeur, compose transmet la variable, custom nom fourni, **zéro valeur de clé pour tous les providers**, **parité Windows**, custom sans nom KO) ; `AcademyPluginTest` +2 assertions (défauts `openCodeProvider`/`openCodeApiKeyEnvVar`) ; `AcademyInstallerFunctionalTest` +2 TestKit (provider configuré → `.env`+`opencode.json` ; custom baseUrl + env var).
+- **BDD (pattern S-082)** : `cucumberTestByok` — feature `academy_byok.feature` `@byok` (8 scénarios : défaut embarqué sans clé, ollama-cloud, gemini, huggingface, custom, JSON balancé, guide externe nomme la variable, guide embarqué « no key »). Glue préfixée `byok` (`AcademyByokSteps`, leçon S-088 anti-collision avec `AcademyOpenCodeSteps` partageant le même chemin de glue).
 
 ## Ce qui est à couvrir
 
-- ACADEMY-7 (BYOK LLM multi-provider dans `opencode.json`), ACADEMY-8 (webhooks + bridge Ktor), ACADEMY-2/3/4 (ports N0) : pas de tests tant que non implémentés.
+- ACADEMY-8 (webhooks + bridge Ktor), ACADEMY-2/3/4 (ports N0) : pas de tests tant que non implémentés.
 - ACADEMY-6-1/2/3 : **CADUQUES (S-008)**.
 - ACADEMY-5 : `ToolExposure` (N0) non encore consommé par le code (guardrail porté par `OpenCodeCatalog`) — à brancher en ACADEMY-2.
+- Publication Maven Central d'academy : jamais faite (le plugin n'est pas publié).
 
 ## Évolution future
 
@@ -39,4 +44,5 @@ Session 009 : **ACADEMY-5 terminé** — exposition agent opencode. Domaine pur 
 | 2026-09-21 | 21 unit + 5 functional + 15 scénarios cucumber (dogfooding 5 écarts) | 0 FAIL — `check` VERT + `validatePlugins` VERT |
 | 2026-09-21 | 28 unit + 6 functional + 21 scénarios cucumber (hôte Docker-only, chemins, erreurs, opencode.json différé) — RED prouvé aux 3 niveaux (unit 6 failed / cucumber 6 failed / functional 1 failed) | 0 FAIL — `check` VERT + `validatePlugins` VERT + `publishToMavenLocal` VERT |
 | 2026-09-21 | **50 unit + 7 functional + 21 scénarios installer + 5 scénarios opencode** (exposition agent : domaine `academy.opencode`, workspace généré) — RED prouvé par échec de compilation | 0 FAIL — `check` VERT + `validatePlugins` VERT + `publishToMavenLocal` VERT + dogfooding `docker build` + `opencode 1.18.31` |
+| 2026-09-21 | **218 unit + 9 functional + 21 installer + 5 opencode + 8 byok scénarios** (BYOK multi-provider : domaine `academy.byok`, générateur multi-provider, chaîne `.env`→compose→`{env:NAME}`) — RED prouvé par échec de compilation (N0 puis domaine puis wiring) | 0 FAIL — `check` VERT + `validatePlugins` VERT + `publishToMavenLocal` VERT + dogfooding GEMINI/défaut (clé absente du JSON, byte-identité ACADEMY-5) |
 |===

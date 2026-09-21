@@ -1,5 +1,6 @@
 package education.cccp.academy.installer
 
+import education.cccp.academy.byok.ByokProviderCatalog
 import education.cccp.academy.opencode.LearnerGuideGenerator
 import education.cccp.academy.opencode.OpenCodeConfigGenerator
 import education.cccp.academy.opencode.WorkspaceDockerfileGenerator
@@ -162,7 +163,10 @@ object InstallerScriptGenerator {
      * `MOODLE_USERNAME`/`MOODLE_PASSWORD`/`MOODLE_SITENAME`) and values sourced
      * from `.env` — never embedded.
      */
-    private fun composeBody(): List<String> = listOf(
+    private fun composeBody(platform: InstallerPlatform): List<String> {
+        val workspaceEnv = mutableListOf("      OLLAMA_HOST: \${OLLAMA_HOST}")
+        workspaceKeyEnvVar(platform)?.let { workspaceEnv += "      $it: \${$it}" }
+        return listOf(
         "services:",
         "  moodle:",
         "    image: erseco/alpine-moodle:v5.2.3",
@@ -191,7 +195,7 @@ object InstallerScriptGenerator {
         "      - \"./project:/workspace\"",
         "    working_dir: /workspace",
         "    environment:",
-        "      OLLAMA_HOST: \${OLLAMA_HOST}",
+        *workspaceEnv.toTypedArray(),
         "    depends_on:",
         "      ollama:",
         "        condition: service_started",
@@ -260,23 +264,38 @@ object InstallerScriptGenerator {
         "  postgres-data:",
         "  ollama-models:",
         "  portainer-data:",
-    )
+        )
+    }
+
+    /**
+     * The API-key **environment variable name** the workspace service receives
+     * (ACADEMY-7) — the documented per-provider default, or the learner's
+     * override. `null` for the embedded local runtime: no key, no variable.
+     * The variable's *value* is never generated (Secrets rule).
+     */
+    private fun workspaceKeyEnvVar(platform: InstallerPlatform): String? {
+        if (!platform.openCodeEnabled) return null
+        val documented = ByokProviderCatalog.specFor(platform.openCodeProvider).apiKeyEnvVar
+        return platform.openCodeApiKeyEnvVar ?: documented
+    }
 
     /**
      * `.env` body — documents the runtime configuration **names only**; values
      * are provided by the learner at runtime and never committed (Secrets rule,
-     * D-ACADEMY-6-5). `POSTGRES_PASSWORD` is intentionally left empty.
+     * D-ACADEMY-6-5). `POSTGRES_PASSWORD` is intentionally left empty; the BYOK
+     * key variable (ACADEMY-7) is documented as a name with no value.
      */
-    private fun envBody(): List<String> = listOf(
-        "# Academy runtime configuration - names only, values are provided at runtime (never committed)",
-        "POSTGRES_DB=moodle",
-        "POSTGRES_USER=postgres",
-        "POSTGRES_PASSWORD=",
-        "MOODLE_USERNAME=admin",
-        "MOODLE_PASSWORD=",
-        "MOODLE_SITENAME=Academy",
-        "OLLAMA_HOST=http://ollama:11434",
-    )
+    private fun envBody(platform: InstallerPlatform): List<String> = buildList {
+        add("# Academy runtime configuration - names only, values are provided at runtime (never committed)")
+        add("POSTGRES_DB=moodle")
+        add("POSTGRES_USER=postgres")
+        add("POSTGRES_PASSWORD=")
+        add("MOODLE_USERNAME=admin")
+        add("MOODLE_PASSWORD=")
+        add("MOODLE_SITENAME=Academy")
+        add("OLLAMA_HOST=http://ollama:11434")
+        workspaceKeyEnvVar(platform)?.let { add("$it=") }
+    }
 
     /**
      * Seed entrypoint body (D-ACADEMY-6-6) — the single source of truth shared
@@ -335,10 +354,10 @@ object InstallerScriptGenerator {
         appendLine("mkdir -p \"\$APP_DIR\"")
         appendLine("echo \"[academy] writing docker-compose.yml scaffold...\"")
         appendLine("cat > \"\$APP_DIR/docker-compose.yml\" <<'EOF'")
-        composeBody().forEach { appendLine(it) }
+        composeBody(platform).forEach { appendLine(it) }
         appendLine("EOF")
         appendLine("cat > \"\$APP_DIR/.env\" <<'EOF'")
-        envBody().forEach { appendLine(it) }
+        envBody(platform).forEach { appendLine(it) }
         appendLine("EOF")
         appendLine("mkdir -p \"\$APP_DIR/seed\"")
         appendLine("cat > \"\$APP_DIR/seed/seed.sh\" <<'EOF'")
@@ -380,10 +399,10 @@ object InstallerScriptGenerator {
         appendLine("rem Compose scaffold")
         appendLine("if not exist \"%APP_DIR%\" mkdir \"%APP_DIR%\"")
         appendLine("> \"%APP_DIR%\\docker-compose.yml\" (")
-        composeBody().forEach { appendLine("echo $it") }
+        composeBody(platform).forEach { appendLine("echo $it") }
         appendLine(")")
         appendLine("> \"%APP_DIR%\\.env\" (")
-        envBody().forEach { appendLine("echo $it") }
+        envBody(platform).forEach { appendLine("echo $it") }
         appendLine(")")
         appendLine("if not exist \"%APP_DIR%\\seed\" mkdir \"%APP_DIR%\\seed\"")
         appendLine("> \"%APP_DIR%\\seed\\seed.sh\" (")

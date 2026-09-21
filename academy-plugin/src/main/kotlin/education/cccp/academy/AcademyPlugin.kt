@@ -1,5 +1,6 @@
 package education.cccp.academy
 
+import contracts.runtime.LlmProviderKind
 import education.cccp.academy.installer.TargetOs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -36,6 +37,8 @@ class AcademyPlugin : Plugin<Project> {
         extension.openCodeEnabled.convention(true)
         extension.openCodeModel.convention("gpt-oss:120b-cloud")
         extension.openCodeProviderUrl.convention("http://ollama:11434/v1")
+        extension.openCodeProvider.convention(LlmProviderKind.OLLAMA_LOCAL)
+        extension.openCodeApiKeyEnvVar.convention("")
     }
 
     private fun registerInstallerTasks(project: Project, extension: AcademyInstallerExtension) {

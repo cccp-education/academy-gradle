@@ -1,5 +1,8 @@
 package education.cccp.academy.installer
 
+import contracts.runtime.LlmProviderKind
+import education.cccp.academy.opencode.OpenCodeConfig
+
 /**
  * Immutable, resolved configuration of one installer target — the input of the
  * pure [InstallerScriptGenerator].
@@ -19,6 +22,9 @@ package education.cccp.academy.installer
  *   `AGENTS.md` are provisioned (ACADEMY-5)
  * @param openCodeModel learner agent model rendered into `opencode.json`
  * @param openCodeProviderUrl OpenAI-compatible provider URL rendered into `opencode.json`
+ * @param openCodeProvider N0 provider kind the agent uses (ACADEMY-7)
+ * @param openCodeApiKeyEnvVar name of the env var holding the key, blank means
+ *   "documented per-provider default" (ACADEMY-7; never a value)
  */
 data class InstallerPlatform(
     val os: TargetOs,
@@ -31,6 +37,8 @@ data class InstallerPlatform(
     val openCodeEnabled: Boolean = true,
     val openCodeModel: String = "gpt-oss:120b-cloud",
     val openCodeProviderUrl: String = "http://ollama:11434/v1",
+    val openCodeProvider: LlmProviderKind = LlmProviderKind.OLLAMA_LOCAL,
+    val openCodeApiKeyEnvVar: String? = null,
 ) {
     init {
         require(applicationName.isNotBlank()) { "applicationName must not be blank" }
@@ -40,12 +48,18 @@ data class InstallerPlatform(
         require(credentialsEnvPrefix.isNotBlank()) { "credentialsEnvPrefix must not be blank" }
         require(openCodeModel.isNotBlank()) { "openCodeModel must not be blank" }
         require(openCodeProviderUrl.isNotBlank()) { "openCodeProviderUrl must not be blank" }
+        require(
+            openCodeProvider != LlmProviderKind.CUSTOM || !openCodeApiKeyEnvVar.isNullOrBlank(),
+        ) {
+            "CUSTOM provider requires an openCodeApiKeyEnvVar name (never a value)"
+        }
     }
 
-    /** Resolved opencode exposure configuration (ACADEMY-5). */
-    fun openCodeConfig(): education.cccp.academy.opencode.OpenCodeConfig =
-        education.cccp.academy.opencode.OpenCodeConfig(
-            providerUrl = openCodeProviderUrl,
-            model = openCodeModel,
-        )
+    /** Resolved opencode exposure configuration (ACADEMY-5, BYOK ACADEMY-7). */
+    fun openCodeConfig(): OpenCodeConfig = OpenCodeConfig(
+        providerUrl = openCodeProviderUrl,
+        model = openCodeModel,
+        provider = openCodeProvider,
+        apiKeyEnvVar = openCodeApiKeyEnvVar?.takeIf { it.isNotBlank() },
+    )
 }

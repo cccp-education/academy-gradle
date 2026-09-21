@@ -41,6 +41,12 @@ dependencies {
     compileOnly(gradleApi())
     implementation(libs.kotlin.gradle.plugin)
 
+    // ACADEMY-7-1 — N0 formation runtime contracts (ByokLlmConfig, LlmProviderKind).
+    // Supersedes D-ACADEMY-5-9 (zero compile dependency): ACADEMY-7 is the moment
+    // designated to consume the contract. Transitive cost measured S-010:
+    // opencode-session-contracts:0.0.2 + i18n-contracts:0.0.2, both on Central.
+    implementation(libs.runtime.contracts)
+
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.cucumber.java)
     testImplementation(libs.cucumber.junit.platform.engine)
@@ -127,6 +133,30 @@ val cucumberTestOpenCode by tasks.registering(Test::class) {
 }
 
 tasks.check { dependsOn(cucumberTestOpenCode) }
+
+// ── ACADEMY-7-3 — Dedicated Cucumber runner for academy_byok.feature (pattern S-082) ──
+// Scoped to AcademyByokCucumberRunner so only the byok feature runs.
+val cucumberTestByok by tasks.registering(Test::class) {
+    group = "verification"
+    description = "Runs the academy_byok.feature Cucumber suite (ACADEMY-7-3)"
+    testClassesDirs = sourceSets.getByName("test").output.classesDirs
+    classpath = configurations.getByName("testRuntimeClasspath") +
+        sourceSets.getByName("test").output +
+        sourceSets.getByName("main").output
+    useJUnitPlatform {
+        excludeEngines("junit-jupiter")
+    }
+    filter {
+        includeTestsMatching("education.cccp.academy.bdd.AcademyByokCucumberRunner")
+    }
+    systemProperty("cucumber.junit-platform.naming-strategy", "long")
+    systemProperty("cucumber.features", "src/test/resources/features/academy_byok.feature")
+    systemProperty("cucumber.filter.tags", "@byok and not @wip and not @integration")
+    shouldRunAfter(tasks.named("test"))
+    outputs.upToDateWhen { false }
+}
+
+tasks.check { dependsOn(cucumberTestByok) }
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()

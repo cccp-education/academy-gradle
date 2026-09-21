@@ -1,5 +1,6 @@
 package education.cccp.academy
 
+import contracts.runtime.LlmProviderKind
 import education.cccp.academy.installer.TargetOs
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.ListProperty
@@ -73,4 +74,17 @@ abstract class AcademyInstallerExtension {
 
     /** OpenAI-compatible provider base URL the agent points to (ACADEMY-5). */
     abstract val openCodeProviderUrl: Property<String>
+
+    /**
+     * LLM provider the agent uses (ACADEMY-7) — the N0 contract kind, default
+     * `OLLAMA_LOCAL` (the embedded runtime, identical to ACADEMY-5).
+     */
+    abstract val openCodeProvider: Property<LlmProviderKind>
+
+    /**
+     * Name of the environment variable holding the provider key (ACADEMY-7) —
+     * **never the value** (Secrets rule). Empty means "use the documented
+     * per-provider default" from `ByokProviderCatalog`.
+     */
+    abstract val openCodeApiKeyEnvVar: Property<String>
 }

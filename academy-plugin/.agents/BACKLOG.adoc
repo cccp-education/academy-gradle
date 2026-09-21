@@ -2,7 +2,7 @@
 :toc:
 :toclevels: 2
 
-_Dernière mise à jour_ : 2026-09-21 — **EPIC ACADEMY-5 TERMINÉ (S-009)** : exposition agent opencode — domaine pur `academy.opencode` (6 fichiers, 11 plugins publics catalogués), service `workspace` (profile `agent`, TODO S-007 résolu), `$APP_DIR/project/{Dockerfile,opencode.json,AGENTS.md}` générés (parité Linux/Windows), extension 3 properties ; dogfooding réel (`opencode 1.18.31` learner, bug install-root D-ACADEMY-5-11) ; ACADEMY-5-2 **absorbée**. Prochaine US : ACADEMY-7 (BYOK LLM multi-provider).
+_Dernière mise à jour_ : 2026-09-21 — **EPIC ACADEMY-7 TERMINÉ (S-010)** : BYOK LLM multi-provider — domaine pur `academy.byok` (`ByokProviderSpec` + `ByokProviderCatalog`, mapping `LlmProviderKind` → provider opencode réel vérifié S-010), `OpenCodeConfig` +2 champs, `OpenCodeConfigGenerator` multi-provider (`apiKey` toujours `{env:NAME}`, jamais la valeur), `LearnerGuideGenerator` BYOK concret, extension +2 properties, `.env` nom-seul + compose transmet la variable au service `workspace`, dépendance N0 `runtime-contracts` (supersede D-ACADEMY-5-9) ; dogfooding réel GEMINI + défaut (clé absente du JSON, byte-identité ACADEMY-5). Prochaine US : ACADEMY-8 (webhooks Moodle + bridge Ktor).
 
 '''
 == Vision actée (S-002, arbitrage pilote)
@@ -39,7 +39,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-1 | Socle du plugin générateur d'installateurs (extension, tâches de génération, agrégateur) | ✅ TERMINÉ (S-003)
 | ACADEMY-6 | Installeur hybride multiplateforme (Docker + compose Moodle/PostgreSQL/Ollama/Portainer/workspace opencode zsh : network, volumes nommés, healthcheck PostgreSQL, `.env`, DB seedée data-only, images réelles, hôte = Docker uniquement) | ✅ TERMINÉ (S-008) — 6-0 S-003, 6-4 S-005 (corrigé S-007), 6-5 S-006, 6-6 S-007, 6-7 S-008 ; 6-1/2/3 ✅ CADUQUES S-008
 | ACADEMY-5 | Intégration du contrat InteractionProtocol (exposition de opencode.json + session zsh opencode lançant les tâches Gradle de l'écosystème) | ✅ TERMINÉ (S-009) — 5-0 cadrage, 5-1 domaine+wiring+dogfooding ; 5-2 absorbée
-| ACADEMY-7 | Intégration du BYOK LLM (configuration du fournisseur LLM : OLLAMA_LOCAL, OLLAMA_CLOUD, GEMINI, HUGGINGFACE, CUSTOM) | 🟡 À FAIRE
+| ACADEMY-7 | Intégration du BYOK LLM (configuration du fournisseur LLM : OLLAMA_LOCAL, OLLAMA_CLOUD, GEMINI, HUGGINGFACE, CUSTOM) | ✅ TERMINÉ (S-010) — 7-0 cadrage, 7-1 domaine `academy.byok` + générateur multi-provider, 7-2 wiring + chaîne `.env`→compose→`{env:NAME}`, 7-3 BDD + dogfooding réel
 | ACADEMY-4 | Intégration du contrat MaterialUpdateContract (liaison avec le bureau pour recevoir le matériel versionné) | 🟡 À FAIRE
 | ACADEMY-2 | Intégration du contrat FormationRuntimePort (boucle d'assistance startSession/executeTurn/endSession) | 🟡 À FAIRE
 | ACADEMY-3 | Intégration du contrat SessionMemoryContract (suivi apprenant : progression, comprehension, weakPoints, annotations) | 🟡 À FAIRE
@@ -112,7 +112,26 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-5-2 | Provision du projet consommateur `education.cccp` — **✅ ABSORBÉE S-009** (le `project/` généré : Dockerfile + opencode.json + AGENTS.md + README)
 |===
 
-*Note méthode* : l'implémentation des contrats N0 `FormationRuntimePort`/`InteractionProtocol` (D-ACADEMY-5-8) reste séquencée en ACADEMY-2/3 — elle exige un runtime LLM (BYOK, ACADEMY-7) et un pont Gradle↔opencode (ACADEMY-8 Ktor). ACADEMY-5 livre l'*exposition*, pas la boucle de session.
+*Note méthode* : l'implémentation des contrats N0 `FormationRuntimePort`/`InteractionProtocol` (D-ACADEMY-5-8) reste séquencée en ACADEMY-2/3 — elle exige un runtime LLM (BYOK, ✅ ACADEMY-7) et un pont Gradle↔opencode (ACADEMY-8 Ktor). ACADEMY-5 livre l'*exposition*, pas la boucle de session.
+
+=== ACADEMY-7 : Intégration du BYOK LLM (multi-provider)
+
+*Statut* : ✅ TERMINÉ (S-010) — ACADEMY-7-0 (cadrage `CADRAGE_EPIC_ACADEMY_7_BYOK.adoc`, D-ACADEMY-7-1..10, mapping provider vérifié S-010) ✅ ; **ACADEMY-7-1 (domaine `academy.byok` + générateur multi-provider) ✅ S-010** ; **ACADEMY-7-2 (wiring + chaîne BYOK) ✅ S-010** ; **ACADEMY-7-3 (BDD + dogfooding) ✅ S-010**.
+
+*Livré* : domaine pur `education.cccp.academy.byok` (`ByokProviderSpec` + `ByokProviderCatalog`, mapping total `LlmProviderKind` → provider opencode réel : `ollama`, `ollama-cloud` `https://ollama.com/v1`/`OLLAMA_API_KEY`, `google` npm `@ai-sdk/google`/`GEMINI_API_KEY`, `huggingface` `https://router.huggingface.co/v1`/`HF_TOKEN`, `custom`) ; `OpenCodeConfig` +`provider`/`apiKeyEnvVar` (défaut byte-identique ACADEMY-5) ; `OpenCodeConfigGenerator` multi-provider (`apiKey` toujours `{env:NAME}`, interpolation officielle opencode — jamais la valeur) ; `LearnerGuideGenerator` section BYOK concrète ; extension +2 properties (`openCodeProvider` défaut `OLLAMA_LOCAL`, `openCodeApiKeyEnvVar`) ; `.env` documente le nom (valeur vide) et `composeBody()` transmet la variable au service `workspace`. Dépendance N0 `runtime-contracts:0.0.1` (**supersede D-ACADEMY-5-9**).
+
+*Dogfooding (preuve réelle)* : consommateur transitoire /tmp, installeur exécuté en HOME isolé — provider GEMINI : `sh -n` + `docker compose config` + `jq` VALIDES, `.env` `GEMINI_API_KEY=` (vide), compose transmet `GEMINI_API_KEY: ${GEMINI_API_KEY}` ; **preuve de non-fuite** : avec `dummy-not-a-real-key`, la valeur est dans le `compose config` et **absente du `opencode.json`** ; défaut OLLAMA_LOCAL : `opencode.json` **byte-identique** ACADEMY-5.
+
+[cols="2,3", options="header"]
+|===
+| US | Description
+| ACADEMY-7-0 | Cadrage BYOK — provider N0 → provider opencode, clé par nom d'env var, options écartées ✅ S-010
+| ACADEMY-7-1 | Domaine `academy.byok` (`ByokProviderSpec`/`ByokProviderCatalog`) + `OpenCodeConfig` +2 champs + `OpenCodeConfigGenerator` multi-provider + `LearnerGuideGenerator` BYOK + dépendance N0 ✅ S-010
+| ACADEMY-7-2 | Extension +2 properties + `InstallerPlatform`/`GenerateInstallerTask` + `.env` nom-seul + compose transmet la variable + parité Linux/Windows ✅ S-010
+| ACADEMY-7-3 | BDD `academy_byok.feature` `@byok` 8 scénarios + runner dédié + dogfooding réel (clé absente du JSON) ✅ S-010
+|===
+
+*Note* : `poolPorts` (N0) n'est pas rendu dans `opencode.json` — c'est une concern de rotation runtime (codebase N1 `LlmProviderResolver`) ; l'agent parle au endpoint cloud officiel (D-ACADEMY-7-9).
 
 === ACADEMY-4 : Intégration du contrat MaterialUpdateContract
 
@@ -139,7 +158,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-2-3 | Implémenter la méthode endSession pour terminer proprement une session et générer le bilan
 |===
 
-*Note* : Les sections détaillées des Épics ACADEMY-3, ACADEMY-7, ACADEMY-8, ACADEMY-9 seront rédigées au fil des sessions, selon les découvertes.
+*Note* : Les sections détaillées des Épics ACADEMY-3, ACADEMY-8, ACADEMY-9 seront rédigées au fil des sessions, selon les découvertes.
 
 '''
 == Décisions structurantes
@@ -166,6 +185,16 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | D-ACADEMY-5-9 | **Aucune dépendance compile ajoutée** (D-ACADEMY-6-8 reconduite) : ni Jackson, ni runtime-contracts. Zéro bump BOM. | S-009
 | D-ACADEMY-5-10 | **Exposition = 11 plugins publics catalogués** (`planner,codex,codebase,slider,document,capsule,plantuml,graphify,hyperframes,bakery,readme`), tâches vérifiées source. Zéro `foundry/private` (training, edster, workspace, waiter, quizz). | S-009
 | D-ACADEMY-5-11 | **opencode installé EN TANT QUE `learner`** : un install en root atterrit dans `/root/.opencode` (invisible au learner) → `USER learner` avant l'install + `ENV HOME=/home/learner`. Découvert par dogfooding réel. | S-009
+| D-ACADEMY-7-1 | **`runtime-contracts` (N0) devient une dépendance compile** — supersede D-ACADEMY-5-9 : ACADEMY-7 est le moment désigné pour consommer `ByokLlmConfig`/`LlmProviderKind`. Coût transitif mesuré (`opencode-session-contracts:0.0.2` + `i18n-contracts:0.0.2`, Central 200), zéro bump BOM. | S-010
+| D-ACADEMY-7-2 | **Zéro secret — la clé est un NOM, jamais une valeur** : `opencode.json` rend `options.apiKey = "{env:<VAR>}"` (syntaxe officielle opencode). La valeur n'apparaît ni dans le JSON, ni dans `.env`, ni dans le compose. Prouvé par dogfooding (dummy key absente du JSON). | S-010
+| D-ACADEMY-7-3 | **Le contrat N0 valide, l'academy mappe** : les invariants de `ByokLlmConfig` sont le guardrail de fail-fast, l'academy ne les duplique pas. | S-010
+| D-ACADEMY-7-4 | **Domaine pur `education.cccp.academy.byok`** : `ByokProviderSpec` + `ByokProviderCatalog` (`LlmProviderKind` → spec), endpoints/npm officiels vérifiés S-010. Le domaine `opencode` consomme le catalogue — plus de `const PROVIDER_KEY`. | S-010
+| D-ACADEMY-7-5 | **`OpenCodeConfig` étendu de façon additive** (+`provider` défaut `OLLAMA_LOCAL`, +`apiKeyEnvVar` défaut null) : la sortie par défaut est **byte-identique** ACADEMY-5, verrouillée par un test de caractérisation. | S-010
+| D-ACADEMY-7-6 | **Extension +2 properties** : `openCodeProvider` (défaut `OLLAMA_LOCAL`), `openCodeApiKeyEnvVar` (défaut vide = défaut par provider). `openCodeProviderUrl` sert de `baseUrl`. Backward compat totale. | S-010
+| D-ACADEMY-7-7 | **`CUSTOM` exige un `baseUrl`** (plus strict que N0) : un provider OpenAI-compatible sans endpoint n'est pas adressable → fail-fast. | S-010
+| D-ACADEMY-7-8 | **`.env` documente le nom de la variable** (valeur vide) et **le compose la transmet** au service `workspace`, uniquement quand le provider exige une clé. Parité structurelle Linux/Windows conservée. | S-010
+| D-ACADEMY-7-9 | **`poolPorts` (N0) n'est pas rendu** : c'est une concern de rotation runtime (codebase N1 `LlmProviderResolver`), l'agent parle au endpoint cloud officiel. | S-010
+| D-ACADEMY-7-10 | **`AGENTS.md` rend la config concrète** : fournisseur, modèle, nom exact de la variable à exporter (« aucun — runtime local embarqué » pour `OLLAMA_LOCAL`). | S-010
 |===
 
 '''
@@ -183,6 +212,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | 2026-09-21 | S-007 : **ACADEMY-6-6 TERMINÉ** — dogfooding bout-en-bout. Le run réel a prouvé l'enchaînement (PostgreSQL/Ollama/Moodle healthy, seed `INSERT 0 1`→`INSERT 0 0`, Moodle **5.2.3** `/login` HTTP 200) et révélé **5 écarts** du scaffold inexécutable : `moodle:4.5` inexistante, contrat env `MOODLE_DATABASE_*` faux, version périmée, `portainer/portainer` obsolète, healthcheck Portainer invalide (distroless) + workspace à image non publiée. Corrigés (D-ACADEMY-6-14..17) — image `erseco/alpine-moodle:v5.2.3`, contrat `DB_*`/`MOODLE_*`, `portainer-ce` sans healthcheck, workspace différé (TODO ACADEMY-5). RED 20 failed → GREEN. Gates : 21 unit + 5 functional + 15 scénarios cucumber 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT. |
 | 2026-09-21 | S-008 : **ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ** — Cucumber BDD étendu (contenu OS, chemins, idempotence, erreurs, `opencode.json` différé) + alignement du contenu OS sur D-ACADEMY-6-10 (hôte = Docker uniquement, zéro provisioning Java/Gradle hôte) ; ACADEMY-6-1/2/3 **CADUQUES** absorbés (D-ACADEMY-6-18). RED prouvé aux 3 niveaux (unit 6 failed / cucumber 6 failed / functional 1 failed) → GREEN. Gates : 28 unit + 6 functional + 21 scénarios cucumber 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT, dogfooding `sh -n` + `docker compose config` VALIDES. |
 | 2026-09-21 | S-009 : **EPIC ACADEMY-5 TERMINÉ** — exposition agent opencode. Découvertes : image officielle opencode Alpine-minimal (inapte Gradle), base réelle `gradle:9.7.1-jdk25`. Domaine pur `academy.opencode` (6 fichiers, 11 plugins publics catalogués source-vérifiés) + service `workspace` (profile agent, TODO S-007 résolu) + `$APP_DIR/project/{Dockerfile,opencode.json,AGENTS.md}` générés (parité Linux/Windows) + extension 3 properties ; ACADEMY-5-2 absorbée. Dogfooding réel : `docker build` SUCCÈS, `opencode 1.18.31` learner, `sh -n`+`docker compose config`+`jq` VALIDES ; bug install-root corrigé (D-ACADEMY-5-11). Gates : 50 unit + 7 functional + 21 scénarios installer + 5 scénarios opencode 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT. |
+| 2026-09-21 | S-010 : **EPIC ACADEMY-7 TERMINÉ** — BYOK LLM multi-provider. Faits vérifiés S-010 : contrat N0 `runtime-contracts:0.0.1` sur Central (JAR inspecté), interpolation `{env:NAME}` officielle opencode, ids providers réels models.dev (`ollama`/`ollama-cloud`/`google`/`huggingface`). Domaine pur `academy.byok` (`ByokProviderSpec` + `ByokProviderCatalog` mapping total) + `OpenCodeConfig` +2 champs (défaut byte-identique ACADEMY-5, test de caractérisation) + `OpenCodeConfigGenerator` multi-provider (`apiKey` toujours `{env:NAME}`) + `LearnerGuideGenerator` BYOK concret + extension +2 properties + `.env` nom-seul + compose transmet la variable au service `workspace` ; dépendance N0 (supersede D-ACADEMY-5-9) ; D-ACADEMY-7-1..10. Dogfooding réel GEMINI + défaut : preuve de non-fuite de la clé, `sh -n`/`compose config`/`jq` VALIDES, byte-identité ACADEMY-5. Gates : 218 unit + 9 functional + 21 installer + 5 opencode + 8 byok scénarios 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT, zéro secret. |
 |===
 
 '''
@@ -197,9 +227,10 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 [x] ACADEMY-6-7 : Cucumber BDD étendu (contenu OS, erreurs, idempotence) — **TERMINÉ S-008** (+ alignement D-ACADEMY-6-10)
 [x] ACADEMY-5 : service `workspace` réinséré dans `composeBody()` (image générée `cccp-education/academy-workspace` sur `gradle:9.7.1-jdk25`, profile `agent`) + `opencode.json` + `AGENTS.md` générés — **TERMINÉ S-009** (le TODO laissé S-007 est résolu ; la publication d'image est remplacée par un build local `docker compose build`)
 [x] Recadrer ACADEMY-6-1/2/3 — **CADUQUES S-008** (absorbés par 6-7, D-ACADEMY-6-18)
-[ ] ACADEMY-7 : BYOK LLM — `ByokLlmConfig` (runtime-contracts N0) → `opencode.json` multi-provider (OLLAMA_LOCAL/OLLAMA_CLOUD/GEMINI/HUGGINGFACE/CUSTOM), clé **par env var, jamais la valeur** — prochaine session
-[ ] ACADEMY-8 : webhooks Moodle + bridge Ktor (opencode ↔ Gradle `sessionProtocolDaemon` de codebase N1)
-[ ] ACADEMY-2/3/4 : implémenter les ports N0 (`FormationRuntimePort`, `SessionMemoryContract`, `MaterialUpdateContract`) — consomme `runtime-contracts` (Central 0.0.1), zéro bump BOM requis
+[x] ACADEMY-7 : BYOK LLM — `ByokLlmConfig` (runtime-contracts N0) → `opencode.json` multi-provider (OLLAMA_LOCAL/OLLAMA_CLOUD/GEMINI/HUGGINGFACE/CUSTOM), clé **par env var, jamais la valeur** — **TERMINÉ S-010** (domaine `academy.byok`, `{env:NAME}`, `.env`→compose→JSON, dogfooding non-fuite)
+[ ] ACADEMY-8 : webhooks Moodle + bridge Ktor (opencode ↔ Gradle `sessionProtocolDaemon` de codebase N1) — prochaine session (vérifier la source du contrat avant de le nommer)
+[ ] ACADEMY-2/3/4 : implémenter les ports N0 (`FormationRuntimePort`, `SessionMemoryContract`, `MaterialUpdateContract`) — consomme `runtime-contracts` (Central 0.0.1, **déjà sur le classpath depuis ACADEMY-7**), zéro bump BOM requis
+[ ] Publication Maven Central d'academy : jamais faite (le plugin n'est pas publié) — à planifier sur demande pilote
 [ ] ACADEMY-2 : brancher `ToolExposure` (N0) sur `OpenCodeCatalog` (le guardrail est aujourd'hui porté par le catalogue, non par le contrat)
 [ ] Vérifier la conformité avec les décisions actées dans VISION_PIPELINE_FORMATION.adoc (sections 3.3, 9.2, 8.2)
 [ ] Définir précisément les dépendances nécessaires pour les runtime-contracts (N0, quand ACADEMY-4/2/3)

@@ -1,14 +1,18 @@
 package education.cccp.academy.opencode
 
+import education.cccp.academy.byok.ByokProviderCatalog
+
 /**
- * Pure learner guide renderer (ACADEMY-5-1) — produces the `AGENTS.md` file,
- * opencode's official project anchor (opencode discovers `AGENTS.md`
- * automatically at the project root).
+ * Pure learner guide renderer (ACADEMY-5-1, BYOK-aware since ACADEMY-7-1) —
+ * produces the `AGENTS.md` file, opencode's official project anchor (opencode
+ * discovers `AGENTS.md` automatically at the project root).
  *
  * The guide teaches the real workflow: bring the stack up, open the agent,
  * then drive the formation pipeline through the exposed Gradle tasks. The task
  * inventory is read from [OpenCodeCatalog] so documentation and configuration
- * can never drift apart (single source of truth).
+ * can never drift apart (single source of truth). Since ACADEMY-7 it also
+ * states the **concrete** LLM configuration: provider, model, and the exact
+ * name of the environment variable to export — never a value (D-ACADEMY-7-10).
  */
 object LearnerGuideGenerator {
 
@@ -18,6 +22,8 @@ object LearnerGuideGenerator {
             val tasks = plugin.tasks.joinToString(", ") { "`./gradlew $it`" }
             "- **${plugin.id}** — ${plugin.role}: $tasks"
         }
+        val spec = ByokProviderCatalog.specFor(config.provider)
+        val keyName = config.apiKeyEnvVar ?: spec.apiKeyEnvVar
         return """
             |# Academy Workspace — Learner Guide
             |
@@ -40,10 +46,14 @@ object LearnerGuideGenerator {
             |```
             |
             |The agent reads `AGENTS.md` (this file) and `opencode.json`, which
-            |points it at the embedded Ollama runtime (${config.providerUrl},
+            |points it at the **${spec.displayName}** provider (id `${spec.id}`,
             |model `${config.model}`).
             |
-            |## 3. Drive the formation pipeline
+            |## 3. Bring your own key (BYOK)
+            |
+            |${byokSection(keyName)}
+            |
+            |## 4. Drive the formation pipeline
             |
             |The agent exposes the public ecosystem tasks to you. A few entry points:
             |
@@ -63,8 +73,27 @@ object LearnerGuideGenerator {
             |## Credentials
             |
             |Never put a key in this workspace. Provide your LLM provider key
-            |through the environment when you configure bring-your-own-key
-            |(BYOK) — the agent reads it from there, never from a file.
+            |through the environment — the agent reads it from there, never from
+            |a file.
             |""".trimMargin()
+    }
+
+    private fun byokSection(keyName: String?): String = if (keyName == null) {
+        """
+        |The default provider is the embedded Ollama runtime: it is local, so
+        |**no key is required**. To use an external provider instead, regenerate
+        |the workspace with the matching `openCodeProvider` and export its key.
+        """.trimMargin()
+    } else {
+        """
+        |Export your provider key before starting the agent — the workspace reads
+        |the value from the environment, never from a file:
+        |
+        |```sh
+        |export $keyName=your-key-here
+        |```
+        |
+        |`opencode.json` only references `$keyName` (never its value).
+        """.trimMargin()
     }
 }

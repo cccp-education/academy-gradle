@@ -1,5 +1,6 @@
 package education.cccp.academy
 
+import contracts.runtime.LlmProviderKind
 import education.cccp.academy.installer.TargetOs
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
@@ -44,6 +45,8 @@ class AcademyPluginTest {
         assertTrue(extension.openCodeEnabled.get())
         assertEquals("gpt-oss:120b-cloud", extension.openCodeModel.get())
         assertEquals("http://ollama:11434/v1", extension.openCodeProviderUrl.get())
+        assertEquals(LlmProviderKind.OLLAMA_LOCAL, extension.openCodeProvider.get())
+        assertTrue(extension.openCodeApiKeyEnvVar.get().isBlank(), "no key variable by default")
     }
 
     @Test

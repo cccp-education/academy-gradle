@@ -1,0 +1,142 @@
+= Session 010 — ACADEMY-7 : BYOK LLM multi-provider
+
+:date: 2026-09-21
+:session: 010
+:epic: ACADEMY-7
+:us: ACADEMY-7-0 (cadrage) + ACADEMY-7-1 (domaine) + ACADEMY-7-2 (wiring) + ACADEMY-7-3 (BDD + dogfooding)
+:methode: Baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR) — 3 niveaux unit/functional/cucumber
+
+== Mission
+
+Suite de l'EPIC ACADEMY-5 (TERMINÉ S-009), US ACADEMY-7 — BYOK LLM :
+rendre `opencode.json` **multi-provider** depuis le contrat N0
+`contracts.runtime.ByokLlmConfig`/`LlmProviderKind`, la clé référencée par
+le **nom** de sa variable d'environnement, jamais la valeur.
+
+== Constats (audit d'ouverture S-010 — faits vérifiés, jamais supposés)
+
+. *`OpenCodeConfigGenerator` était mono-provider structurellement* :
+   `PROVIDER_KEY` = `const val "ollama"` (2 usages), npm et libellé figés.
+   Aucun paramètre ne pouvait le changer — le TODO réel de S-009.
+. *`OpenCodeConfig` ne portait aucune notion de fournisseur* (2 champs).
+. *Contrat N0 publié et vérifié* : `runtime-contracts:0.0.1` sur Maven Central
+   (JAR inspecté : `contracts/runtime/ByokLlmConfig.class` +
+   `LlmProviderKind.class`), invariants `OLLAMA_LOCAL` → `baseUrl` requis,
+   `GEMINI`/`HUGGINGFACE`/`CUSTOM` → `apiKeyEnvVar` requis. Transitifs
+   (`opencode-session-contracts:0.0.2`, `i18n-contracts:0.0.2`) sur Central,
+   stdlib 2.4.10 aligné.
+. *L'interpolation `{env:NAME}` est officielle opencode* (schéma
+   `https://opencode.ai/config.json` + docs providers) — la valeur reste hors
+   fichier.
+. *Ids providers réels vérifiés* (models.dev `api.json` + docs) : `ollama`,
+   `ollama-cloud` (`https://ollama.com/v1`, `OLLAMA_API_KEY`), `google`
+   (npm `@ai-sdk/google`, `GEMINI_API_KEY`), `huggingface`
+   (`https://router.huggingface.co/v1`, `HF_TOKEN`). Leçon S-007 `moodle:4.5`
+   appliquée : rien n'est inventé.
+. *La chaîne BYOK a 3 maillons cohérents* : `.env` (nom, valeur vide) →
+   compose (transmet au service `workspace`) → `opencode.json` (`{env:NAME}`).
+. *Outillage dogfooding présent* : Docker 29.8.1 + Compose v5.5.1 + jq 1.7.
+
+== Décisions (cadrage S-057, doc `CADRAGE_EPIC_ACADEMY_7_BYOK.adoc`)
+
+D-ACADEMY-7-1..10. Structurantes : `runtime-contracts` N0 devient dépendance
+compile (**supersede D-ACADEMY-5-9**, mesure du coût transitif faite) ; zéro
+secret (`{env:NAME}` uniquement, testé à l'égalité stricte) ; domaine pur
+`academy.byok` (`ByokProviderSpec` + `ByokProviderCatalog`) ; `OpenCodeConfig`
+étendu **additivement** (défaut = sortie ACADEMY-5 byte-identique) ; extension
++2 properties ; `CUSTOM` exige un `baseUrl` (plus strict que N0) ; `.env`
+nom-seul + compose transmet ; `poolPorts` N0 non rendu (concern runtime N1).
+
+== RED (prouvé)
+
+Tests écrits **avant** le code :
+
+* `ByokProviderSpecTest` (4), `ByokProviderCatalogTest` (7),
+  `OpenCodeConfigByokTest` (10, dont le test de **byte-identité** par défaut),
+  `LearnerGuideByokTest` (4), `InstallerScriptByokTest` (7, dont parité
+  Windows), + 2 assertions extension dans `AcademyPluginTest` + 2 TestKit.
+
+RED prouvé en 2 temps : (1) `Unresolved reference 'contracts'` (dépendance N0
+non câblée) ; (2) après câblage, **`Unresolved reference 'ByokProviderCatalog'`/
+`'ByokProviderSpec'`** (le compilateur Kotlin est le RED statique, pattern
+codex S-229) puis `Unresolved reference 'openCodeProvider'` pour le wiring.
+
+== GREEN (prouvé)
+
+* Domaine pur `education.cccp.academy.byok` (2 fichiers) : `ByokProviderSpec`
+  (id/npm/displayName/baseUrl?/apiKeyEnvVar? + invariants),
+  `ByokProviderCatalog` (mapping total `LlmProviderKind` → spec).
+* `OpenCodeConfig` +2 champs (`provider`, `apiKeyEnvVar`) et invariants
+  (CUSTOM → baseUrl ; CUSTOM → env var name).
+* `OpenCodeConfigGenerator` multi-provider : `baseURL` émis uniquement quand
+  le provider en a besoin (GEMINI = endpoint du package), `apiKey` toujours
+  `{env:NAME}`.
+* `LearnerGuideGenerator` : section BYOK concrète (« no key » pour le runtime
+  embarqué, `export VAR=your-key-here` sinon).
+* Wiring : extension +2 properties (`openCodeProvider`, `openCodeApiKeyEnvVar`),
+  `InstallerPlatform` +2 champs, `GenerateInstallerTask`, `.env` nom-seul,
+  `composeBody()` transmet la variable au service `workspace`.
+* Parité structurelle Linux/Windows conservée (source unique `composeBody`/
+  `envBody`, désormais paramétrée par la plateforme).
+
+== REFACTOR + Dogfooding (preuve réelle — leçon S-007)
+
+`publishToMavenLocal` + consommateur transitoire `/tmp` (pattern Règle 2) :
+
+* **Provider GEMINI** : installeur exécuté dans un HOME isolé →
+  `sh -n` VALIDE, `jq opencode.json` VALIDE, `docker compose config` VALIDE ;
+  `.env` documente `GEMINI_API_KEY=` (vide) ; le compose transmet
+  `GEMINI_API_KEY: ${GEMINI_API_KEY}` au service `workspace`.
+* **Preuve de non-fuite** : avec `GEMINI_API_KEY=dummy-not-a-real-key`, la
+  valeur apparaît dans le `compose config` (transmise au conteneur) et est
+  **absente du `opencode.json`** (0 occurrence) — Secrets rule tenue.
+* **Provider par défaut (OLLAMA_LOCAL)** : `opencode.json` **byte-identique**
+  à ACADEMY-5 (revérifié par dogfooding réel et par test de caractérisation).
+
+== Gates
+
+* `./gradlew clean check validatePlugins` → **BUILD SUCCESSFUL** —
+  **218 unit + 9 functional + 21 scénarios installer + 5 scénarios opencode +
+  8 scénarios byok**, 0 FAIL.
+* `./gradlew publishToMavenLocal` → **BUILD SUCCESSFUL** (Règle 2).
+* Zéro secret : grep sources + artefacts = noms de variables à valeur vide et
+  assertions anti-secret uniquement.
+* Backward compat : les 22 tests ACADEMY-5 restent verts sans changement ;
+  sortie par défaut inchangée.
+
+== Fichiers modifiés
+
+[cols="2,3", options="header"]
+|===
+| Fichier | Nature
+| `src/main/kotlin/.../byok/{ByokProviderSpec,ByokProviderCatalog}.kt` | prod — domaine pur (2 fichiers, NOUVEAU)
+| `src/main/kotlin/.../opencode/OpenCodeConfig.kt` | prod — +2 champs + invariants
+| `src/main/kotlin/.../opencode/OpenCodeConfigGenerator.kt` | prod — multi-provider
+| `src/main/kotlin/.../opencode/LearnerGuideGenerator.kt` | prod — section BYOK concrète
+| `src/main/kotlin/.../installer/InstallerPlatform.kt` | prod — +2 champs + invariants
+| `src/main/kotlin/.../installer/InstallerScriptGenerator.kt` | prod — `composeBody`/`envBody` paramétrés (BYOK)
+| `src/main/kotlin/.../AcademyInstallerExtension.kt` | prod — +2 properties
+| `src/main/kotlin/.../AcademyPlugin.kt` / `GenerateInstallerTask.kt` | prod — wiring
+| `build.gradle.kts` | build — dépendance N0 + runner `cucumberTestByok`
+| `gradle/libs.versions.toml` | build — entrée `runtime-contracts`
+| `src/test/kotlin/.../byok/*.kt` | tests — 11 unit (NOUVEAU)
+| `src/test/kotlin/.../opencode/OpenCodeConfigByokTest.kt` | tests — 10 unit (NOUVEAU)
+| `src/test/kotlin/.../opencode/LearnerGuideByokTest.kt` | tests — 4 unit (NOUVEAU)
+| `src/test/kotlin/.../installer/InstallerScriptByokTest.kt` | tests — 7 unit (NOUVEAU)
+| `src/test/kotlin/.../AcademyPluginTest.kt` | tests — +2 assertions
+| `src/test/resources/features/academy_byok.feature` | BDD — 8 scénarios `@byok` (NOUVEAU)
+| `src/test/scenarios/.../bdd/AcademyByokCucumberRunner.kt` + `AcademyByokSteps.kt` | BDD — runner + glue préfixée (NOUVEAU)
+| `src/functionalTest/.../AcademyInstallerFunctionalTest.kt` | functional — 2 TestKit BYOK
+| `.agents/CADRAGE_EPIC_ACADEMY_7_BYOK.adoc` | gouvernance — cadrage
+|===
+
+== Note de clôture — méthode
+
+Règle du **delta source** appliquée : à l'ouverture, git propre depuis S-009 →
+compilation seule, aucun test rejoué « pour confirmer ». RED prouvé par échec
+de compilation aux 2 niveaux (dépendance puis domaine), puis tests + gates à
+la clôture. Le dogfooding réel (installeur exécuté, compose config, jq,
+substitution `.env`) est la preuve que la chaîne BYOK fonctionne vraiment —
+il a confirmé la non-fuite de la clé et la byte-identité par défaut, que les
+tests verts garantissent aussi mais ne montrent pas sur disque.
+</content>

@@ -50,6 +50,8 @@ abstract class GenerateInstallerTask : DefaultTask() {
             openCodeEnabled = extension.openCodeEnabled.get(),
             openCodeModel = extension.openCodeModel.get(),
             openCodeProviderUrl = extension.openCodeProviderUrl.get(),
+            openCodeProvider = extension.openCodeProvider.get(),
+            openCodeApiKeyEnvVar = extension.openCodeApiKeyEnvVar.get().takeIf { it.isNotBlank() },
         )
 
         val platformDir = File(outputDir.get().asFile, platform.os.dirName).apply { mkdirs() }

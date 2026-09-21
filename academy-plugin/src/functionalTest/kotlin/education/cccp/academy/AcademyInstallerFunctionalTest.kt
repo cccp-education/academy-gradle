@@ -218,6 +218,65 @@ class AcademyInstallerFunctionalTest {
         assertTrue(windows.contains("FROM gradle:9.7.1-jdk25"), "windows Dockerfile must base on the pinned gradle image (parity)")
     }
 
+    @Test
+    fun `a configured provider writes the byok key variable name without a value (ACADEMY-7)`() {
+        writeBuild(
+            """
+            plugins {
+                id("education.cccp.academy")
+            }
+
+            academyInstaller {
+                openCodeProvider.set(contracts.runtime.LlmProviderKind.GEMINI)
+            }
+            """.trimIndent(),
+        )
+
+        val result = runner("buildAllInstallers").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":buildAllInstallers")?.outcome)
+
+        val scripts = listOf(
+            File(projectDir, "build/academy/installers/linux/install.sh").readText(),
+            File(projectDir, "build/academy/installers/windows/install.bat").readText(),
+        )
+        scripts.forEach { script ->
+            assertTrue(script.contains("GEMINI_API_KEY="), "the .env must document the key variable name")
+            assertFalse(script.contains("GEMINI_API_KEY=sk-"), "the key value must never be written (Secrets rule)")
+            assertTrue(
+                script.contains("\"{env:GEMINI_API_KEY}\""),
+                "opencode.json must reference the key through the env syntax",
+            )
+        }
+    }
+
+    @Test
+    fun `a custom provider carries its own base url and key variable name (ACADEMY-7)`() {
+        writeBuild(
+            """
+            plugins {
+                id("education.cccp.academy")
+            }
+
+            academyInstaller {
+                openCodeProvider.set(contracts.runtime.LlmProviderKind.CUSTOM)
+                openCodeProviderUrl.set("https://api.myprovider.com/v1")
+                openCodeApiKeyEnvVar.set("MY_PROVIDER_KEY")
+                openCodeModel.set("gpt-oss:120b-cloud")
+            }
+            """.trimIndent(),
+        )
+
+        val result = runner("buildAllInstallers").build()
+        assertEquals(TaskOutcome.SUCCESS, result.task(":buildAllInstallers")?.outcome)
+
+        val linux = File(projectDir, "build/academy/installers/linux/install.sh").readText()
+        assertTrue(linux.contains("\"model\": \"custom/gpt-oss:120b-cloud\""), "the model must carry the custom provider prefix")
+        assertTrue(linux.contains("https://api.myprovider.com/v1"), "the custom base url must be rendered")
+        assertTrue(linux.contains("{env:MY_PROVIDER_KEY}"), "the custom key must be referenced by env name")
+        assertTrue(linux.contains("MY_PROVIDER_KEY="), "the .env must document the custom key variable name")
+    }
+
     private fun writeBuild(content: String) {
         File(projectDir, "settings.gradle.kts").writeText("rootProject.name = \"consumer-sample\"\n")
         File(projectDir, "build.gradle.kts").writeText(content)

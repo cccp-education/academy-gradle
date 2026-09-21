@@ -2,56 +2,55 @@
 
 == Mission de la prochaine session
 
-EPIC ACADEMY-5 **TERMINÉ** (S-009). Passer à **ACADEMY-7** — BYOK LLM :
-configuration du fournisseur LLM réel (LlmProviderKind OLLAMA_LOCAL /
-OLLAMA_CLOUD / GEMINI / HUGGINGFACE / CUSTOM) alimentant le `.env` **par
-convention, jamais la valeur**, et le `provider` du `opencode.json` généré.
+EPIC ACADEMY-7 **TERMINÉ** (S-010). Passer à **ACADEMY-8** — webhooks Moodle +
+bridge Ktor (opencode ↔ Gradle) : le pont entre l'agent opencode exposé
+(ACADEMY-5/7) et la boucle de session, conformément à la décision D4 du
+`VISION_PIPELINE_FORMATION.adoc`. Le contrat côté codebase N1 est
+`sessionProtocolDaemon` (`SessionProtocol`) — **vérifier la source avant de
+nommer** (leçon S-007/S-009).
 
-**Contient le TODO laissé S-009** : `opencode.json` câble aujourd'hui le seul
-provider `ollama` embarqué (`http://ollama:11434/v1`, modèle
-`gpt-oss:120b-cloud`). ACADEMY-7 doit le rendre **multi-provider** depuis
-`ByokLlmConfig` (runtime-contracts N0) — provider + modèle + clé par env var.
+Ordre suggéré ensuite : ACADEMY-4 (MaterialUpdateContract), puis ACADEMY-2/3
+(FormationRuntimePort / SessionMemoryContract) — l'implémentation des ports N0
+consomme `runtime-contracts` (Central 0.0.1), déjà sur le classpath depuis
+ACADEMY-7 (zéro bump BOM requis).
 
-== État de l'architecture (session 009)
+== État de l'architecture (session 010)
 
 - **ACADEMY-1 TERMINÉ** : socle générateur (extension `academyInstaller`,
-  domaine `education.cccp.academy.installer`, 4 tâches).
-- **ACADEMY-6 TERMINÉ (S-008)** : installeur hybride multiplateforme
-  (compose Moodle/PostgreSQL/Ollama/Portainer + seed data-only, hôte = Docker
-  uniquement).
-- **ACADEMY-5 TERMINÉ (S-009)** : exposition agent.
-  - Domaine pur `education.cccp.academy.opencode` (6 fichiers) :
-    `OpenCodeConfig`, `OpenCodePlugin`, `OpenCodeCatalog` (11 plugins publics),
-    `OpenCodeConfigGenerator` (JSON zéro-lib), `LearnerGuideGenerator`
-    (`AGENTS.md`), `WorkspaceDockerfileGenerator`.
-  - Service `workspace` dans `composeBody()` (`build: ./project`, image
-    `cccp-education/academy-workspace:latest`, profile `agent`, opt-in
-    `docker compose --profile agent up`) — **le TODO S-007 est résolu**.
-  - `$APP_DIR/project/{Dockerfile,opencode.json,AGENTS.md}` générés,
-    parité structurelle Linux/Windows.
-  - Extension +3 properties : `openCodeEnabled` (défaut true),
-    `openCodeModel` (`gpt-oss:120b-cloud`), `openCodeProviderUrl`
-    (`http://ollama:11434/v1`).
-  - **Dogfooding réel** : Dockerfile buildé, `opencode 1.18.31` en tant que
-    `learner`, compose/jq/sh -n VALIDES. Bug attrapé : install opencode en
-    root → `/root/.opencode` invisible au learner (D-ACADEMY-5-11 corrigée).
-- Gates S-009 : `clean check validatePlugins` VERT **50 unit + 7 functional +
-  21 scénarios installer + 5 scénarios opencode**, `publishToMavenLocal` VERT,
-  zéro secret.
+  domaine `installer`, 4 tâches).
+- **ACADEMY-6 TERMINÉ (S-008)** : installeur hybride multiplateforme (compose
+  Moodle/PostgreSQL/Ollama/Portainer + seed data-only, hôte = Docker only).
+- **ACADEMY-5 TERMINÉ (S-009)** : exposition agent — domaine `academy.opencode`
+  (`OpenCodeConfig`/`OpenCodePlugin`/`OpenCodeCatalog`/`OpenCodeConfigGenerator`/
+  `LearnerGuideGenerator`/`WorkspaceDockerfileGenerator`), service `workspace`
+  (profile `agent`), `$APP_DIR/project/{Dockerfile,opencode.json,AGENTS.md}`.
+- **ACADEMY-7 TERMINÉ (S-010)** : BYOK multi-provider.
+  - Domaine pur `education.cccp.academy.byok` : `ByokProviderSpec` +
+    `ByokProviderCatalog` (mapping total `LlmProviderKind` → provider opencode
+    réel : `ollama`, `ollama-cloud`, `google`, `huggingface`, `custom`).
+  - `OpenCodeConfig` +`provider`/`apiKeyEnvVar` ; `OpenCodeConfigGenerator`
+    multi-provider ; `apiKey` toujours `{env:NAME}` (jamais la valeur).
+  - `LearnerGuideGenerator` rend la config BYOK concrète (variable à exporter).
+  - Extension +2 properties : `openCodeProvider` (défaut `OLLAMA_LOCAL`),
+    `openCodeApiKeyEnvVar` (défaut vide = défaut par provider).
+  - `.env` documente le **nom** de la variable (valeur vide) ; le compose la
+    transmet au service `workspace`.
+  - `runtime-contracts` (N0) est désormais une dépendance compile
+    (**supersede D-ACADEMY-5-9**).
+- Gates S-010 : `clean check validatePlugins` VERT **218 unit + 9 functional +
+  21 installer + 5 opencode + 8 byok scénarios**, `publishToMavenLocal` VERT,
+  zéro secret, dogfooding réel (GEMINI + défaut) — `sh -n`/`compose config`/
+  `jq` VALIDES, clé absente du JSON.
 
 == Points en attente / ordre de travail suggéré
 
-1. ACADEMY-7 : `ByokLlmConfig` → `opencode.json` multi-provider. Cadrer d'abord
-   (pattern S-057) : comment la clé (jamais la valeur) est référencée, mapping
-   `LlmProviderKind` → provider opencode, provider par défaut sans BYOK.
-2. ACADEMY-8 (webhooks Moodle + bridge Ktor) après ACADEMY-7.
-3. ACADEMY-2/3/4 (FormationRuntimePort / SessionMemoryContract /
-   MaterialUpdateContract) : l'implémentation des ports N0, séquencée après la
-   machine complète (elle consomme `runtime-contracts`, déjà publié Central
-   0.0.1, BOM MEMPHIS 0.0.47+). Zéro bump BOM requis à ce stade.
-4. ACADEMY-5 reste **ouverte documentairement** : `ToolExposure` (N0) n'est pas
-   encore consommé par le code (le guardrail est porté par `OpenCodeCatalog`) —
-   à brancher en ACADEMY-2.
+1. ACADEMY-8 : webhooks Moodle + bridge Ktor. Cadrer d'abord (pattern S-057).
+2. ACADEMY-4 : MaterialUpdateContract (git pull des versions matériel).
+3. ACADEMY-2/3 : ports N0 (FormationRuntimePort / SessionMemoryContract).
+4. `ToolExposure` (N0) toujours non consommé (guardrail porté par
+   `OpenCodeCatalog`) — à brancher en ACADEMY-2.
+5. Reste ouvert documentairement : publication Maven Central d'academy
+   (aucune n'a été faite — le plugin n'est pas encore publié).
 
 ## Rappel des ordres de mission
 
@@ -63,7 +62,9 @@ provider `ollama` embarqué (`http://ollama:11434/v1`, modèle
 - Zéro secret dans le code. `publishToMavenLocal` obligatoire après toute modification de code source.
 - Code anglais only (OSS cccp-education), docs gouvernance en français.
 - **Dogfooding = preuve réelle** : un test vert ne prouve pas qu'un scaffold
-  s'exécute (S-007 `moodle:4.5` inexistant, S-009 install opencode en root).
-- **Ne jamais inventer un nom d'image, de tâche ou de plugin** : vérifier la
-  source / le registre avant de l'écrire (audit systématique en ouverture).
+  s'exécute (S-007 `moodle:4.5`, S-009 install opencode en root, S-010 preuve
+  de non-fuite de la clé).
+- **Ne jamais inventer un nom d'image, de tâche, de provider ou de plugin** :
+  vérifier la source / le registre avant de l'écrire (audit systématique en
+  ouverture — models.dev + docs opencode pour ACADEMY-7).
 </content>

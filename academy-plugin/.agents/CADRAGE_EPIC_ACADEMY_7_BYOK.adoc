@@ -1,0 +1,160 @@
+= Cadrage EPIC ACADEMY-7 — BYOK LLM multi-provider
+:date: 2026-09-21
+:session: 010
+:epic: ACADEMY-7
+:origine: BACKLOG academy + PROMPT_REPRISE S-009 + runtime-contracts N0 (`contracts.runtime`) + VISION_PIPELINE_FORMATION.adoc § 3.3
+:methode: Cadrage (gouvernance pure) — pattern S-057/S-063
+:statut: CADRÉ — implémentation ACADEMY-7-1/2/3 séquencée dans la même session
+
+== Contexte
+
+ACADEMY-5 est **TERMINÉ (S-009)** : l'agent opencode est exposé au stagiaire
+(`opencode.json` + `AGENTS.md` générés, service `workspace` en profile `agent`,
+image générée sur `gradle:9.7.1-jdk25`). Mais `opencode.json` câble **un seul
+fournisseur** : Ollama embarqué (`http://ollama:11434/v1`, modèle
+`gpt-oss:120b-cloud`), en dur dans `OpenCodeConfigGenerator` (constante
+`PROVIDER_KEY = "ollama"`).
+
+Le TODO laissé S-009 : rendre `opencode.json` **multi-provider** depuis
+`ByokLlmConfig` (contrat N0 `contracts.runtime`, `runtime-contracts:0.0.1`),
+sans jamais embarquer la clé — seulement **le nom de la variable
+d'environnement** qui la porte.
+
+== Constats (audit S-010 — état réel vérifié, jamais supposé)
+
+. *`render()` est mono-provider structurellement* : `PROVIDER_KEY` est une
+   `const val` (`OpenCodeConfigGenerator.kt:22`), utilisée 2× (clé du provider
+   et préfixe du `model`). Aucun paramètre ne peut le changer. Le `npm`
+   `@ai-sdk/openai-compatible` et le libellé `Academy Ollama (embedded)` sont
+   également figés (`:33`, `:36`).
+. *`OpenCodeConfig` ne porte aucune notion de fournisseur* : 2 champs
+   (`providerUrl`, `model`) — aucune clé API n'est modélisée, ce qui était
+   correct en ACADEMY-5 (zéro BYOK) mais bloque ACADEMY-7.
+. *Le contrat N0 est publié et réel* (`runtime-contracts:0.0.1`, Maven Central
+   HTTP 200, JAR vérifié : `contracts/runtime/ByokLlmConfig.class` +
+   `LlmProviderKind.class`) : `ByokLlmConfig(provider, model, baseUrl?,
+   apiKeyEnvVar?, poolPorts=11437..11465)` avec invariants — `OLLAMA_LOCAL`
+   exige `baseUrl` ; `GEMINI`/`HUGGINGFACE`/`CUSTOM` exigent `apiKeyEnvVar`.
+   `LlmProviderKind` = `OLLAMA_LOCAL, OLLAMA_CLOUD, GEMINI, HUGGINGFACE,
+   CUSTOM`. Les dépendances transitives (`opencode-session-contracts:0.0.2`,
+   `i18n-contracts:0.0.2`) sont sur Central (200) et Kotlin-stdlib est aligné
+   (2.4.10, comme le POM du contrat).
+. *La syntaxe « clé par variable d'environnement » est officielle opencode*
+   (vérifiée docs + schéma `https://opencode.ai/config.json`) :
+   `"options": { "apiKey": "{env:ANTHROPIC_API_KEY}" }`. La valeur reste hors
+   du fichier : c'est exactement la règle Secrets + BYOK (D-ACADEMY-7-2).
+. *Les identifiants de provider réels sont vérifiables* (models.dev `api.json`
+   + docs providers, audit S-010 — leçon S-007 `moodle:4.5`, ne jamais
+   deviner) : `ollama` (custom, npm `@ai-sdk/openai-compatible`) ;
+   `ollama-cloud` (npm `@ai-sdk/openai-compatible`, api
+   `https://ollama.com/v1`, env `OLLAMA_API_KEY`) ; `google` **GEMINI** (npm
+   `@ai-sdk/google`, env `GOOGLE_API_KEY`/`GEMINI_API_KEY`, pas de baseURL) ;
+   `huggingface` (npm `@ai-sdk/openai-compatible`, api
+   `https://router.huggingface.co/v1`, env `HF_TOKEN`). `CUSTOM` = provider
+   OpenAI-compatible déclaré par l'apprenant (npm `@ai-sdk/openai-compatible`,
+   baseURL explicite).
+. *La chaîne BYOK a trois maillons cohérents* : (1) `.env` documente le **nom**
+   de la variable (valeur vide, jamais commitée — précédent
+   `POSTGRES_PASSWORD=`), (2) le compose **transmet** cette variable au service
+   `workspace` (`OLLAMA_HOST: ${OLLAMA_HOST}` existe déjà — précédent), (3)
+   `opencode.json` la **référence** (`{env:VAR}`). Les trois sont générés,
+   zéro secret.
+. *Le dogfooding est outillé* : Docker 29.8.1 + Compose v5.5.1 + `jq` 1.7
+   présents sur l'hôte S-010 → `docker compose config`, `jq`, `sh -n`
+   exécutables réellement (preuve, pas test vert).
+. *`poolPorts` est une concern runtime, pas agent* : N0 définit
+   `11437..11465` pour la rotation Ollama cloud côté codebase N1
+   (`LlmProviderResolver`). opencode parle au endpoint cloud officiel
+   `https://ollama.com/v1` — `poolPorts` n'est donc **pas** rendu dans
+   `opencode.json` (séparation contrat/runtime).
+
+== Décisions
+
+|===
+| ID | Décision | US rattachée
+| D-ACADEMY-7-1 | **`runtime-contracts` (N0) devient une dépendance compile** de l'ACADEMY-7. **Supersede D-ACADEMY-5-9** (zéro dépendance) : ACADEMY-7 est précisément le moment désigné pour consommer `ByokLlmConfig`/`LlmProviderKind`. Coût transitif mesuré : `opencode-session-contracts:0.0.2` + `i18n-contracts:0.0.2` (Central 200) ; Kotlin-stdlib aligné 2.4.10. Déclaration dans le catalogue local (`libs.versions.toml`), **zéro bump BOM** (academy est un borough indépendant, catalogue local — pattern ACADEMY-0-BIS). | 7-1
+| D-ACADEMY-7-2 | **Zéro secret — la clé est un NOM, jamais une valeur.** `opencode.json` rend `options.apiKey = "{env:<VAR>}"` (syntaxe officielle opencode). La valeur n'apparaît ni dans `opencode.json`, ni dans `.env`, ni dans le compose : seul le nom circule. Un test verrouille l'absence de motif de secret et l'égalité stricte `{env:NAME}`. | 7-1/2
+| D-ACADEMY-7-3 | **Le contrat N0 valide, l'academy mappe.** `ByokLlmConfig` est construit en entrée du mapping : ses invariants (baseUrl requis `OLLAMA_LOCAL`, apiKeyEnvVar requis `GEMINI`/`HUGGINGFACE`/`CUSTOM`) sont le guardrail de fail-fast. L'academy ne duplique pas ces règles — elle les applique. | 7-1
+| D-ACADEMY-7-4 | **Domaine pur `education.cccp.academy.byok`** : `ByokProviderSpec` (data class immutable : `id`, `npm`, `displayName`, `baseUrl?`, `apiKeyEnvVar?` + invariants) et `ByokProviderCatalog` (object pur : `LlmProviderKind` → `ByokProviderSpec`, endpoints/npm officiels vérifiés S-010). Le domaine `opencode` **consomme** ce catalogue — il ne connaît plus de `const PROVIDER_KEY`. | 7-1
+| D-ACADEMY-7-5 | **`OpenCodeConfig` étendu de façon additive et backward-compatible** : +`provider: LlmProviderKind = OLLAMA_LOCAL`, +`apiKeyEnvVar: String? = null`. Le défaut reproduit **à l'octet** la sortie ACADEMY-5 (id `ollama`, npm `@ai-sdk/openai-compatible`, baseURL `providerUrl`, nom `Academy Ollama (embedded)`, aucun `apiKey`) — les 22 tests ACADEMY-5 restent verts sans modification sémantique. | 7-1
+| D-ACADEMY-7-6 | **Extension +2 properties** (`academyInstaller { }`) : `openCodeProvider` (défaut `OLLAMA_LOCAL`) et `openCodeApiKeyEnvVar` (défaut vide = défaut par provider : `OLLAMA_API_KEY` / `GEMINI_API_KEY` / `HF_TOKEN`). `openCodeProviderUrl` (existant) sert de `baseUrl` et reste requis pour `OLLAMA_LOCAL`/`CUSTOM`. Backward compat totale. | 7-2
+| D-ACADEMY-7-7 | **`CUSTOM` exige un `baseUrl`** (règle academy plus stricte que N0, qui ne l'impose pas) : un provider OpenAI-compatible sans endpoint n'est pas adressable. Fail-fast avec message explicite (`IllegalArgumentException`), testé. | 7-1
+| D-ACADEMY-7-8 | **`.env` documente le nom de la variable de clé** (valeur vide) et **le compose la transmet** au service `workspace` (`<VAR>: ${<VAR>}`), uniquement lorsque le provider exige une clé. Parité structurelle Linux/Windows conservée (source unique `envBody()`/`composeBody()`). | 7-2
+| D-ACADEMY-7-9 | **`poolPorts` (N0) n'est pas rendu** dans `opencode.json` : c'est une concern de rotation runtime (codebase N1), l'agent parle au endpoint cloud officiel. Documenté pour éviter un futur split-brain. | 7-1
+| D-ACADEMY-7-10 | **`AGENTS.md` rend la configuration concrète** : le fournisseur, le modèle, et le nom exact de la variable d'environnement à renseigner (ou « aucun — runtime local embarqué » pour `OLLAMA_LOCAL`). L'apprenant lit ce qu'il doit exporter, jamais une clé. | 7-2
+|===
+
+== Mapping provider (faits vérifiés S-010 — models.dev + docs opencode)
+
+[cols="2,2,3,2,2", options="header"]
+|===
+| `LlmProviderKind` | opencode id | npm | baseURL | apiKeyEnvVar (défaut)
+
+| `OLLAMA_LOCAL` | `ollama` | `@ai-sdk/openai-compatible` | `config.providerUrl` (requis N0) | — (runtime local)
+| `OLLAMA_CLOUD` | `ollama-cloud` | `@ai-sdk/openai-compatible` | `https://ollama.com/v1` | `OLLAMA_API_KEY`
+| `GEMINI` | `google` | `@ai-sdk/google` | — (endpoint officiel du npm) | `GEMINI_API_KEY`
+| `HUGGINGFACE` | `huggingface` | `@ai-sdk/openai-compatible` | `https://router.huggingface.co/v1` | `HF_TOKEN`
+| `CUSTOM` | `custom` | `@ai-sdk/openai-compatible` | `config.providerUrl` (exigé D-ACADEMY-7-7) | `config.apiKeyEnvVar` (requis N0)
+|===
+
+== Découpage des US
+
+|===
+| US | Livrable | Tests
+| ACADEMY-7-0 | Ce cadrage (`CADRAGE_EPIC_ACADEMY_7_BYOK.adoc`) | zéro code
+| ACADEMY-7-1 | Domaine `academy.byok` (`ByokProviderSpec`, `ByokProviderCatalog`) + `OpenCodeConfig` étendu + `OpenCodeConfigGenerator` multi-provider + dépendance N0 + `LearnerGuideGenerator` concret | +~20 unit (RED prouvé), BDD
+| ACADEMY-7-2 | Wiring extension +2 properties + `InstallerPlatform`/`GenerateInstallerTask` + `.env` nom-seul + compose transmet la variable + parité Linux/Windows | +unit + 1 FT
+| ACADEMY-7-3 | BDD `academy_byok.feature` `@byok` + runner dédié + dogfooding réel (`sh -n`, `docker compose config`, `jq`, grep no-secret, `.env` substitution prouvée) | BDD + dogfooding
+|===
+
+== Options écartées
+
+- **Garder `PROVIDER_KEY` et ajouter des `when` dans le renderer** : entasse
+  la connaissance provider dans le générateur de JSON, sans type testable en
+  isolation ; contredit DDD (le domaine `byok` est cohésif). Écartée
+  (D-ACADEMY-7-4).
+- **Recopier `LlmProviderKind`/`ByokLlmConfig` localement** (split-brain
+  N0) : la gouvernance interdit d'introduire un split-brain quand un contrat
+  N0 publié existe (leçon RAG-SOCLE). Écartée (D-ACADEMY-7-1).
+- **Rendre `poolPorts` dans `opencode.json`** : l'agent opencode ne fait pas
+  de rotation de pool — c'est le rôle de `LlmProviderResolver` (codebase N1).
+  Écartée (D-ACADEMY-7-9).
+- **Rendre `apiKey` littéral ou depuis `.env` par substitution** : embarque ou
+  déplace la valeur dans un fichier généré. Contredit la règle Secrets.
+  Écartée (D-ACADEMY-7-2).
+- **Faire du provider un choix runtime (UI `/connect`)** : la machine
+  d'expérimentation est un artefact de build déterministe ; le fournisseur est
+  fixé à la génération via l'extension. Écartée.
+
+== Articulation des Épics
+
+```
+ACADEMY-5 (exposition agent) ✅ S-009
+        │
+        ▼
+ACADEMY-7 (BYOK multi-provider : provider réel + nom de clé, jamais la valeur)  ← CETTE SESSION
+        │
+        ├─▶ ACADEMY-8 (webhooks Moodle + bridge Ktor)
+        │
+        └─▶ ACADEMY-2/3/4 (FormationRuntimePort / SessionMemoryContract / MaterialUpdateContract)
+                    │
+                    ▼
+        runtime-contracts N0 (ByokLlmConfig déjà consommé ici)
+```
+
+== Gates
+
+- `./gradlew check validatePlugins` VERT (unit + functional + cucumber dédiés).
+- `./gradlew publishToMavenLocal` VERT après modification (Regle 2).
+- Zéro secret : `grep -rE "TOKEN|SECRET|PASSWORD|API_KEY|sk-|gho_|ghp_"` dans les
+  artefacts générés = seulement des **noms de variables** et la documentation
+  de la convention, jamais une valeur. L'égalité stricte `"{env:NAME}"` est
+  testée.
+- Backward compat : la sortie par défaut (`OLLAMA_LOCAL`) est identique à
+  ACADEMY-5 ; les 22 tests ACADEMY-5 restent verts.
+- Parité structurelle Linux/Windows (source unique partagée).
+- Dogfooding réel : installeur exécuté dans un HOME isolé,
+  `sh -n` VALIDE, `docker compose config` VALIDE, `jq` sur `opencode.json`
+  VALIDE, `.env` substitution prouvée (dummy key → compose, jamais le JSON).
+</content>
+</invoke>

@@ -6,10 +6,10 @@ _Regles absolues_ : voir `AGENT.adoc`
 _DAG_ : N2 — Plugin Gradle de consommation (Regle 4bis)
 _Projet_ : academy-gradle (education.cccp.academy)
 
-_Derniere mise a jour_ : 2026-09-21 (session 009)
-_Session terminee_ : 009 — ACADEMY-5 TERMINÉ : exposition agent (opencode) — domaine pur `academy.opencode` (6 fichiers : `OpenCodeConfig`/`OpenCodePlugin`/`OpenCodeCatalog` 11 plugins publics/`OpenCodeConfigGenerator`/`LearnerGuideGenerator`/`WorkspaceDockerfileGenerator`) + service `workspace` (profile `agent`, TODO S-007 résolu) + `$APP_DIR/project/{Dockerfile,opencode.json,AGENTS.md}` générés (parité Linux/Windows) + extension 3 properties ; dogfooding réel (Dockerfile buildé, `opencode 1.18.31` en tant que `learner`, bug install-root corrigé D-ACADEMY-5-11) ; ACADEMY-5-2 absorbée
-_Sessions precedent_ : 008 — ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ ; 007 — ACADEMY-6-6 TERMINÉ (dogfooding bout-en-bout) ; 006 — ACADEMY-6-5 TERMINÉ (seed DB data-only) ; 005 — ACADEMY-6-4 TERMINÉ (compose complet) ; 004 — Révisions pilote du scaffold compose ; 003 — Socle générateur (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation ; 001 — Alignement article 0124 ; 000 — Bootstrap
-_Prochaine session_ : ACADEMY-7 (BYOK LLM — `ByokLlmConfig` → `opencode.json` multi-provider) — puis ACADEMY-8 (webhooks + bridge Ktor) et ACADEMY-2/3/4 (ports N0).
+_Derniere mise a jour_ : 2026-09-21 (session 010)
+_Session terminee_ : 010 — ACADEMY-7 TERMINÉ : BYOK LLM multi-provider — domaine pur `academy.byok` (`ByokProviderSpec` + `ByokProviderCatalog`, mapping total `LlmProviderKind` → provider opencode réel vérifié S-010 : `ollama`/`ollama-cloud`/`google`/`huggingface`/`custom`) + `OpenCodeConfig` +`provider`/`apiKeyEnvVar` + `OpenCodeConfigGenerator` multi-provider (`apiKey` toujours `{env:NAME}`, jamais la valeur) + `LearnerGuideGenerator` BYOK concret + extension +2 properties (`openCodeProvider` défaut `OLLAMA_LOCAL`, `openCodeApiKeyEnvVar`) + `.env` nom-seul + compose transmet la variable au service `workspace` ; dépendance N0 `runtime-contracts` (supersede D-ACADEMY-5-9) ; dogfooding réel GEMINI + défaut (clé absente du JSON, byte-identité ACADEMY-5 conservée)
+_Sessions precedent_ : 009 — ACADEMY-5 TERMINÉ (exposition agent, 6 fichiers, 11 plugins catalogués, service `workspace`) ; 008 — ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ ; 007 — ACADEMY-6-6 TERMINÉ (dogfooding bout-en-bout) ; 006 — ACADEMY-6-5 TERMINÉ (seed DB data-only) ; 005 — ACADEMY-6-4 TERMINÉ (compose complet) ; 004 — Révisions pilote du scaffold compose ; 003 — Socle générateur (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation ; 001 — Alignement article 0124 ; 000 — Bootstrap
+_Prochaine session_ : ACADEMY-8 (webhooks Moodle + bridge Ktor) — puis ACADEMY-4 (MaterialUpdateContract) et ACADEMY-2/3 (ports N0).
 
 '''
 == REGLES ABSOLUES
@@ -194,6 +194,44 @@ _Gates S-009_ : `clean check validatePlugins` VERT (50 unit + 7 functional + 21 
 
 '''
 
+== ✅ EPIC ACADEMY-7 — BYOK LLM multi-provider
+
+_Source_ : Session 010. Configuration du fournisseur LLM réel (contrat N0
+`LlmProviderKind`) alimentant `opencode.json`, la clé référencée **par le nom
+de sa variable d'environnement** (`{env:NAME}`, interpolation officielle
+opencode), jamais la valeur.
+
+_Dependances_ : ACADEMY-5 (exposition agent) ✅, `runtime-contracts:0.0.1` (N0, Maven Central) ✅.
+
+[cols="1,3,1,1", options="header"]
+|===
+| US | Description | Pts | Statut
+| ACADEMY-7-0
+| *Cadrage* — `CADRAGE_EPIC_ACADEMY_7_BYOK.adoc` (constats, D-ACADEMY-7-1..10, mapping provider vérifié, options écartées). Supersede D-ACADEMY-5-9 (dépendance N0 désormais assumée).
+| 3
+| ✅ TERMINÉ (S-010)
+| ACADEMY-7-1
+| *Domaine pur `academy.byok` + générateur multi-provider* — `ByokProviderSpec`/`ByokProviderCatalog` (mapping total vérifié S-010), `OpenCodeConfig` +2 champs, `OpenCodeConfigGenerator` multi-provider, `LearnerGuideGenerator` BYOK concret, dépendance N0.
+| 5
+| ✅ TERMINÉ (S-010)
+| ACADEMY-7-2
+| *Wiring + chaîne BYOK* — extension +2 properties, `InstallerPlatform`/`GenerateInstallerTask`, `.env` nom-seul, compose transmet la variable au service `workspace`, parité Linux/Windows.
+| 3
+| ✅ TERMINÉ (S-010)
+| ACADEMY-7-3
+| *BDD + dogfooding* — `academy_byok.feature` 8 scénarios `@byok` + runner dédié + glue préfixée (S-088) ; dogfooding réel GEMINI + défaut (clé absente du JSON, `compose config`/`jq`/`sh -n` VALIDES).
+| 3
+| ✅ TERMINÉ (S-010)
+|===
+
+_Total_ : 4 US, ~14 pts. _Methode_ : baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR).
+
+_Statut_ : **EPIC ACADEMY-7 TERMINÉ (S-010)** — 7-0 ✅ + 7-1 ✅ + 7-2 ✅ + 7-3 ✅.
+
+_Gates S-010_ : `clean check validatePlugins` VERT (218 unit + 9 functional + 21 scénarios installer + 5 scénarios opencode + 8 scénarios byok), `publishToMavenLocal` VERT, dogfooding réel `sh -n` + `docker compose config` + `jq` VALIDES, clé transmise au conteneur mais **absente du `opencode.json`**, sortie par défaut byte-identique ACADEMY-5, zéro secret.
+
+'''
+
 '''
 == Sessions
 
@@ -209,6 +247,7 @@ _Gates S-009_ : `clean check validatePlugins` VERT (50 unit + 7 functional + 21 
 | 007 | 2026-09-21 | développement | ACADEMY-6-6 TERMINÉ — dogfooding bout-en-bout : 5 écarts découverts + corrigés (Moodle réel 5.2.3, contrat env `DB_*`/`MOODLE_*`, portainer-ce, workspace différé) ; run réel complet prouvé | 5/5
 | 008 | 2026-09-21 | développement | ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ — Cucumber BDD étendu (contenu OS, chemins, idempotence, erreurs, opencode.json différé) + hôte = Docker uniquement (D-ACADEMY-6-10 appliqué) ; 6-1/2/3 CADUQUES absorbés | 5/5
 | 009 | 2026-09-21 | développement | ACADEMY-5 TERMINÉ — exposition agent opencode : domaine `academy.opencode` (6 fichiers, 11 plugins catalogués), service `workspace` (profile agent, TODO S-007 résolu), `$APP_DIR/project/{Dockerfile,opencode.json,AGENTS.md}` générés (parité Linux/Windows), extension 3 properties ; dogfooding réel (build image, `opencode 1.18.31` learner, bug install-root D-ACADEMY-5-11) | 11/11
+| 010 | 2026-09-21 | développement | ACADEMY-7 TERMINÉ — BYOK LLM multi-provider : domaine `academy.byok` (2 fichiers, mapping `LlmProviderKind` → provider opencode réel vérifié), `OpenCodeConfig`/`OpenCodeConfigGenerator`/`LearnerGuideGenerator` multi-provider (`{env:NAME}`, jamais la valeur), extension +2 properties, `.env` nom-seul + compose transmet, dépendance N0 `runtime-contracts` ; dogfooding réel GEMINI + défaut (clé absente du JSON, byte-identité ACADEMY-5) | 14/14
 |===
 
 '''
@@ -226,7 +265,7 @@ _Gates S-009_ : `clean check validatePlugins` VERT (50 unit + 7 functional + 21 
 | capsule-gradle | `foundry/public/capsule-gradle/capsule-plugin/` | 11 | 2026-05-19
 | workspace-gradle | `foundry/public/workspace-gradle/` | 1 | 2026-05-17
 | magic-stick | `office/sites/magic-stick/` | 4 | 2026-05-11
-| academy-gradle | `foundry/public/academy-gradle/` | 9 | 2026-09-21
+| academy-gradle | `foundry/public/academy-gradle/` | 10 | 2026-09-21
 |===
 
 '''
