@@ -62,6 +62,8 @@ object LearnerGuideGenerator {
             |./gradlew bookPipeline
             |```
             |
+            |${bridgeSection(config.bridge)}
+            |
             |## Exposed ecosystem tasks
             |
             |Only the public boroughs (`foundry/public`) are invocable. The
@@ -76,6 +78,35 @@ object LearnerGuideGenerator {
             |through the environment — the agent reads it from there, never from
             |a file.
             |""".trimMargin()
+    }
+
+    /**
+     * The webhook bridge section, rendered **only** when the bridge is enabled
+     * (D-ACADEMY-8-9) — a disabled bridge is never documented.
+     */
+    private fun bridgeSection(bridge: BridgeGuide?): String {
+        if (bridge == null) return ""
+        val base = "http://${bridge.host}:${bridge.port}"
+        return """
+            |## 5. Webhook bridge (local)
+            |
+            |Start it with the opt-in task:
+            |
+            |```sh
+            |./gradlew serveWebhookBridge
+            |```
+            |
+            |It listens on `$base` (loopback only — never hosted). Probe it:
+            |
+            |```sh
+            |curl $base/health
+            |curl -X POST $base/events/moodle -H 'Content-Type: application/json' \
+            |  -d '{"eventName":"course_module_completed","courseId":"academy-seed","userId":"learner-1"}'
+            |```
+            |
+            |The bridge routes and acknowledges; the agent (opencode) executes.
+            |
+        """.trimMargin()
     }
 
     private fun byokSection(keyName: String?): String = if (keyName == null) {

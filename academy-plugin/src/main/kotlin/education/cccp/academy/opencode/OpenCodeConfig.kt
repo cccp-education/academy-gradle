@@ -24,12 +24,15 @@ import contracts.runtime.LlmProviderKind
  * @param apiKeyEnvVar name of the environment variable holding the key (null =
  *   no key, embedded runtime; required for external providers by
  *   [contracts.runtime.ByokLlmConfig])
+ * @param bridge bridge information to document in the learner guide, or null
+ *   when the bridge is disabled (ACADEMY-8-2)
  */
 data class OpenCodeConfig(
     val providerUrl: String,
     val model: String,
     val provider: LlmProviderKind = LlmProviderKind.OLLAMA_LOCAL,
     val apiKeyEnvVar: String? = null,
+    val bridge: BridgeGuide? = null,
 ) {
     init {
         require(providerUrl.isNotBlank()) { "providerUrl must not be blank" }

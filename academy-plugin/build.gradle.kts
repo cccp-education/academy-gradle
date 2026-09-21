@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
     `java-gradle-plugin`
     `maven-publish`
     signing
@@ -46,8 +47,22 @@ dependencies {
     // designated to consume the contract. Transitive cost measured S-010:
     // opencode-session-contracts:0.0.2 + i18n-contracts:0.0.2, both on Central.
     implementation(libs.runtime.contracts)
+    // ACADEMY-8-1 — the bridge consumes the N0 opencode session contracts
+    // (SessionPrompt/SessionResponse). runtime-contracts declares them as
+    // `implementation`, so the bridge must depend on them explicitly.
+    implementation(libs.opencode.session.contracts)
+
+    // ACADEMY-8-1 — local HTTP bridge (Ktor 3.2.0, D-ACADEMY-8-2/3).
+    // Receiving JSON over HTTP requires real serialization (kotlinx), unlike the
+    // literal-concatenation opencode.json renderer (D-ACADEMY-5-3).
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.netty)
+    implementation(libs.ktor.server.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
 
     testImplementation(libs.kotlin.test.junit5)
+    testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.cucumber.java)
     testImplementation(libs.cucumber.junit.platform.engine)
     testImplementation(libs.cucumber.java8)
@@ -157,6 +172,30 @@ val cucumberTestByok by tasks.registering(Test::class) {
 }
 
 tasks.check { dependsOn(cucumberTestByok) }
+
+// ── ACADEMY-8-3 — Dedicated Cucumber runner for academy_bridge.feature (pattern S-082) ──
+// Scoped to AcademyBridgeCucumberRunner so only the bridge feature runs.
+val cucumberTestBridge by tasks.registering(Test::class) {
+    group = "verification"
+    description = "Runs the academy_bridge.feature Cucumber suite (ACADEMY-8-3)"
+    testClassesDirs = sourceSets.getByName("test").output.classesDirs
+    classpath = configurations.getByName("testRuntimeClasspath") +
+        sourceSets.getByName("test").output +
+        sourceSets.getByName("main").output
+    useJUnitPlatform {
+        excludeEngines("junit-jupiter")
+    }
+    filter {
+        includeTestsMatching("education.cccp.academy.bdd.AcademyBridgeCucumberRunner")
+    }
+    systemProperty("cucumber.junit-platform.naming-strategy", "long")
+    systemProperty("cucumber.features", "src/test/resources/features/academy_bridge.feature")
+    systemProperty("cucumber.filter.tags", "@bridge and not @wip and not @integration")
+    shouldRunAfter(tasks.named("test"))
+    outputs.upToDateWhen { false }
+}
+
+tasks.check { dependsOn(cucumberTestBridge) }
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()

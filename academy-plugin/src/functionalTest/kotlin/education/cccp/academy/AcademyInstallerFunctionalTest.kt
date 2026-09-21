@@ -277,6 +277,25 @@ class AcademyInstallerFunctionalTest {
         assertTrue(linux.contains("MY_PROVIDER_KEY="), "the .env must document the custom key variable name")
     }
 
+    @Test
+    fun `the webhook bridge task is skipped unless explicitly enabled (ACADEMY-8)`() {
+        writeBuild(
+            """
+            plugins {
+                id("education.cccp.academy")
+            }
+            """.trimIndent(),
+        )
+
+        val result = runner("serveWebhookBridge").build()
+
+        assertEquals(
+            TaskOutcome.SKIPPED,
+            result.task(":serveWebhookBridge")?.outcome,
+            "a build must never open a port without an opt-in (D-ACADEMY-8-7)",
+        )
+    }
+
     private fun writeBuild(content: String) {
         File(projectDir, "settings.gradle.kts").writeText("rootProject.name = \"consumer-sample\"\n")
         File(projectDir, "build.gradle.kts").writeText(content)

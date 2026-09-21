@@ -6,7 +6,9 @@ import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -47,6 +49,17 @@ class AcademyPluginTest {
         assertEquals("http://ollama:11434/v1", extension.openCodeProviderUrl.get())
         assertEquals(LlmProviderKind.OLLAMA_LOCAL, extension.openCodeProvider.get())
         assertTrue(extension.openCodeApiKeyEnvVar.get().isBlank(), "no key variable by default")
+        assertFalse(extension.bridgeEnabled.get(), "the bridge must be opt-in (no port opened by default)")
+        assertEquals("127.0.0.1", extension.bridgeHost.get(), "the bridge binds locally by default")
+        assertEquals(8765, extension.bridgePort.get())
+    }
+
+    @Test
+    fun `the bridge task is registered and guarded by an opt-in`() {
+        val task = applyPlugin().tasks.findByName("serveWebhookBridge")
+
+        assertNotNull(task, "the bridge task must be registered (ACADEMY-8-2)")
+        assertEquals("academy", task.group)
     }
 
     @Test

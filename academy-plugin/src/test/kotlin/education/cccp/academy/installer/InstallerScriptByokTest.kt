@@ -101,6 +101,31 @@ class InstallerScriptByokTest {
     }
 
     @Test
+    fun `the scaffold documents the bridge only when it is enabled`() {
+        val off = InstallerScriptGenerator.render(platform()).single().content
+        val on = InstallerScriptGenerator.render(
+            InstallerPlatform(
+                os = TargetOs.LINUX,
+                applicationName = "academy",
+                applicationVersion = "0.0.1",
+                javaVersion = "25",
+                gradleVersion = "9.7.1",
+                composeEnabled = true,
+                credentialsEnvPrefix = "ACADEMY_",
+                bridgeEnabled = true,
+                bridgeHost = "127.0.0.1",
+                bridgePort = 8765,
+            ),
+        ).single().content
+
+        assertFalse(off.contains("serveWebhookBridge"), "a disabled bridge must not be documented")
+        assertFalse(off.contains("8765"), "a disabled bridge must not leak a port")
+        assertTrue(on.contains("serveWebhookBridge"), "an enabled bridge must be documented in the guide")
+        assertTrue(on.contains("127.0.0.1:8765"), "the enabled bridge must state its address")
+        assertTrue(on.contains("/events/moodle"), "the enabled bridge must document its route")
+    }
+
+    @Test
     fun `a custom provider without an env var name fails fast at the platform boundary`() {
         assertThrows<IllegalArgumentException> {
             platform(provider = LlmProviderKind.CUSTOM)

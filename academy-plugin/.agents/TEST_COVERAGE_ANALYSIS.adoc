@@ -1,6 +1,6 @@
 = TEST_COVERAGE_ANALYSIS — academy-gradle
 
-_Dernière mise à jour_ : 2026-09-21 (session 010)
+_Dernière mise à jour_ : 2026-09-21 (session 011)
 
 == État des tests
 
@@ -24,10 +24,13 @@ Session 010 : **ACADEMY-7 terminé** — BYOK LLM multi-provider. Domaine pur `a
 - **ACADEMY-7-1 (domaine `academy.byok`)** : 21 unit — `ByokProviderSpecTest` (4 : identité, défauts null, invariants blank, invariants conditionnels), `ByokProviderCatalogTest` (7 : mapping total, ollama local sans clé, ollama-cloud endpoint+`OLLAMA_API_KEY`, gemini `@ai-sdk/google`+`GEMINI_API_KEY`, huggingface router+`HF_TOKEN`, custom, catalogue source unique), `OpenCodeConfigByokTest` (10 : **byte-identité ACADEMY-5 par défaut**, ollama-cloud, gemini sans baseURL, huggingface, custom, custom env var blank KO, custom baseUrl KO, JSON balancé pour tous les providers, **zéro valeur de clé pour tous les providers**), `LearnerGuideByokTest` (4 : runtime embarqué « no key », provider externe nomme la variable, custom env var, zéro valeur).
 - **ACADEMY-7-2 (chaîne BYOK)** : 7 unit — `InstallerScriptByokTest` (runtime embarqué sans variable, provider externe documente le nom sans valeur, compose transmet la variable, custom nom fourni, **zéro valeur de clé pour tous les providers**, **parité Windows**, custom sans nom KO) ; `AcademyPluginTest` +2 assertions (défauts `openCodeProvider`/`openCodeApiKeyEnvVar`) ; `AcademyInstallerFunctionalTest` +2 TestKit (provider configuré → `.env`+`opencode.json` ; custom baseUrl + env var).
 - **BDD (pattern S-082)** : `cucumberTestByok` — feature `academy_byok.feature` `@byok` (8 scénarios : défaut embarqué sans clé, ollama-cloud, gemini, huggingface, custom, JSON balancé, guide externe nomme la variable, guide embarqué « no key »). Glue préfixée `byok` (`AcademyByokSteps`, leçon S-088 anti-collision avec `AcademyOpenCodeSteps` partageant le même chemin de glue).
+- **ACADEMY-8-1/2 (domaine `academy.bridge` + serveur Ktor)** : 23 unit — `MoodleEventTest` (3 : identité + payload opaque, payload vide par défaut, invariants), `BridgeEventTranslatorTest` (6 : prompt depuis l'identité, **déterminisme/session stable**, payload → contexte, payload vide → aucun contexte inventé, events distincts → sessions distinctes, type `SessionPrompt`), `BridgeRoutesTest` (4 : routes déclarées, méthode+description, GET/POST, table source unique), `BridgeServerConfigTest` (3 : identité, port hors plage KO, identité vide KO), `WebhookBridgeServerTest` (7 `testApplication` **sans port réel** : `/health` provider+model, `POST /events/moodle` ack+écho, `POST /session` ack, event malformé **400**, JSON invalide **400**, route inconnue **404**, **zéro fuite de credential**) ; `ServeWebhookBridgeTaskTest` (3 : config résolue, provider suivi, bridge désactivé par défaut) ; `AcademyPluginTest` (+1 tâche) ; `LearnerGuideByokTest` (+1 doc conditionnelle) ; `InstallerScriptByokTest` (+1 scaffold conditionnel).
+- **ACADEMY-8-2 (opt-in, TestKit)** : `AcademyInstallerFunctionalTest` (+1) — `serveWebhookBridge` **SKIPPED** par défaut (un build n'ouvre jamais un port) — D-ACADEMY-8-7 prouvé fonctionnellement.
+- **BDD (pattern S-082)** : `cucumberTestBridge` — feature `academy_bridge.feature` `@bridge` (6 scénarios : schéma academy + payload opaque, session stable, sessions distinctes, payload vide sans contexte, table de routes, **le prompt ne revendique aucun format tiers**). Glue préfixée `bridge` (`AcademyBridgeSteps`, S-088).
 
 ## Ce qui est à couvrir
 
-- ACADEMY-8 (webhooks + bridge Ktor), ACADEMY-2/3/4 (ports N0) : pas de tests tant que non implémentés.
+- ACADEMY-2/3/4 (ports N0) et ACADEMY-9 (Qualiopi) : pas de tests tant que non implémentés.
 - ACADEMY-6-1/2/3 : **CADUQUES (S-008)**.
 - ACADEMY-5 : `ToolExposure` (N0) non encore consommé par le code (guardrail porté par `OpenCodeCatalog`) — à brancher en ACADEMY-2.
 - Publication Maven Central d'academy : jamais faite (le plugin n'est pas publié).
@@ -45,4 +48,5 @@ Session 010 : **ACADEMY-7 terminé** — BYOK LLM multi-provider. Domaine pur `a
 | 2026-09-21 | 28 unit + 6 functional + 21 scénarios cucumber (hôte Docker-only, chemins, erreurs, opencode.json différé) — RED prouvé aux 3 niveaux (unit 6 failed / cucumber 6 failed / functional 1 failed) | 0 FAIL — `check` VERT + `validatePlugins` VERT + `publishToMavenLocal` VERT |
 | 2026-09-21 | **50 unit + 7 functional + 21 scénarios installer + 5 scénarios opencode** (exposition agent : domaine `academy.opencode`, workspace généré) — RED prouvé par échec de compilation | 0 FAIL — `check` VERT + `validatePlugins` VERT + `publishToMavenLocal` VERT + dogfooding `docker build` + `opencode 1.18.31` |
 | 2026-09-21 | **218 unit + 9 functional + 21 installer + 5 opencode + 8 byok scénarios** (BYOK multi-provider : domaine `academy.byok`, générateur multi-provider, chaîne `.env`→compose→`{env:NAME}`) — RED prouvé par échec de compilation (N0 puis domaine puis wiring) | 0 FAIL — `check` VERT + `validatePlugins` VERT + `publishToMavenLocal` VERT + dogfooding GEMINI/défaut (clé absente du JSON, byte-identité ACADEMY-5) |
+| 2026-09-21 | **311 unit + 10 functional + 21 installer + 5 opencode + 8 byok + 6 bridge scénarios** (bridge Ktor : domaine `academy.bridge`, serveur `testApplication`, tâche opt-in SKIPPED, anti-corruption `BridgeWire`) — RED prouvé par échec de compilation (dépendance → domaine → wiring) + RED de **comportement** (sérialisation N0) | 0 FAIL — `check` VERT + `validatePlugins` VERT + `publishToMavenLocal` VERT + dogfooding réel serveur + curl (`/health` 200, ack, 400/404) |
 |===

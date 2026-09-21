@@ -1,0 +1,142 @@
+= Session 011 — ACADEMY-8 : webhooks Moodle + bridge Ktor
+
+:date: 2026-09-21
+:session: 011
+:epic: ACADEMY-8
+:us: ACADEMY-8-0 (cadrage) + ACADEMY-8-1 (domaine + serveur) + ACADEMY-8-2 (wiring + scaffold) + ACADEMY-8-3 (BDD + dogfooding)
+:methode: Baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR) — 3 niveaux unit/functional/cucumber
+
+== Mission
+
+Suite de l'EPIC ACADEMY-7 (TERMINÉ S-010), US ACADEMY-8 — **décision pilote
+2026-09-21 : Ktor acté** (on continue). Livrer le transport local : un bridge
+Ktor opt-in qui reçoit un événement de formation (producteur externe) et
+l'achemine vers les contrats N0 de session.
+
+== Constats (audit d'ouverture S-011 — faits vérifiés, jamais supposés)
+
+. *Le « bridge opencode » existant n'est PAS HTTP.* `SessionProtocolDaemonTask`
+   (codebase N1) est un daemon **stdin/stdout JSON-lines**. La justification de
+   la vision § 8 D4 (« le bridge existe déjà ») est donc **inexacte** : Ktor est
+   un transport **additionnel**, pas un remplacement (D-ACADEMY-8-1).
+. *Moodle n'a aucun webhook natif* : le cœur expose des web services que l'on
+   *appelle*, pas d'événement sortant. Un webhook exige un plugin tiers
+   (`local_webhooks`), **absent de l'image** `erseco/alpine-moodle:v5.2.3`, et
+   dont le payload n'est pas vérifiable S-011 (moodle.org → Cloudflare).
+   → Décision : le schéma d'événement est **propre à academy** (`MoodleEvent`),
+   aucun format tiers figé (leçon S-007 `moodle:4.5`) (D-ACADEMY-8-5).
+. *Ktor 3.2.0 disponible et aligné* (Central vérifié) : core, netty,
+   content-negotiation, serialization-kotlinx-json, **test-host** (tests sans
+   port réel).
+. *Les contrats N0 ne sont pas `@Serializable`* : `contracts.session.*` sont
+   purs, sans dépendance de sérialisation (découverte en GREEN : `Serializer for
+   class 'SessionResponse' is not found`). → **Anti-corruption layer**
+   `BridgeWire` : le bridge ne réannote pas le contrat partagé, il mappe sa
+   propre vue `@Serializable` au bord.
+. *`opencode-session-contracts` n'est pas transitif* (`runtime-contracts` le
+   déclare en `implementation`) → déclaré explicitement (RED n°1).
+
+== Décisions (cadrage S-057, doc `CADRAGE_EPIC_ACADEMY_8_KTOR.adoc`)
+
+D-ACADEMY-8-1..10. Structurantes : transport **additionnel** (pas un
+remplacement), Ktor `implementation` assumé et mesuré, sérialisation kotlinx
+(vraie) + anti-corruption layer, domaine pur `academy.bridge`
+(`MoodleEvent`/`BridgeEventTranslator`/`BridgeRoutes`), contrat d'entrée
+**academy** (jamais un plugin tiers), routes minimales (`GET /health`,
+`POST /events/moodle`, `POST /session`), le bridge **route et acquitte — il ne
+pense pas** (zéro LLM), extension +3 properties (`bridgeEnabled` défaut
+`false`), tâche `serveWebhookBridge` opt-in, `AGENTS.md` documente le bridge
+seulement si activé, tests `testApplication` + dogfooding port réel.
+
+== RED (prouvé en 3 temps)
+
+1. `Unresolved reference 'session'` — `opencode-session-contracts` non
+   transitif, dépendance manquante.
+2. `Unresolved reference 'BridgeEventTranslator'/'MoodleEvent'/'BridgeRoutes'`
+   — domaine absent (compilateur Kotlin = RED statique).
+3. `Unresolved reference 'bridgeEnabled'/'bridgeHost'/'bridgePort'` puis
+   `No parameter with name 'bridge'` — wiring/scaffold absents.
+
+Un **RED de comportement** a aussi été atteint en GREEN : le serveur levait
+`Serializer for class 'SessionResponse' is not found` — le contrat N0 n'est pas
+sérialisable, ce qui a **prouvé** la nécessité de l'anti-corruption layer.
+
+== GREEN (prouvé)
+
+* Domaine pur `education.cccp.academy.bridge` : `MoodleEvent` (schéma academy,
+  payload opaque), `BridgeEventTranslator` (objet pur → `SessionPrompt` N0,
+  **session id stable** via `UUID.nameUUIDFromBytes` — rejouable, pas
+  d'aléatoire), `BridgeRoutes` (table unique `/health`, `/events/moodle`,
+  `/session`), `BridgeServerConfig`, `BridgeWire` (anti-corruption),
+  `ByokBridgeSupport` (provider id + description des routes).
+* Serveur Ktor `WebhookBridgeServer` : `installBridge(Application, config)`
+  (module unique, installé par le test **et** la production), `startBridge`
+  (Netty, daemon bloquant, pattern `SessionProtocolDaemonTask`), réponses
+  `BridgeAck`/`BridgeHealth`, rejets 400/404.
+* Wiring : extension +3 properties, `InstallerPlatform` +3 champs,
+  `GenerateInstallerTask`, tâche `ServeWebhookBridgeTask`
+  (`@DisableCachingByDefault`, `onlyIf { bridgeEnabled }`, seam
+  `serverLauncher` pour les tests, pattern codex `storeOverride`),
+  `LearnerGuideGenerator` section bridge conditionnelle + `BridgeGuide`.
+
+== REFACTOR + Dogfooding (preuve réelle — leçon S-007)
+
+`publishToMavenLocal` + consommateur transitoire `/tmp` (pattern Règle 2),
+serveur lancé par la tâche Gradle sur le port 8791, interrogé au `curl` réel :
+
+* `GET /health` → `{"status":"up","provider":"ollama","model":"gpt-oss:120b-cloud"}`
+* `POST /events/moodle` → `202`-style ack `status COMPLETED`, session id
+  **stable** (rejouable), `eventName` en écho ;
+* `POST /session` → ack `COMPLETED` ;
+* corps JSON invalide → **HTTP 400** ; route inconnue → **HTTP 404** ;
+* arrêt propre (processus tué, port libéré).
+
+== Gates
+
+* `./gradlew clean check validatePlugins` → **BUILD SUCCESSFUL** —
+  **311 unit + 10 functional + 21 installer + 5 opencode + 8 byok + 6 bridge
+  scénarios**, 0 FAIL.
+* `./gradlew publishToMavenLocal` → **BUILD SUCCESSFUL** (Règle 2).
+* Zéro secret : grep sources + artefacts = 0 valeur.
+* Backward compat : `bridgeEnabled` défaut `false` → la tâche est **SKIPPED**
+  (prouvé par TestKit) ; les 218 unit ACADEMY-7 restent verts.
+
+== Fichiers modifiés
+
+[cols="2,3", options="header"]
+|===
+| Fichier | Nature
+| `src/main/kotlin/.../bridge/{MoodleEvent,BridgeEventTranslator,BridgeRoutes,BridgeServerConfig,BridgeWire,ByokBridgeSupport,WebhookBridgeServer}.kt` | prod — domaine + serveur (7 fichiers, NOUVEAU)
+| `src/main/kotlin/.../ServeWebhookBridgeTask.kt` | prod — tâche opt-in (NOUVEAU)
+| `src/main/kotlin/.../opencode/BridgeGuide.kt` | prod — doc bridge (NOUVEAU)
+| `src/main/kotlin/.../opencode/OpenCodeConfig.kt` | prod — +`bridge` optionnel
+| `src/main/kotlin/.../opencode/LearnerGuideGenerator.kt` | prod — section bridge conditionnelle
+| `src/main/kotlin/.../installer/InstallerPlatform.kt` | prod — +3 champs bridge
+| `src/main/kotlin/.../AcademyInstallerExtension.kt` | prod — +3 properties
+| `src/main/kotlin/.../AcademyPlugin.kt` / `GenerateInstallerTask.kt` | prod — wiring
+| `build.gradle.kts` | build — plugins serialization + dépendances Ktor/N0 + runner `cucumberTestBridge`
+| `gradle/libs.versions.toml` | build — Ktor 3.2.0, kotlinx-serialization, opencode-session-contracts
+| `src/test/kotlin/.../bridge/*.kt` | tests — 6 fichiers (23 unit dont 7 `testApplication` HTTP, NOUVEAU)
+| `src/test/kotlin/.../ServeWebhookBridgeTaskTest.kt` + `AcademyPluginTest.kt` | tests — tâche + extension
+| `src/test/kotlin/.../installer/InstallerScriptByokTest.kt` + `opencode/LearnerGuideByokTest.kt` | tests — scaffold bridge
+| `src/functionalTest/.../AcademyInstallerFunctionalTest.kt` | functional — TestKit « tâche SKIPPED »
+| `src/test/resources/features/academy_bridge.feature` | BDD — 6 scénarios `@bridge` (NOUVEAU)
+| `src/test/scenarios/.../bdd/AcademyBridgeCucumberRunner.kt` + `AcademyBridgeSteps.kt` | BDD — runner + glue préfixée (NOUVEAU)
+| `.agents/CADRAGE_EPIC_ACADEMY_8_KTOR.adoc` | gouvernance — cadrage
+|===
+
+== Note de clôture — méthode
+
+Règle du **delta source** appliquée. Le RED a été prouvé trois fois par échec de
+compilation (dépendance, domaine, wiring) puis une quatrième par un **échec de
+sérialisation en GREEN** — ce dernier a prouvé la nécessité de l'anti-corruption
+layer (`BridgeWire`) au lieu de la postuler. Le dogfooding (serveur réel + curl)
+est la preuve que le bridge s'exécute vraiment, pas seulement qu'il compile.
+
+*Correction de gouvernance portée par cette session* : la justification de la
+décision D4 (`VISION_PIPELINE_FORMATION.adoc` § 8 « le bridge opencode existe
+déjà ») était **inexacte** — le bridge codebase est stdin/stdout, pas HTTP.
+Ktor est acté par décision pilote, mais documenté comme **transport
+additionnel** (D-ACADEMY-8-1), pour ne pas laisser une prémisse fausse guider
+la suite.
+</content>

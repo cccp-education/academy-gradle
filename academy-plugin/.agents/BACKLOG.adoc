@@ -2,7 +2,7 @@
 :toc:
 :toclevels: 2
 
-_Dernière mise à jour_ : 2026-09-21 — **EPIC ACADEMY-7 TERMINÉ (S-010)** : BYOK LLM multi-provider — domaine pur `academy.byok` (`ByokProviderSpec` + `ByokProviderCatalog`, mapping `LlmProviderKind` → provider opencode réel vérifié S-010), `OpenCodeConfig` +2 champs, `OpenCodeConfigGenerator` multi-provider (`apiKey` toujours `{env:NAME}`, jamais la valeur), `LearnerGuideGenerator` BYOK concret, extension +2 properties, `.env` nom-seul + compose transmet la variable au service `workspace`, dépendance N0 `runtime-contracts` (supersede D-ACADEMY-5-9) ; dogfooding réel GEMINI + défaut (clé absente du JSON, byte-identité ACADEMY-5). Prochaine US : ACADEMY-8 (webhooks Moodle + bridge Ktor).
+_Dernière mise à jour_ : 2026-09-21 — **EPIC ACADEMY-8 TERMINÉ (S-011)** : webhooks Moodle + bridge Ktor (décision pilote — Ktor acté) — domaine pur `academy.bridge` (`MoodleEvent` schéma **academy**, `BridgeEventTranslator` → `SessionPrompt` N0 à session id **stable**, `BridgeRoutes`, `BridgeServerConfig`, `BridgeWire` anti-corruption, `ByokBridgeSupport`) + serveur `WebhookBridgeServer` (Ktor 3.2.0 Netty) + tâche `serveWebhookBridge` **opt-in** (SKIPPED par défaut, prouvé TestKit) + extension +3 properties + `AGENTS.md` conditionnel ; le bridge **route et acquitte — il ne pense pas** ; dogfooding réel serveur + curl. Prochaine US : ACADEMY-4 (MaterialUpdateContract — git pull des versions).
 
 '''
 == Vision actée (S-002, arbitrage pilote)
@@ -43,7 +43,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-4 | Intégration du contrat MaterialUpdateContract (liaison avec le bureau pour recevoir le matériel versionné) | 🟡 À FAIRE
 | ACADEMY-2 | Intégration du contrat FormationRuntimePort (boucle d'assistance startSession/executeTurn/endSession) | 🟡 À FAIRE
 | ACADEMY-3 | Intégration du contrat SessionMemoryContract (suivi apprenant : progression, comprehension, weakPoints, annotations) | 🟡 À FAIRE
-| ACADEMY-8 | Webhooks Moodle + bridge opencode (avec Ktor, conformément à la décision D4 du VISION_PIPELINE_FORMATION.adoc) | 🟡 À FAIRE
+| ACADEMY-8 | Webhooks Moodle + bridge opencode (avec Ktor, conformément à la décision D4 du VISION_PIPELINE_FORMATION.adoc) | ✅ TERMINÉ (S-011) — 8-0 cadrage, 8-1 domaine `academy.bridge` + serveur Ktor, 8-2 tâche opt-in + scaffold, 8-3 BDD + dogfooding
 | ACADEMY-9 | Support Qualiopi (bilan de session, traces, conformité aux critères) | 🟡 À FAIRE
 |===
 
@@ -133,6 +133,25 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 
 *Note* : `poolPorts` (N0) n'est pas rendu dans `opencode.json` — c'est une concern de rotation runtime (codebase N1 `LlmProviderResolver`) ; l'agent parle au endpoint cloud officiel (D-ACADEMY-7-9).
 
+=== ACADEMY-8 : Webhooks Moodle + bridge Ktor
+
+*Statut* : ✅ TERMINÉ (S-011) — ACADEMY-8-0 (cadrage `CADRAGE_EPIC_ACADEMY_8_KTOR.adoc`, D-ACADEMY-8-1..10) ✅ ; **ACADEMY-8-1 (domaine `academy.bridge` + serveur Ktor) ✅ S-011** ; **ACADEMY-8-2 (tâche opt-in + scaffold) ✅ S-011** ; **ACADEMY-8-3 (BDD + dogfooding) ✅ S-011**.
+
+*Livré* : domaine pur `education.cccp.academy.bridge` (`MoodleEvent` — schéma **academy** à payload opaque, jamais un format Moodle tiers ; `BridgeEventTranslator` → `SessionPrompt` N0 à session id **stable** via `UUID.nameUUIDFromBytes`, rejouable ; `BridgeRoutes` table unique `/health`+`/events/moodle`+`/session` ; `BridgeServerConfig` ; `BridgeWire` **anti-corruption** — les contrats N0 ne sont pas `@Serializable` ; `ByokBridgeSupport`) + serveur `WebhookBridgeServer` (`installBridge` module unique test+prod, `startBridge` Netty daemon, acks, 400/404) + tâche `serveWebhookBridge` **opt-in** (`@DisableCachingByDefault`, `onlyIf { bridgeEnabled }`, seam `serverLauncher`) + extension +3 properties (`bridgeEnabled` défaut `false`, `bridgeHost` `127.0.0.1`, `bridgePort` `8765`) + `AGENTS.md` section bridge **conditionnelle** (`BridgeGuide`). Le bridge **route et acquitte — il ne pense pas** (zéro LLM).
+
+*Dogfooding (preuve réelle)* : consommateur transitoire /tmp, serveur lancé par la tâche Gradle port 8791, `curl` réel — `GET /health` 200 `{"status":"up","provider":"ollama","model":"gpt-oss:120b-cloud"}`, `POST /events/moodle` ack `COMPLETED` session stable, `POST /session` ack, JSON invalide **400**, route inconnue **404**, arrêt propre.
+
+*Note de gouvernance* : la justification de la vision § 8 D4 (« le bridge opencode existe déjà ») était **inexacte** — le bridge codebase est stdin/stdout, pas HTTP. Ktor est acté par décision pilote mais documenté comme **transport additionnel** (D-ACADEMY-8-1), et le daemon N1 n'est pas réutilisé (academy ne consomme pas les tâches N1).
+
+[cols="2,3", options="header"]
+|===
+| US | Description
+| ACADEMY-8-0 | Cadrage bridge Ktor — transport additionnel, schéma academy, options écartées ✅ S-011
+| ACADEMY-8-1 | Domaine `academy.bridge` (`MoodleEvent`/`BridgeEventTranslator`/`BridgeRoutes`/`BridgeServerConfig`/`BridgeWire`/`ByokBridgeSupport`) + serveur `WebhookBridgeServer` Ktor ✅ S-011
+| ACADEMY-8-2 | Extension +3 properties + tâche `serveWebhookBridge` opt-in + `AGENTS.md` conditionnel ✅ S-011
+| ACADEMY-8-3 | BDD `academy_bridge.feature` `@bridge` 6 scénarios + runner dédié + dogfooding réel serveur/curl ✅ S-011
+|===
+
 === ACADEMY-4 : Intégration du contrat MaterialUpdateContract
 
 *Statut* : 🟡 À FAIRE
@@ -158,7 +177,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-2-3 | Implémenter la méthode endSession pour terminer proprement une session et générer le bilan
 |===
 
-*Note* : Les sections détaillées des Épics ACADEMY-3, ACADEMY-8, ACADEMY-9 seront rédigées au fil des sessions, selon les découvertes.
+*Note* : Les sections détaillées des Épics ACADEMY-3, ACADEMY-9 seront rédigées au fil des sessions, selon les découvertes.
 
 '''
 == Décisions structurantes
@@ -195,6 +214,17 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | D-ACADEMY-7-8 | **`.env` documente le nom de la variable** (valeur vide) et **le compose la transmet** au service `workspace`, uniquement quand le provider exige une clé. Parité structurelle Linux/Windows conservée. | S-010
 | D-ACADEMY-7-9 | **`poolPorts` (N0) n'est pas rendu** : c'est une concern de rotation runtime (codebase N1 `LlmProviderResolver`), l'agent parle au endpoint cloud officiel. | S-010
 | D-ACADEMY-7-10 | **`AGENTS.md` rend la config concrète** : fournisseur, modèle, nom exact de la variable à exporter (« aucun — runtime local embarqué » pour `OLLAMA_LOCAL`). | S-010
+| D-ACADEMY-8-1 | **Le bridge Ktor est un transport ADDITIONNEL, pas un remplacement** : le daemon stdin/stdout de codebase reste la voie existante ; le bridge sert au producteur **externe**. Corrige la justification inexacte de la vision § 8 D4. | S-011
+| D-ACADEMY-8-2 | **Ktor `implementation` assumé et local** : serveur lancé par la tâche `serveWebhookBridge` (daemon, pattern `SessionProtocolDaemonTask`), jamais hébergé — « aucun VPS / mono-utilisateur ». | S-011
+| D-ACADEMY-8-3 | **Sérialisation kotlinx** (`ktor-serialization-kotlinx-json` + plugin kotlin-serialization) : recevoir du JSON HTTP exige une vraie sérialisation (le rendu par concaténation de D-ACADEMY-5-3 ne s'applique pas à l'entrée). | S-011
+| D-ACADEMY-8-4 | **Domaine pur `education.cccp.academy.bridge`** (`MoodleEvent`, `BridgeEventTranslator`, `BridgeRoutes`), testable sans HTTP ni serveur. | S-011
+| D-ACADEMY-8-5 | **Contrat d'entrée propre à academy, pas un plugin tiers** : aucune dépendance à `local_webhooks` ni à un payload Moodle non vérifié (leçon S-007). | S-011
+| D-ACADEMY-8-6 | **Routes minimales** (`GET /health`, `POST /events/moodle`, `POST /session`) ; le bridge **route et acquitte, il ne pense pas** (zéro LLM, boundary respectée). | S-011
+| D-ACADEMY-8-7 | **Extension +3 properties** : `bridgeEnabled` (défaut `false` — opt-in strict), `bridgeHost` (`127.0.0.1`), `bridgePort` (`8765`). Backward compat totale. | S-011
+| D-ACADEMY-8-8 | **Tâche `serveWebhookBridge`** (groupe `academy`), garde `onlyIf { bridgeEnabled }` — un build n'ouvre jamais un port par accident. | S-011
+| D-ACADEMY-8-9 | **Scaffold conditionnel** : `AGENTS.md` documente le bridge (routes, host/port, `curl`) **uniquement** si `bridgeEnabled`. | S-011
+| D-ACADEMY-8-10 | **Tests sans port réel** (`testApplication`), **port réel uniquement pour le dogfooding** (preuve d'exécution, leçon S-007). | S-011
+| D-ACADEMY-8-11 | **Anti-corruption `BridgeWire`** : les contrats N0 (`contracts.session.*`) ne sont pas `@Serializable` et le restent — le bridge mappe sa propre vue `@Serializable` au bord, sans réannoter le contrat partagé (découvert par un RED de comportement en GREEN). | S-011
 |===
 
 '''
@@ -213,6 +243,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | 2026-09-21 | S-008 : **ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ** — Cucumber BDD étendu (contenu OS, chemins, idempotence, erreurs, `opencode.json` différé) + alignement du contenu OS sur D-ACADEMY-6-10 (hôte = Docker uniquement, zéro provisioning Java/Gradle hôte) ; ACADEMY-6-1/2/3 **CADUQUES** absorbés (D-ACADEMY-6-18). RED prouvé aux 3 niveaux (unit 6 failed / cucumber 6 failed / functional 1 failed) → GREEN. Gates : 28 unit + 6 functional + 21 scénarios cucumber 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT, dogfooding `sh -n` + `docker compose config` VALIDES. |
 | 2026-09-21 | S-009 : **EPIC ACADEMY-5 TERMINÉ** — exposition agent opencode. Découvertes : image officielle opencode Alpine-minimal (inapte Gradle), base réelle `gradle:9.7.1-jdk25`. Domaine pur `academy.opencode` (6 fichiers, 11 plugins publics catalogués source-vérifiés) + service `workspace` (profile agent, TODO S-007 résolu) + `$APP_DIR/project/{Dockerfile,opencode.json,AGENTS.md}` générés (parité Linux/Windows) + extension 3 properties ; ACADEMY-5-2 absorbée. Dogfooding réel : `docker build` SUCCÈS, `opencode 1.18.31` learner, `sh -n`+`docker compose config`+`jq` VALIDES ; bug install-root corrigé (D-ACADEMY-5-11). Gates : 50 unit + 7 functional + 21 scénarios installer + 5 scénarios opencode 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT. |
 | 2026-09-21 | S-010 : **EPIC ACADEMY-7 TERMINÉ** — BYOK LLM multi-provider. Faits vérifiés S-010 : contrat N0 `runtime-contracts:0.0.1` sur Central (JAR inspecté), interpolation `{env:NAME}` officielle opencode, ids providers réels models.dev (`ollama`/`ollama-cloud`/`google`/`huggingface`). Domaine pur `academy.byok` (`ByokProviderSpec` + `ByokProviderCatalog` mapping total) + `OpenCodeConfig` +2 champs (défaut byte-identique ACADEMY-5, test de caractérisation) + `OpenCodeConfigGenerator` multi-provider (`apiKey` toujours `{env:NAME}`) + `LearnerGuideGenerator` BYOK concret + extension +2 properties + `.env` nom-seul + compose transmet la variable au service `workspace` ; dépendance N0 (supersede D-ACADEMY-5-9) ; D-ACADEMY-7-1..10. Dogfooding réel GEMINI + défaut : preuve de non-fuite de la clé, `sh -n`/`compose config`/`jq` VALIDES, byte-identité ACADEMY-5. Gates : 218 unit + 9 functional + 21 installer + 5 opencode + 8 byok scénarios 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT, zéro secret. |
+| 2026-09-21 | S-011 : **EPIC ACADEMY-8 TERMINÉ** — webhooks Moodle + bridge Ktor (décision pilote : Ktor acté). Constats vérifiés : le bridge codebase (`SessionProtocolDaemonTask`) est **stdin/stdout, pas HTTP** (justification D4 inexacte → transport additionnel, D-ACADEMY-8-1), **Moodle n'a pas de webhook natif** → schéma academy (D-ACADEMY-8-5), Ktor 3.2.0 sur Central, `opencode-session-contracts` non transitif, contrats N0 **non `@Serializable`** (RED de comportement → anti-corruption `BridgeWire`, D-ACADEMY-8-11). Domaine pur `academy.bridge` (`MoodleEvent`/`BridgeEventTranslator` session stable/`BridgeRoutes`/`BridgeServerConfig`/`BridgeWire`/`ByokBridgeSupport`) + serveur `WebhookBridgeServer` Ktor Netty + tâche `serveWebhookBridge` **opt-in** (SKIPPED par défaut, TestKit) + extension +3 properties + `AGENTS.md` conditionnel ; D-ACADEMY-8-1..11. Dogfooding réel serveur + curl (`/health` 200, ack, 400/404, arrêt propre). Gates : 311 unit + 10 functional + 21 installer + 5 opencode + 8 byok + 6 bridge scénarios 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT, zéro secret. |
 |===
 
 '''
@@ -228,8 +259,9 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 [x] ACADEMY-5 : service `workspace` réinséré dans `composeBody()` (image générée `cccp-education/academy-workspace` sur `gradle:9.7.1-jdk25`, profile `agent`) + `opencode.json` + `AGENTS.md` générés — **TERMINÉ S-009** (le TODO laissé S-007 est résolu ; la publication d'image est remplacée par un build local `docker compose build`)
 [x] Recadrer ACADEMY-6-1/2/3 — **CADUQUES S-008** (absorbés par 6-7, D-ACADEMY-6-18)
 [x] ACADEMY-7 : BYOK LLM — `ByokLlmConfig` (runtime-contracts N0) → `opencode.json` multi-provider (OLLAMA_LOCAL/OLLAMA_CLOUD/GEMINI/HUGGINGFACE/CUSTOM), clé **par env var, jamais la valeur** — **TERMINÉ S-010** (domaine `academy.byok`, `{env:NAME}`, `.env`→compose→JSON, dogfooding non-fuite)
-[ ] ACADEMY-8 : webhooks Moodle + bridge Ktor (opencode ↔ Gradle `sessionProtocolDaemon` de codebase N1) — prochaine session (vérifier la source du contrat avant de le nommer)
-[ ] ACADEMY-2/3/4 : implémenter les ports N0 (`FormationRuntimePort`, `SessionMemoryContract`, `MaterialUpdateContract`) — consomme `runtime-contracts` (Central 0.0.1, **déjà sur le classpath depuis ACADEMY-7**), zéro bump BOM requis
+[x] ACADEMY-8 : webhooks Moodle + bridge Ktor — **TERMINÉ S-011** (domaine `academy.bridge`, serveur Ktor opt-in, schéma academy, anti-corruption `BridgeWire`, dogfooding serveur+curl) ; le daemon N1 stdin/stdout n'est pas réutilisé (transport additionnel, D-ACADEMY-8-1)
+[ ] ACADEMY-4 : MaterialUpdateContract (git pull des versions matériel) — prochaine session (vérifier la source du contrat avant de le nommer)
+[ ] ACADEMY-2/3 : implémenter les ports N0 (`FormationRuntimePort`, `SessionMemoryContract`) — consomme `runtime-contracts` (Central 0.0.1, **déjà sur le classpath depuis ACADEMY-7**), zéro bump BOM requis
 [ ] Publication Maven Central d'academy : jamais faite (le plugin n'est pas publié) — à planifier sur demande pilote
 [ ] ACADEMY-2 : brancher `ToolExposure` (N0) sur `OpenCodeCatalog` (le guardrail est aujourd'hui porté par le catalogue, non par le contrat)
 [ ] Vérifier la conformité avec les décisions actées dans VISION_PIPELINE_FORMATION.adoc (sections 3.3, 9.2, 8.2)

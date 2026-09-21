@@ -6,10 +6,10 @@ _Regles absolues_ : voir `AGENT.adoc`
 _DAG_ : N2 — Plugin Gradle de consommation (Regle 4bis)
 _Projet_ : academy-gradle (education.cccp.academy)
 
-_Derniere mise a jour_ : 2026-09-21 (session 010)
-_Session terminee_ : 010 — ACADEMY-7 TERMINÉ : BYOK LLM multi-provider — domaine pur `academy.byok` (`ByokProviderSpec` + `ByokProviderCatalog`, mapping total `LlmProviderKind` → provider opencode réel vérifié S-010 : `ollama`/`ollama-cloud`/`google`/`huggingface`/`custom`) + `OpenCodeConfig` +`provider`/`apiKeyEnvVar` + `OpenCodeConfigGenerator` multi-provider (`apiKey` toujours `{env:NAME}`, jamais la valeur) + `LearnerGuideGenerator` BYOK concret + extension +2 properties (`openCodeProvider` défaut `OLLAMA_LOCAL`, `openCodeApiKeyEnvVar`) + `.env` nom-seul + compose transmet la variable au service `workspace` ; dépendance N0 `runtime-contracts` (supersede D-ACADEMY-5-9) ; dogfooding réel GEMINI + défaut (clé absente du JSON, byte-identité ACADEMY-5 conservée)
-_Sessions precedent_ : 009 — ACADEMY-5 TERMINÉ (exposition agent, 6 fichiers, 11 plugins catalogués, service `workspace`) ; 008 — ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ ; 007 — ACADEMY-6-6 TERMINÉ (dogfooding bout-en-bout) ; 006 — ACADEMY-6-5 TERMINÉ (seed DB data-only) ; 005 — ACADEMY-6-4 TERMINÉ (compose complet) ; 004 — Révisions pilote du scaffold compose ; 003 — Socle générateur (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation ; 001 — Alignement article 0124 ; 000 — Bootstrap
-_Prochaine session_ : ACADEMY-8 (webhooks Moodle + bridge Ktor) — puis ACADEMY-4 (MaterialUpdateContract) et ACADEMY-2/3 (ports N0).
+_Derniere mise a jour_ : 2026-09-21 (session 011)
+_Session terminee_ : 011 — ACADEMY-8 TERMINÉ : webhooks Moodle + bridge Ktor (décision pilote — Ktor acté) — domaine pur `academy.bridge` (`MoodleEvent` schéma **academy**, `BridgeEventTranslator` → `SessionPrompt` N0 à session id **stable**, `BridgeRoutes` `/health`+`/events/moodle`+`/session`, `BridgeServerConfig`, `BridgeWire` anti-corruption, `ByokBridgeSupport`) + serveur `WebhookBridgeServer` (Ktor 3.2.0 Netty, `installBridge` module unique test+prod) + tâche `serveWebhookBridge` **opt-in** (`bridgeEnabled` défaut `false`, garde `onlyIf`, seam `serverLauncher`) + extension +3 properties + `AGENTS.md` documente le bridge si activé ; le bridge **route et acquitte — il ne pense pas** (zéro LLM) ; dogfooding réel serveur + curl (`/health` 200, `POST /events/moodle` ack, 400/404, port libéré) ; correction de gouvernance : le bridge codebase est stdin/stdout (pas HTTP) → Ktor = transport additionnel (D-ACADEMY-8-1)
+_Sessions precedent_ : 010 — ACADEMY-7 TERMINÉ (BYOK multi-provider, `academy.byok`, `{env:NAME}`, `runtime-contracts` N0) ; 009 — ACADEMY-5 TERMINÉ (exposition agent, 6 fichiers, 11 plugins catalogués, service `workspace`) ; 008 — ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ ; 007 — ACADEMY-6-6 TERMINÉ (dogfooding bout-en-bout) ; 006 — ACADEMY-6-5 TERMINÉ (seed DB data-only) ; 005 — ACADEMY-6-4 TERMINÉ (compose complet) ; 004 — Révisions pilote du scaffold compose ; 003 — Socle générateur (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation ; 001 — Alignement article 0124 ; 000 — Bootstrap
+_Prochaine session_ : ACADEMY-4 (MaterialUpdateContract — git pull des versions) — puis ACADEMY-2/3 (ports N0) et ACADEMY-9 (Qualiopi).
 
 '''
 == REGLES ABSOLUES
@@ -232,6 +232,45 @@ _Gates S-010_ : `clean check validatePlugins` VERT (218 unit + 9 functional + 21
 
 '''
 
+== ✅ EPIC ACADEMY-8 — Webhooks Moodle + bridge Ktor
+
+_Source_ : Session 011 (**décision pilote 2026-09-21 : Ktor acté**). Transport
+HTTP local opt-in : un producteur externe (Moodle, navigateur, `curl`) poste un
+événement de formation, le bridge le traduit vers les contrats N0 de session et
+l'acquitte. Le bridge **route et acquitte — il ne pense pas** : l'agent reste
+opencode, zéro LLM dans le bridge.
+
+_Dependances_ : ACADEMY-7 (BYOK) ✅, `runtime-contracts` + `opencode-session-contracts` (N0) ✅.
+
+[cols="1,3,1,1", options="header"]
+|===
+| US | Description | Pts | Statut
+| ACADEMY-8-0
+| *Cadrage* — `CADRAGE_EPIC_ACADEMY_8_KTOR.adoc` (constats dont « le bridge codebase est stdin/stdout, pas HTTP » et « Moodle n'a pas de webhook natif », D-ACADEMY-8-1..10, options écartées).
+| 3
+| ✅ TERMINÉ (S-011)
+| ACADEMY-8-1
+| *Domaine pur `academy.bridge` + serveur Ktor* — `MoodleEvent` (schéma academy, payload opaque), `BridgeEventTranslator` (→ `SessionPrompt` N0, session id stable), `BridgeRoutes`, `BridgeServerConfig`, `BridgeWire` (anti-corruption — N0 non `@Serializable`), `ByokBridgeSupport`, `WebhookBridgeServer` (`installBridge` module unique, Netty).
+| 8
+| ✅ TERMINÉ (S-011)
+| ACADEMY-8-2
+| *Wiring + scaffold* — extension +3 properties (`bridgeEnabled` défaut `false`, `bridgeHost`, `bridgePort`), tâche `serveWebhookBridge` opt-in (`onlyIf`, seam `serverLauncher`), `InstallerPlatform` +3 champs, `AGENTS.md` documente le bridge si activé.
+| 5
+| ✅ TERMINÉ (S-011)
+| ACADEMY-8-3
+| *BDD + dogfooding* — `academy_bridge.feature` 6 scénarios `@bridge` + runner dédié + glue préfixée (S-088) ; dogfooding réel serveur + `curl` (`/health` 200, `POST /events/moodle` ack, 400/404, arrêt propre).
+| 3
+| ✅ TERMINÉ (S-011)
+|===
+
+_Total_ : 4 US, ~19 pts. _Methode_ : baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR).
+
+_Statut_ : **EPIC ACADEMY-8 TERMINÉ (S-011)** — 8-0 ✅ + 8-1 ✅ + 8-2 ✅ + 8-3 ✅.
+
+_Gates S-011_ : `clean check validatePlugins` VERT (311 unit + 10 functional + 21 installer + 5 opencode + 8 byok + 6 bridge scénarios), `publishToMavenLocal` VERT, dogfooding réel serveur + curl, tâche **SKIPPED** par défaut (prouvé TestKit), zéro secret.
+
+'''
+
 '''
 == Sessions
 
@@ -248,6 +287,7 @@ _Gates S-010_ : `clean check validatePlugins` VERT (218 unit + 9 functional + 21
 | 008 | 2026-09-21 | développement | ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ — Cucumber BDD étendu (contenu OS, chemins, idempotence, erreurs, opencode.json différé) + hôte = Docker uniquement (D-ACADEMY-6-10 appliqué) ; 6-1/2/3 CADUQUES absorbés | 5/5
 | 009 | 2026-09-21 | développement | ACADEMY-5 TERMINÉ — exposition agent opencode : domaine `academy.opencode` (6 fichiers, 11 plugins catalogués), service `workspace` (profile agent, TODO S-007 résolu), `$APP_DIR/project/{Dockerfile,opencode.json,AGENTS.md}` générés (parité Linux/Windows), extension 3 properties ; dogfooding réel (build image, `opencode 1.18.31` learner, bug install-root D-ACADEMY-5-11) | 11/11
 | 010 | 2026-09-21 | développement | ACADEMY-7 TERMINÉ — BYOK LLM multi-provider : domaine `academy.byok` (2 fichiers, mapping `LlmProviderKind` → provider opencode réel vérifié), `OpenCodeConfig`/`OpenCodeConfigGenerator`/`LearnerGuideGenerator` multi-provider (`{env:NAME}`, jamais la valeur), extension +2 properties, `.env` nom-seul + compose transmet, dépendance N0 `runtime-contracts` ; dogfooding réel GEMINI + défaut (clé absente du JSON, byte-identité ACADEMY-5) | 14/14
+| 011 | 2026-09-21 | développement | ACADEMY-8 TERMINÉ — webhooks Moodle + bridge Ktor (décision pilote) : domaine `academy.bridge` (schéma academy, traduction N0 à session stable, routes, anti-corruption `BridgeWire`), serveur Ktor 3.2.0 Netty, tâche `serveWebhookBridge` opt-in (SKIPPED par défaut), extension +3 properties, `AGENTS.md` conditionnel ; dogfooding réel serveur + curl (400/404) ; correction de gouvernance (bridge codebase = stdin/stdout ≠ HTTP) | 19/19
 |===
 
 '''
@@ -265,7 +305,7 @@ _Gates S-010_ : `clean check validatePlugins` VERT (218 unit + 9 functional + 21
 | capsule-gradle | `foundry/public/capsule-gradle/capsule-plugin/` | 11 | 2026-05-19
 | workspace-gradle | `foundry/public/workspace-gradle/` | 1 | 2026-05-17
 | magic-stick | `office/sites/magic-stick/` | 4 | 2026-05-11
-| academy-gradle | `foundry/public/academy-gradle/` | 10 | 2026-09-21
+| academy-gradle | `foundry/public/academy-gradle/` | 11 | 2026-09-21
 |===
 
 '''

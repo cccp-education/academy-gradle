@@ -52,6 +52,9 @@ abstract class GenerateInstallerTask : DefaultTask() {
             openCodeProviderUrl = extension.openCodeProviderUrl.get(),
             openCodeProvider = extension.openCodeProvider.get(),
             openCodeApiKeyEnvVar = extension.openCodeApiKeyEnvVar.get().takeIf { it.isNotBlank() },
+            bridgeEnabled = extension.bridgeEnabled.get(),
+            bridgeHost = extension.bridgeHost.get(),
+            bridgePort = extension.bridgePort.get(),
         )
 
         val platformDir = File(outputDir.get().asFile, platform.os.dirName).apply { mkdirs() }

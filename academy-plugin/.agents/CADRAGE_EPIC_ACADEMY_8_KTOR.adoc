@@ -1,0 +1,163 @@
+= Cadrage EPIC ACADEMY-8 — Webhooks Moodle + bridge Ktor
+:date: 2026-09-21
+:session: 011
+:epic: ACADEMY-8
+:origine: BACKLOG academy + PROMPT_REPRISE S-010 + VISION_PIPELINE_FORMATION.adoc § 3.3 / § 8 D4 / § 9.2 + codebase `SessionProtocolDaemonTask`
+:methode: Cadrage (gouvernance pure) — pattern S-057/S-063
+:statut: CADRÉ — décision pilote 2026-09-21 : **Ktor** (tranché, on continue)
+
+== Contexte
+
+ACADEMY-5/7 ont livré l'**exposition** de l'agent : `opencode.json`
+multi-provider (BYOK) + `AGENTS.md` + service `workspace` en profile `agent`.
+Il manque le **transport** : comment un événement de formation (Moodle) ou un
+tour d'agent entre/sort de la machine d'expérimentation.
+
+`VISION_PIPELINE_FORMATION.adoc` § 8 D4 pose la question (FastAPI ou Ktor) et
+recommande **Ktor** — au motif que `AGENTS.adoc` interdit Python et que « le
+bridge opencode existe déjà (`SessionProtocol` de codebase) ». **Décision
+pilote 2026-09-21 : Ktor est acté.** Ce cadrage en tire les conséquences
+techniques réelles, vérifiées.
+
+== Constats (audit S-011 — faits vérifiés, jamais supposés)
+
+. *Le « bridge opencode » existant n'est PAS HTTP.* `SessionProtocolDaemonTask`
+   (`codebase/koog/SessionProtocolDaemonTask.kt`) est un daemon
+   **stdin/stdout JSON-lines** : `SessionProtocolServer.run(System.in,
+   System.out)`, une `SessionPrompt` JSON par ligne entrante, une
+   `SessionResponse` par ligne sortante. Zéro socket, zéro serveur HTTP. La
+   justification de D4 (« le bridge existe déjà ») est donc **inexacte** :
+   Ktor n'est pas un remplacement, c'est un **transport additionnel**. Ce
+   cadrage l'assume explicitement (décision D-ACADEMY-8-1).
+. *Moodle n'a pas de webhook natif.* Vérifié S-011 : le cœur Moodle expose des
+   *web services* (REST/SOAP) que l'on **appelle**, mais aucun mécanisme
+   d'événement sortant. Un webhook Moodle exige un **plugin tiers** — le plus
+   connu étant `local_webhooks` (non vérifiable en détail : moodle.org renvoie
+   un challenge Cloudflare, aucune source primaire consultable S-011). L'image
+   `erseco/alpine-moodle:v5.2.3` **ne l'embarque pas**.
+   → **Décision** : academy ne dépend d'aucun plugin tiers pour son contrat.
+   Elle définit son **propre** schéma d'événement entrant (`MoodleEvent`),
+   que n'importe quel producteur (plugin Moodle, script, curl, test) peut
+   poster. Le nom `MoodleEvent` est un **vocabulaire métier**, pas une
+   affirmation sur un format Moodle officiel.
+. *Ktor 3.2.0 est disponible et aligné* (Maven Central vérifié S-011) :
+   `ktor-server-core`, `ktor-server-netty`, `ktor-server-content-negotiation`,
+   `ktor-serialization-kotlinx-json`, `ktor-server-test-host` — tous 3.2.0.
+   Le `ktor-server-test-host` permet de tester le serveur **sans port réel**
+   (`testApplication`), donc sans flake réseau (pattern testcontainers/TestKit).
+. *Le précédent « daemon local lancé par une tâche Gradle » existe* :
+   `SessionProtocolDaemonTask` (codebase, `group = "generate"`, stdin/stdout,
+   `@DisableCachingByDefault`). Un serveur HTTP local lancé par une tâche
+   Gradle est cohérent avec ce pattern — et avec la doctrine « aucun VPS,
+   artefact de build mono-utilisateur » (`AGENT.adoc`, vision § 3.3) : on
+   reste **local**, jamais hébergé.
+. *Les contrats N0 nécessaires existent et sont publiés* :
+   `contracts.session.{SessionPrompt, SessionResponse, SessionStatus,
+   ToolCallRecord, AgentContext, TokenUsage}` (`opencode-session-contracts:0.0.2`,
+   Central) — déjà transitif via `runtime-contracts` (déclaré ACADEMY-7).
+. *Le plugin n'a aucune dépendance de sérialisation* : `opencode.json` est
+   rendu par concaténation littérale (D-ACADEMY-5-3/7-4). Recevoir du JSON
+   HTTP **exige** une vraie sérialisation — c'est un changement de nature,
+   assumé ici (D-ACADEMY-8-3).
+. *Le coût Ktor est réel et mesurable* : ~5 artefacts + Netty pèsent sur le
+   classpath de **tout consommateur** du plugin. Mesuré S-011 comme un
+   trade-off conscient, pas un effet de bord (D-ACADEMY-8-2).
+
+== Décisions
+
+|===
+| ID | Décision | US rattachée
+| D-ACADEMY-8-1 | **Le bridge Ktor est un transport ADDITIONNEL, pas un remplacement.** Le daemon stdin/stdout de codebase (`sessionProtocolDaemon`) reste la voie existante ; le bridge HTTP sert au cas où un producteur **externe** (Moodle, navigateur, `curl`, webhook) doit pousser un événement. Documenté comme tel pour tuer la justification inexacte de D4 (leçon : vérifier la source avant de citer un précédent). | 8-1
+| D-ACADEMY-8-2 | **Ktor est une dépendance `implementation` du plugin**, assumée et mesurée (Ktor 3.2.0 + Netty). Le serveur est lancé **localement** par une tâche Gradle `serveWebhookBridge` (`@DisableCachingByDefault`, mode daemon, pattern `SessionProtocolDaemonTask`) — jamais hébergé, cohérent « aucun VPS / mono-utilisateur ». | 8-1
+| D-ACADEMY-8-3 | **Sérialisation kotlinx** (`kotlinx-serialization-json` via `ktor-serialization-kotlinx-json`) : recevoir du JSON HTTP exige une vraie sérialisation (le rendu par concaténation de D-ACADEMY-5-3 ne s'applique pas à l'entrée). Le plugin `kotlin-serialization` est appliqué au module. | 8-1
+| D-ACADEMY-8-4 | **Domaine pur `education.cccp.academy.bridge`** : `MoodleEvent` (schéma d'événement **propre à academy** — `eventName`, `courseId`, `userId`, `payload` : jamais un format Moodle revendiqué), `BridgeEventTranslator` (objet pur `MoodleEvent` → `SessionPrompt` N0, déterministe, zéro I/O, zéro Ktor) et `BridgeRoutes` (table des routes : méthode, chemin, description). Le domaine est testable **sans HTTP ni serveur**. | 8-1
+| D-ACADEMY-8-5 | **Le contrat d'entrée est le nôtre, pas celui d'un plugin tiers.** Aucune dépendance à `local_webhooks` ni à un payload Moodle non vérifié. C'est un producteur parmi d'autres qui poste le schéma academy. Évite de figer une dépendance non documentée (leçon S-007 `moodle:4.5`). | 8-1
+| D-ACADEMY-8-6 | **Routes minimales et vérifiables** : `GET /health` (sonde : `{status, provider, model}`), `POST /events/moodle` (traduit l'événement en `SessionPrompt` et répond un `SessionResponse` d'acquittement `COMPLETED`), `POST /session` (accepte un `SessionPrompt` N0 et répond un `SessionResponse` d'acquittement). Zéro exécution LLM dans le bridge (l'agent reste opencode) — le bridge **route et acquitte**, il ne pense pas. | 8-1
+| D-ACADEMY-8-7 | **Extension +3 properties** (`academyInstaller { }`) : `bridgeEnabled` (défaut `false` — opt-in strict : un serveur n'est jamais démarré par surprise), `bridgeHost` (défaut `127.0.0.1` — local only), `bridgePort` (défaut `8765`). Backward compat totale. | 8-2
+| D-ACADEMY-8-8 | **Tâche `serveWebhookBridge`** (groupe `academy`), enregistrée **uniquement** si `bridgeEnabled` : démarre le serveur Netty local et reste attachée jusqu'à interruption (mode daemon). Le port effectif est journalisé (`[academy] bridge listening on http://host:port`). | 8-2
+| D-ACADEMY-8-9 | **Le scaffold expose le bridge au sténaire** : `AGENTS.md` documente le bridge (routes, host/port, `curl` d'exemple) **uniquement** si `bridgeEnabled`, et `.env` documente le port. Cohérent avec la doctrine « un artefact de build s'exécute vraiment » (S-007/S-009). | 8-2
+| D-ACADEMY-8-10 | **Test du serveur sans port réel** : `ktor-server-test-host` (`testApplication`) pour les tests d'intégration HTTP du plugin ; le **dogfooding** lance le serveur réel sur un port éphémère et l'interroge avec `curl`, puis l'arrête (preuve d'exécution réelle, pattern S-007). | 8-3
+|===
+
+== Schéma d'événement entrant (contrat academy — D-ACADEMY-8-5)
+
+```
+POST /events/moodle
+{
+  "eventName": "course_module_completed",   // vocabulaire academy, jamais revendiqué Moodle
+  "courseId":  "academy-seed",
+  "userId":    "learner-1",
+  "payload":   { "module": "M01" }          // libre, opaque pour le bridge
+}
+```
+
+Traduction (domaine pur `BridgeEventTranslator`) → `SessionPrompt` N0 :
+`prompt` = phrase déterministe dérivée de `eventName` + `courseId` + `userId`,
+`context` = `payload` sérialisé en clé/valeur, `sessionId` dérivé de manière
+stable (pas d'aléatoire : le bridge est rejouable/testable).
+
+== Découpage des US
+
+|===
+| US | Livrable | Tests
+| ACADEMY-8-0 | Ce cadrage (`CADRAGE_EPIC_ACADEMY_8_KTOR.adoc`) | zéro code
+| ACADEMY-8-1 | Domaine pur `academy.bridge` (`MoodleEvent`, `BridgeEventTranslator`, `BridgeRoutes`) + serveur Ktor (`WebhookBridgeServer`, 3 routes) + dépendances Ktor/kotlinx | +~18 unit, `testApplication` HTTP
+| ACADEMY-8-2 | Extension +3 properties + tâche `serveWebhookBridge` (opt-in) + scaffold `AGENTS.md`/`.env` documentant le bridge | +unit + 1 FT
+| ACADEMY-8-3 | BDD `academy_bridge.feature` `@bridge` + runner dédié + dogfooding réel (serveur lancé, `curl` sur `/health` et `/events/moodle`, arrêt) | BDD + dogfooding
+|===
+
+== Options écartées
+
+- **Réutiliser tel quel `SessionProtocolDaemonTask` en stdin/stdout** : ne
+  répond pas au besoin « un producteur externe pousse un événement » (pas de
+  socket), et c'est un artefact **N1 codebase** — academy ne peut pas en
+  dépendre (DAG N2 : jamais N2 → N1 par import de tâche). Écartée
+  (D-ACADEMY-8-1).
+- **Dépendre du format `local_webhooks`** : plugin tiers absent de l'image,
+  payload non vérifiable S-011 (Cloudflare). Figer un format non documenté
+  reproduit la classe de bug `moodle:4.5` (S-007). Écartée (D-ACADEMY-8-5).
+- **Générer un projet Ktor complet dans le scaffold** : duplique du code non
+  testé, dérive de version, et sort du périmètre « exposition » d'academy.
+  Écartée.
+- **Exécuter l'agent (LLM) dans le bridge** : contredit la boundary
+  (« consommateur terminal, n'injecte aucun LLM de génération ») ; l'agent
+  reste opencode, le bridge route. Écartée (D-ACADEMY-8-6).
+- **Démarrer le serveur par défaut** (`bridgeEnabled = true`) : un plugin de
+  build ne doit pas ouvrir un port sans opt-in explicite. Écartée
+  (D-ACADEMY-8-7).
+- **Tests HTTP par port réel partout** : flaky et lent ; `testApplication` pour
+  les tests, port réel **uniquement** pour le dogfooding (preuve). Écartée
+  (D-ACADEMY-8-10).
+
+== Articulation des Épics
+
+```
+ACADEMY-6 (installeur + compose + seed) ✅ S-008
+        │
+ACADEMY-5 (exposition agent : opencode.json + AGENTS.md + workspace) ✅ S-009
+        │
+ACADEMY-7 (BYOK multi-provider : provider réel + {env:NAME}) ✅ S-010
+        │
+        ▼
+ACADEMY-8 (bridge Ktor : transport HTTP local + webhooks)  ← CETTE SESSION
+        │
+        ├─▶ ACADEMY-4 (MaterialUpdateContract — git pull des versions)
+        │
+        └─▶ ACADEMY-2/3 (FormationRuntimePort / SessionMemoryContract)
+                    │
+                    ▼
+        runtime-contracts + opencode-session-contracts (N0, déjà sur le classpath)
+```
+
+== Gates
+
+- `./gradlew check validatePlugins` VERT (unit + functional + cucumber dédiés).
+- `./gradlew publishToMavenLocal` VERT après modification (Regle 2).
+- Zéro secret (grep `TOKEN|SECRET|PASSWORD|API_KEY|sk-|gho_|ghp_` = 0).
+- Backward compat : `bridgeEnabled` défaut `false` → **aucun** serveur démarré,
+  `check` inchangé pour les consommateurs existants ; 218 unit ACADEMY-7 restent
+  verts.
+- Dogfooding réel : serveur lancé sur port éphémère, `curl /health` et
+  `POST /events/moodle` répondent, arrêt propre — la preuve d'exécution
+  (leçon S-007/S-009), pas seulement un test vert.
+</content>

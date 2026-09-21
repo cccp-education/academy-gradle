@@ -1,6 +1,7 @@
 package education.cccp.academy.installer
 
 import contracts.runtime.LlmProviderKind
+import education.cccp.academy.opencode.BridgeGuide
 import education.cccp.academy.opencode.OpenCodeConfig
 
 /**
@@ -25,6 +26,9 @@ import education.cccp.academy.opencode.OpenCodeConfig
  * @param openCodeProvider N0 provider kind the agent uses (ACADEMY-7)
  * @param openCodeApiKeyEnvVar name of the env var holding the key, blank means
  *   "documented per-provider default" (ACADEMY-7; never a value)
+ * @param bridgeEnabled whether the local webhook bridge is documented (ACADEMY-8)
+ * @param bridgeHost bridge bind address documented in the learner guide
+ * @param bridgePort bridge bind port documented in the learner guide
  */
 data class InstallerPlatform(
     val os: TargetOs,
@@ -39,6 +43,9 @@ data class InstallerPlatform(
     val openCodeProviderUrl: String = "http://ollama:11434/v1",
     val openCodeProvider: LlmProviderKind = LlmProviderKind.OLLAMA_LOCAL,
     val openCodeApiKeyEnvVar: String? = null,
+    val bridgeEnabled: Boolean = false,
+    val bridgeHost: String = "127.0.0.1",
+    val bridgePort: Int = 8765,
 ) {
     init {
         require(applicationName.isNotBlank()) { "applicationName must not be blank" }
@@ -53,13 +60,15 @@ data class InstallerPlatform(
         ) {
             "CUSTOM provider requires an openCodeApiKeyEnvVar name (never a value)"
         }
+        require(bridgePort in 1..65535) { "bridgePort must be in 1..65535, got: $bridgePort" }
     }
 
-    /** Resolved opencode exposure configuration (ACADEMY-5, BYOK ACADEMY-7). */
+    /** Resolved opencode exposure configuration (ACADEMY-5, BYOK ACADEMY-7, bridge ACADEMY-8). */
     fun openCodeConfig(): OpenCodeConfig = OpenCodeConfig(
         providerUrl = openCodeProviderUrl,
         model = openCodeModel,
         provider = openCodeProvider,
         apiKeyEnvVar = openCodeApiKeyEnvVar?.takeIf { it.isNotBlank() },
+        bridge = if (bridgeEnabled) BridgeGuide(host = bridgeHost, port = bridgePort) else null,
     )
 }

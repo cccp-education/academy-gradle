@@ -87,4 +87,17 @@ abstract class AcademyInstallerExtension {
      * per-provider default" from `ByokProviderCatalog`.
      */
     abstract val openCodeApiKeyEnvVar: Property<String>
+
+    /**
+     * Whether the local webhook bridge (ACADEMY-8) is started by the
+     * `serveWebhookBridge` task. Defaults to `false`: a build plugin never opens
+     * a port without an explicit opt-in (D-ACADEMY-8-7).
+     */
+    abstract val bridgeEnabled: Property<Boolean>
+
+    /** Bind address of the local bridge — defaults to loopback. */
+    abstract val bridgeHost: Property<String>
+
+    /** Bind port of the local bridge (default 8765). */
+    abstract val bridgePort: Property<Int>
 }

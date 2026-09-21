@@ -57,6 +57,25 @@ class LearnerGuideByokTest {
     }
 
     @Test
+    fun `the guide documents the bridge only when it is enabled`() {
+        val off = LearnerGuideGenerator.render(
+            OpenCodeConfig(providerUrl = "http://ollama:11434/v1", model = "gpt-oss:120b-cloud"),
+        )
+        val on = LearnerGuideGenerator.render(
+            OpenCodeConfig(
+                providerUrl = "http://ollama:11434/v1",
+                model = "gpt-oss:120b-cloud",
+                bridge = BridgeGuide(host = "127.0.0.1", port = 8765),
+            ),
+        )
+
+        assertFalse(off.contains("serveWebhookBridge"), "a disabled bridge must not be documented")
+        assertTrue(on.contains("serveWebhookBridge"), "an enabled bridge must be documented")
+        assertTrue(on.contains("/events/moodle"), "the guide must name the event route")
+        assertTrue(on.contains("8765"), "the guide must state the port")
+    }
+
+    @Test
     fun `the guide never embeds a credential value`() {
         val guide = LearnerGuideGenerator.render(
             OpenCodeConfig(

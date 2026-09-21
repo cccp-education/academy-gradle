@@ -1,6 +1,7 @@
 package education.cccp.academy
 
 import contracts.runtime.LlmProviderKind
+import education.cccp.academy.bridge.ByokBridgeSupport
 import education.cccp.academy.installer.TargetOs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -23,6 +24,17 @@ class AcademyPlugin : Plugin<Project> {
         )
         wireDefaults(project, extension)
         registerInstallerTasks(project, extension)
+        registerBridgeTask(project, extension)
+    }
+
+    private fun registerBridgeTask(project: Project, extension: AcademyInstallerExtension) {
+        project.tasks.register("serveWebhookBridge", ServeWebhookBridgeTask::class.java) { task ->
+            task.bridgeEnabled.set(extension.bridgeEnabled)
+            task.bridgeHost.set(extension.bridgeHost)
+            task.bridgePort.set(extension.bridgePort)
+            task.providerId.set(extension.openCodeProvider.map { ByokBridgeSupport.providerIdFor(it) })
+            task.model.set(extension.openCodeModel)
+        }
     }
 
     private fun wireDefaults(project: Project, extension: AcademyInstallerExtension) {
@@ -39,6 +51,9 @@ class AcademyPlugin : Plugin<Project> {
         extension.openCodeProviderUrl.convention("http://ollama:11434/v1")
         extension.openCodeProvider.convention(LlmProviderKind.OLLAMA_LOCAL)
         extension.openCodeApiKeyEnvVar.convention("")
+        extension.bridgeEnabled.convention(false)
+        extension.bridgeHost.convention("127.0.0.1")
+        extension.bridgePort.convention(8765)
     }
 
     private fun registerInstallerTasks(project: Project, extension: AcademyInstallerExtension) {
