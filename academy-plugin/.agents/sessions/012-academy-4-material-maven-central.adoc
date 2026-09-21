@@ -1,0 +1,170 @@
+= Session 012 — ACADEMY-4 (consommation du matériel) + publication Maven Central
+
+:date: 2026-09-21
+:session: 012
+:epic: ACADEMY-4
+:us: ACADEMY-4-0 (cadrage) + ACADEMY-4-1 (domaine) + ACADEMY-4-2 (wiring + scaffold) + ACADEMY-4-3 (BDD + dogfooding)
+:methode: Baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR) — 3 niveaux unit/functional/cucumber
+
+== Mission
+
+Deux objectifs, dans l'ordre :
+
+. **ACADEMY-4** — consommation du matériel pédagogique versionné. Le
+  `PROMPT_REPRISE` S-011 nommait « MaterialUpdateContract — git pull des
+  versions » et rappelait la consigne : **vérifier la source avant de nommer**.
+. **Publication Maven Central** (demande pilote en cours de session) —
+  l'artefact academy n'avait jamais été publié (TODO reporté depuis S-001).
+
+== Constat central — la formulation du BACKLOG était inexacte
+
+L'audit S-012 (faits vérifiés, jamais supposés) révèle **deux erreurs** dans
+la définition d'ACADEMY-4, corrigées avant d'écrire une ligne de code :
+
+. *`MaterialUpdateContract` est une data class, pas une interface.* Le BACKLOG
+   disait « implémenter l'interface MaterialUpdateContract ». Le JAR N0
+   (`runtime-contracts:0.0.1`, inspecté) expose : `MaterialUpdateContract`
+   (**data class** : `remoteUrl`, `currentVersion`, `latestVersion`),
+   `MaterialUpdateResolver` (**interface** : `fetchLatest`, `pull`),
+   `MaterialUpdateResult` (sealed). Erreur de type **et** de propriétaire.
+. *Le transport appartient au bureau, pas à academy.* La vision § 3.2 tranche :
+   « Bureau **synce** le matériel (transport git → office/). Academy **consomme**
+   pédagogiquement. Un seul propriétaire par verbe. **bureau l'implémente,
+   academy le lit**. » Implémenter git dans academy dupliquerait `BUREAU-3` et
+   contredirait la doctrine.
+. *Le transport du bureau n'existe PAS encore.* `grep` S-012 : `bureau-gradle`
+   ne contient que `BureauPlugin`/`BureauExtension`/`BureauPluginTest` ;
+   `pullMaterial` n'apparaît que dans la **KDoc** de `BureauPlugin.kt:13` —
+   **zéro** `tasks.register` dans le borough. Le guide academy documente donc
+   le **mécanisme figé** (git pull de la version taguée), **jamais** une
+   commande `pullMaterial` exécutable inexistante (leçon S-007 `moodle:4.5` et
+   S-011 « vérifier la source avant de citer un précédent »).
+
+== Décisions (cadrage S-057, doc `CADRAGE_EPIC_ACADEMY_4_MATERIAL.adoc`)
+
+D-ACADEMY-4-1..12. Structurantes : frontière des verbes tranchée (bureau =
+transport, academy = lecture) ; l'exigence est lue depuis le N0 ; domaine pur
+`academy.material` ; **pivot lu = `metadata.json` EPIC K** (jamais un format
+inventé) ; lecture tolérante (`ignoreUnknownKeys`, un type inconnu n'est jamais
+deviné) ; `MaterialReadiness` sealed (`Ready`/`Incomplete`/`Empty`, **jamais
+d'exception sur matériel absent** — la ressource est générée avant le pull) ;
+extension +3 properties, défauts backward compat ; tâche
+`inspectTrainingMaterial` qui n'échoue **que** si une exigence est déclarée ;
+scaffold `MATERIAL.md` conditionnel ; alimenter le seed Moodle **différé**
+(exige le contrat SPG/SPD, MVP0 training non fait — leçon S-007).
+
+== RED (prouvé)
+
+`Unresolved reference 'MaterialArtifactType'/'MaterialRequirement'/
+'MaterialManifest'/'MaterialInspector'/'MaterialReadiness'/'MaterialGuideGenerator'`
+(compilateur Kotlin = RED statique) puis
+`Unresolved reference 'InspectTrainingMaterialTask'` pour le wiring.
+
+== GREEN
+
+* **Domaine pur `education.cccp.academy.material`** (5 fichiers) :
+  `MaterialArtifactType` (enum 6 valeurs — SPG/SPD/SLIDES/DOCUMENT/CAPSULE/QUIZ,
+  `fromPivotType` insensible à la casse, inconnu → `null` jamais deviné),
+  `MaterialRequirement` (remote + version + types attendus, invariants),
+  `MaterialManifest` (lecture du pivot EPIC K, `ignoreUnknownKeys`, JSON
+  malformé → `null`), `MaterialReadiness` (sealed), `MaterialInspector`
+  (fonction pure → verdict), `MaterialGuideGenerator`.
+* **Wiring** : extension +3 properties (`materialRemoteUrl` défaut vide,
+  `materialCurrentVersion`, `materialDir` défaut `material`,
+  `materialExpectedTypes`), tâche `InspectTrainingMaterialTask`
+  (thin-wrapper, lecture `*.json` du `materialDir`, journal + échec actionnable
+  si exigence déclarée non satisfaite), `InstallerPlatform.material` optionnel.
+* **Scaffold** : `MATERIAL.md` écrit sous `$APP_DIR/project/` **uniquement**
+  quand une exigence est déclarée — source unique
+  (`MaterialGuideGenerator`) partagée par le heredoc bash et le writer batch
+  (parité structurelle Linux/Windows).
+
+== Dogfooding (preuve réelle — leçon S-007/S-009/S-011)
+
+`publishToMavenLocal` + consommateur transitoire `/tmp` (pattern Règle 2), avec
+des **pivots EPIC K réels** écrits comme un producteur les écrit :
+
+. matériel complet (SPG + SLIDES @ v1.0) → **READY**
+   (`[academy] training material satisfies the requirement - present: SPG, SLIDES`).
+. version requise v2.0, matériel v1.0 → **FAIL** actionnable
+   (`outdated (expected version v2.0)`).
+. type QUIZ attendu absent → **FAIL** actionnable (`missing QUIZ`).
+. aucune exigence déclarée, aucun matériel → **SUCCESS** `nothing to verify`
+   (backward compat).
+. installeur Linux généré → `MATERIAL.md` présent, `sh -n` **VALIDE**, et
+   `grep pullMaterial` = **0** (aucune commande inexistante citée).
+
+**Découverte du dogfooding** : le cas 4 avec `materialExpectedTypes` renseigné
+**sans** `materialRemoteUrl` était traité comme « pas d'exigence » — donc
+silencieusement ignoré. Correctif TDD : `hasRequirement()` considère désormais
+aussi les types attendus (nommer les artefacts voulus **est** une exigence).
+Preuve que le dogfooding trouve ce que le test vert ne voyait pas.
+
+== Publication Maven Central (demande pilote)
+
+* Pré-requis vérifiés : version `0.0.1` hardcodée, POM `withType<MavenPublication>`
+  (Apache 2.0, developer cccp-education, SCM), `signing { useGpgCmd() }`,
+  `repositories.mavenCentral()`, toutes les dépendances en **releases** sur
+  Central (runtime-contracts 0.0.1, opencode-session-contracts 0.0.2,
+  i18n-contracts 0.0.2, Ktor 3.2.0 — HTTP 200).
+* Ajout du plugin `com.gradleup.nmcp.settings` 1.5.0 dans
+  `academy-plugin/settings.gradle.kts` (`nmcpSettings` / `AUTOMATIC`, creds
+  lues depuis `~/.gradle/gradle.properties`).
+* `nmcpCheckAggregationFiles` VERT, puis
+  `publishAggregationToCentralPortal --no-daemon` → **bundle
+  `5c54af3f-1bfc-405f-950a-1172fff86b7a`** (AUTOMATIC).
+* **Propagation confirmée** : `academy-plugin:0.0.1` **et** le marker
+  `education.cccp.academy.gradle.plugin:0.0.1` → **HTTP 200** sur repo1.
+* Le plugin academy est désormais consommable depuis Central :
+  `id("education.cccp.academy") version "0.0.1"`.
+
+== Gates
+
+* `./gradlew clean check validatePlugins` → **BUILD SUCCESSFUL**
+  — **152 unit + 13 functional + 21 installer + 5 opencode + 8 byok +
+  6 bridge + 8 material scénarios**, 0 FAIL.
+* `./gradlew publishToMavenLocal` → **BUILD SUCCESSFUL** (Règle 2).
+* `./gradlew nmcpCheckAggregationFiles` → **BUILD SUCCESSFUL**.
+* Publication Central → **bundle AUTOMATIC**, propagation **HTTP 200** vérifiée.
+* Zéro secret (grep `sk-|ghp_|gho_|AIza|Bearer` = 0) ; zéro `ProcessBuilder` /
+  git dans le code academy prod (frontière D-ACADEMY-4-1 vérifiable
+  mécaniquement : grep = 0).
+
+== Fichiers modifiés
+
+[cols="2,3", options="header"]
+|===
+| Fichier | Nature
+| `src/main/kotlin/.../material/{MaterialArtifactType,MaterialRequirement,MaterialManifest,MaterialReadiness,MaterialInspector,MaterialGuideGenerator}.kt` | prod — domaine pur `academy.material` (6 fichiers, NOUVEAU)
+| `src/main/kotlin/.../InspectTrainingMaterialTask.kt` | prod — tâche thin-wrapper (NOUVEAU)
+| `src/main/kotlin/.../AcademyInstallerExtension.kt` | prod — +4 propriétés matériel
+| `src/main/kotlin/.../AcademyPlugin.kt` | prod — registration `inspectTrainingMaterial` + défauts
+| `src/main/kotlin/.../GenerateInstallerTask.kt` | prod — résolution du `MaterialRequirement`
+| `src/main/kotlin/.../installer/InstallerPlatform.kt` | prod — +`material` optionnel
+| `src/main/kotlin/.../installer/InstallerScriptGenerator.kt` | prod — scaffold `MATERIAL.md` (bash + batch, source unique)
+| `academy-plugin/settings.gradle.kts` | build — nmcp 1.5.0 (publication Central)
+| `build.gradle.kts` | build — runner `cucumberTestMaterial` (pattern S-082)
+| `src/test/kotlin/.../material/{MaterialRequirement,MaterialArtifactType,MaterialManifest,MaterialInspector,MaterialGuideGenerator}Test.kt` | tests — 30 unit (NOUVEAU)
+| `src/test/kotlin/.../InspectTrainingMaterialTaskTest.kt` | tests — 7 unit (NOUVEAU)
+| `src/test/kotlin/.../installer/InstallerScriptMaterialTest.kt` | tests — 4 unit (NOUVEAU)
+| `src/functionalTest/.../AcademyInstallerFunctionalTest.kt` | functional — +3 TestKit (scaffold, empty, fail actionnable)
+| `src/test/resources/features/academy_material.feature` | BDD — 8 scénarios `@material` (NOUVEAU)
+| `src/test/scenarios/.../bdd/AcademyMaterialCucumberRunner.kt` + `AcademyMaterialSteps.kt` | BDD — runner + glue préfixée (NOUVEAU)
+| `.agents/CADRAGE_EPIC_ACADEMY_4_MATERIAL.adoc` | gouvernance — cadrage (NOUVEAU)
+|===
+
+== Note de clôture — méthode
+
+La règle du **delta source** a été appliquée : le build compilait à l'ouverture,
+aucune suite n'a été rejouée « pour confirmer ». Le RED a été prouvé par échec de
+compilation (domaine puis wiring). Le **dogfooding a payé une seconde fois**
+(cas 4 : exigence par types seuls silencieusement ignorée) — un rappel que le test
+vert ne remplace pas l'exécution réelle.
+
+La session a produit un **effet de bord de gouvernance** : la lecture du
+`sources/draft/api` fourni par le pilote a permis de cadrer **ACADEMY-10**
+(migration du bridge Ktor → Spring Boot WebFlux + coroutines + R2DBC +
+PostgreSQL Docker + Jackson 3), avec les faits vérifiés (Spring Boot 4.1.1 =
+Jackson 3.1.5 par défaut ; Boot 3.4.2 = Jackson 2.18.2 → bump BOM requis ;
+Jackson 3 = `tools.jackson.core`).
+</content>

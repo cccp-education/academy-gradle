@@ -3,6 +3,7 @@ package education.cccp.academy
 import education.cccp.academy.installer.InstallerPlatform
 import education.cccp.academy.installer.InstallerScriptGenerator
 import education.cccp.academy.installer.TargetOs
+import education.cccp.academy.material.MaterialRequirement
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
@@ -55,6 +56,7 @@ abstract class GenerateInstallerTask : DefaultTask() {
             bridgeEnabled = extension.bridgeEnabled.get(),
             bridgeHost = extension.bridgeHost.get(),
             bridgePort = extension.bridgePort.get(),
+            material = materialRequirement(extension),
         )
 
         val platformDir = File(outputDir.get().asFile, platform.os.dirName).apply { mkdirs() }
@@ -63,5 +65,20 @@ abstract class GenerateInstallerTask : DefaultTask() {
             target.writeText(file.content)
             logger.lifecycle("[academy] generated ${platform.os.name.lowercase()} installer -> ${target.absolutePath}")
         }
+    }
+
+    /**
+     * The material requirement declared on the extension, or `null` when none is
+     * set (ACADEMY-4) — the project simply consumes no versioned material and no
+     * `MATERIAL.md` is written (D-ACADEMY-4-10).
+     */
+    private fun materialRequirement(extension: AcademyInstallerExtension): MaterialRequirement? {
+        val remote = extension.materialRemoteUrl.get()
+        if (remote.isBlank()) return null
+        return MaterialRequirement(
+            remoteUrl = remote,
+            currentVersion = extension.materialCurrentVersion.get().ifBlank { null },
+            expectedTypes = extension.materialExpectedTypes.get(),
+        )
     }
 }

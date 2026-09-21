@@ -2,6 +2,7 @@ package education.cccp.academy
 
 import contracts.runtime.LlmProviderKind
 import education.cccp.academy.installer.TargetOs
+import education.cccp.academy.material.MaterialArtifactType
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
@@ -100,4 +101,31 @@ abstract class AcademyInstallerExtension {
 
     /** Bind port of the local bridge (default 8765). */
     abstract val bridgePort: Property<Int>
+
+    /**
+     * Remote of the versioned training material the learner consumes
+     * (ACADEMY-4) — the academy reading of the N0 `MaterialUpdateContract`.
+     * Empty (the default) means **no requirement declared**: the resource is
+     * generated before the learner pulls, so a build never fails on absent
+     * material (D-ACADEMY-4-9).
+     */
+    abstract val materialRemoteUrl: Property<String>
+
+    /**
+     * Expected material version/tag (ACADEMY-4) — empty means the learner
+     * accepts any version. Never a credential: the transport stays git-side.
+     */
+    abstract val materialCurrentVersion: Property<String>
+
+    /**
+     * Directory holding the pulled material and its EPIC K `metadata.json`
+     * pivots (ACADEMY-4) — defaults to `material` in the consuming project.
+     */
+    abstract val materialDir: DirectoryProperty
+
+    /**
+     * Artifact types the requirement expects (ACADEMY-4) — the activated
+     * deliverable vocabulary (SPG, SPD, SLIDES, DOCUMENT, CAPSULE, QUIZ).
+     */
+    abstract val materialExpectedTypes: ListProperty<MaterialArtifactType>
 }

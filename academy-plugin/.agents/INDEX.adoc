@@ -6,10 +6,10 @@ _Regles absolues_ : voir `AGENT.adoc`
 _DAG_ : N2 — Plugin Gradle de consommation (Regle 4bis)
 _Projet_ : academy-gradle (education.cccp.academy)
 
-_Derniere mise a jour_ : 2026-09-21 (session 011)
-_Session terminee_ : 011 — ACADEMY-8 TERMINÉ : webhooks Moodle + bridge Ktor (décision pilote — Ktor acté) — domaine pur `academy.bridge` (`MoodleEvent` schéma **academy**, `BridgeEventTranslator` → `SessionPrompt` N0 à session id **stable**, `BridgeRoutes` `/health`+`/events/moodle`+`/session`, `BridgeServerConfig`, `BridgeWire` anti-corruption, `ByokBridgeSupport`) + serveur `WebhookBridgeServer` (Ktor 3.2.0 Netty, `installBridge` module unique test+prod) + tâche `serveWebhookBridge` **opt-in** (`bridgeEnabled` défaut `false`, garde `onlyIf`, seam `serverLauncher`) + extension +3 properties + `AGENTS.md` documente le bridge si activé ; le bridge **route et acquitte — il ne pense pas** (zéro LLM) ; dogfooding réel serveur + curl (`/health` 200, `POST /events/moodle` ack, 400/404, port libéré) ; correction de gouvernance : le bridge codebase est stdin/stdout (pas HTTP) → Ktor = transport additionnel (D-ACADEMY-8-1)
-_Sessions precedent_ : 010 — ACADEMY-7 TERMINÉ (BYOK multi-provider, `academy.byok`, `{env:NAME}`, `runtime-contracts` N0) ; 009 — ACADEMY-5 TERMINÉ (exposition agent, 6 fichiers, 11 plugins catalogués, service `workspace`) ; 008 — ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ ; 007 — ACADEMY-6-6 TERMINÉ (dogfooding bout-en-bout) ; 006 — ACADEMY-6-5 TERMINÉ (seed DB data-only) ; 005 — ACADEMY-6-4 TERMINÉ (compose complet) ; 004 — Révisions pilote du scaffold compose ; 003 — Socle générateur (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation ; 001 — Alignement article 0124 ; 000 — Bootstrap
-_Prochaine session_ : ACADEMY-4 (MaterialUpdateContract — git pull des versions) — puis ACADEMY-2/3 (ports N0) et ACADEMY-9 (Qualiopi).
+_Derniere mise a jour_ : 2026-09-21 (session 012)
+_Session terminee_ : 012 — ACADEMY-4 TERMINÉ : consommation du matériel versionné — domaine pur `academy.material` (`MaterialArtifactType` 6 livrables, `MaterialRequirement` = lecture du N0 `MaterialUpdateContract`, `MaterialManifest` = lecture du pivot EPIC K `metadata.json` tolérante, `MaterialReadiness` sealed, `MaterialInspector` verdict pur, `MaterialGuideGenerator`) + tâche `inspectTrainingMaterial` (n'échoue que si exigence déclarée) + extension +4 properties + scaffold `MATERIAL.md` conditionnel (parité Linux/Windows) ; **frontière des verbes corrigée** (transport git = bureau BUREAU-3, academy lit — zéro git/ProcessBuilder) ; dogfooding réel pivots EPIC K (READY/outdated/missing/Empty) ; **publication Maven Central** academy-plugin + marker 0.0.1 (bundle nmcp `5c54af3f-1bfc-405f-950a-1172fff86b7a`, propagation HTTP 200) ; **EPIC ACADEMY-10 cadré** (migration Ktor → Spring Boot WebFlux + coroutines + R2DBC + PostgreSQL + Jackson 3)
+_Sessions precedent_ : 011 — ACADEMY-8 TERMINÉ (bridge Ktor) ; 010 — ACADEMY-7 TERMINÉ (BYOK multi-provider, `academy.byok`, `{env:NAME}`, `runtime-contracts` N0) ; 009 — ACADEMY-5 TERMINÉ (exposition agent, 6 fichiers, 11 plugins catalogués, service `workspace`) ; 008 — ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ ; 007 — ACADEMY-6-6 TERMINÉ (dogfooding bout-en-bout) ; 006 — ACADEMY-6-5 TERMINÉ (seed DB data-only) ; 005 — ACADEMY-6-4 TERMINÉ (compose complet) ; 004 — Révisions pilote du scaffold compose ; 003 — Socle générateur (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation ; 001 — Alignement article 0124 ; 000 — Bootstrap
+_Prochaine session_ : ACADEMY-2/3 (ports N0 `FormationRuntimePort`/`SessionMemoryContract`) — puis ACADEMY-9 (Qualiopi) et ACADEMY-10 (migration Spring Boot WebFlux).
 
 '''
 == REGLES ABSOLUES
@@ -233,7 +233,6 @@ _Gates S-010_ : `clean check validatePlugins` VERT (218 unit + 9 functional + 21
 '''
 
 == ✅ EPIC ACADEMY-8 — Webhooks Moodle + bridge Ktor
-
 _Source_ : Session 011 (**décision pilote 2026-09-21 : Ktor acté**). Transport
 HTTP local opt-in : un producteur externe (Moodle, navigateur, `curl`) poste un
 événement de formation, le bridge le traduit vers les contrats N0 de session et
@@ -271,7 +270,92 @@ _Gates S-011_ : `clean check validatePlugins` VERT (311 unit + 10 functional + 2
 
 '''
 
+== ✅ EPIC ACADEMY-4 — Consommation du matériel versionné (MaterialUpdateContract)
+
+_Source_ : Session 012. Academy **lit** le contrat N0 `MaterialUpdateContract`
+comme déclaration d'exigence, vérifie le matériel présent (pivot EPIC K
+`metadata.json`) et documente l'apprenant. Le **transport git appartient au
+bureau** (`BUREAU-3`) — academy n'exécute jamais git (correction du BACKLOG,
+D-ACADEMY-4-1).
+
+_Dependances_ : ACADEMY-7/8 ✅, `runtime-contracts:0.0.1` (N0, Central) ✅.
+
+[cols="1,3,1,1", options="header"]
+|===
+| US | Description | Pts | Statut
+| ACADEMY-4-0
+| *Cadrage* — `CADRAGE_EPIC_ACADEMY_4_MATERIAL.adoc` (9 constats, D-ACADEMY-4-1..12, options écartées). Corrige le BACKLOG : `MaterialUpdateContract` est une data class (pas une interface), le resolver appartient au bureau, `pullMaterial` n'existe pas encore.
+| 3
+| ✅ TERMINÉ (S-012)
+| ACADEMY-4-1
+| *Domaine pur `academy.material`* — `MaterialArtifactType` (6 livrables), `MaterialRequirement` (lecture N0), `MaterialManifest` (pivot EPIC K tolérant), `MaterialReadiness` (sealed), `MaterialInspector` (verdict pur), `MaterialGuideGenerator` ; 30 unit.
+| 8
+| ✅ TERMINÉ (S-012)
+| ACADEMY-4-2
+| *Wiring + scaffold* — extension +4 properties (`materialRemoteUrl`/`materialCurrentVersion`/`materialDir`/`materialExpectedTypes`), tâche `inspectTrainingMaterial` (n'échoue que si exigence déclarée), `InstallerPlatform.material`, scaffold `MATERIAL.md` conditionnel (bash + batch, source unique) ; +11 unit, +3 functional TestKit.
+| 5
+| ✅ TERMINÉ (S-012)
+| ACADEMY-4-3
+| *BDD + dogfooding* — `academy_material.feature` 8 scénarios `@material` + runner dédié + glue préfixée (S-088) ; dogfooding réel pivots EPIC K (READY/outdated/missing/Empty) + `sh -n` + `grep pullMaterial` = 0.
+| 3
+| ✅ TERMINÉ (S-012)
+|===
+
+_Total_ : 4 US, ~19 pts. _Methode_ : baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR).
+
+_Statut_ : **EPIC ACADEMY-4 TERMINÉ (S-012)** — 4-0 ✅ + 4-1 ✅ + 4-2 ✅ + 4-3 ✅. US « alimenter le seed Moodle » (ancienne 4-2) **DIFFÉRÉE** (D-ACADEMY-4-12 : exige le contrat SPG/SPD canonique, MVP0 training non fait).
+
+_Gates S-012_ : `clean check validatePlugins` VERT (152 unit + 13 functional + 21 installer + 5 opencode + 8 byok + 6 bridge + 8 material), `publishToMavenLocal` VERT, dogfooding réel, zéro secret, zéro `ProcessBuilder`/git dans le code prod.
+
 '''
+
+== ✅ Publication Maven Central — academy-plugin 0.0.1 (S-012)
+
+_Demande pilote en cours de session._ Pré-requis vérifiés (version hardcodée,
+POM Apache 2.0, signing `useGpgCmd`, dépendances releases sur Central, plugin
+`com.gradleup.nmcp.settings` 1.5.0 ajouté à `academy-plugin/settings.gradle.kts`).
+
+* `nmcpCheckAggregationFiles` VERT, puis `publishAggregationToCentralPortal`
+  → **bundle `5c54af3f-1bfc-405f-950a-1172fff86b7a`** (AUTOMATIC).
+* **Propagation confirmée** : `education.cccp:academy-plugin:0.0.1` **et**
+  `education.cccp.academy.gradle.plugin:0.0.1` → **HTTP 200** (repo1).
+* Consommation : `id("education.cccp.academy") version "0.0.1"` depuis Central.
+
+'''
+
+== 🟡 EPIC ACADEMY-10 — Migration du bridge Ktor → Spring Boot WebFlux (cadré S-012)
+
+_Source_ : Session 012 (**décision pilote 2026-09-21**). Migrer le bridge
+livré en ACADEMY-8 (Ktor 3.2.0 Netty) vers **Spring Boot WebFlux +
+kotlinx-coroutines + R2DBC + PostgreSQL (Docker) + Jackson 3**.
+
+_Faits vérifiés S-012_ : Spring Boot **4.1.1** GA (Maven Central) embarque
+**Jackson 3.1.5** par défaut ; **Boot 3.4.2 (BOM workspace actuel) livre
+Jackson 2.18.2** → incompatible avec l'exigence « jackson3 », donc **bump BOM
+probable (cross-borough MEMPHIS)**. Jackson 3 = `tools.jackson.core` (groupId
+changé). R2DBC : `spring-boot-starter-data-r2dbc` + `org.postgresql:r2dbc-postgresql`
+(4.1.1 pin `1.1.2.RELEASE`) + `io.r2dbc:r2dbc-pool`.
+
+_Référence de code vérifiée_ : `/home/cheroliv/sources/draft/api` (draft
+personnel, tourne en Boot 3.5.9/Jackson 2 — **pattern source, pas source de
+version**) : `Server` (`@SpringBootApplication`, 18 lignes), `CommandLine`
+(`CommandLineRunner` + profil — répond à « tâche Gradle daemon vs `main()` »),
+`DatabaseConfiguration` (R2DBC custom conversions `Instant ↔ LocalDateTime`,
+`ConnectionFactoryInitializer` par profil), DDL co-localisé au domaine
+(`UserActivation.Relations` : `SQL_SCRIPT`/`INSERT`/`UPDATE`), DAO
+`DatabaseClient` + `awaitRowsUpdated()` en `suspend`, controller `suspend fun`
++ `ProblemDetail` (RFC 7807), `compose.yml` PostgreSQL.
+
+_Dependances_ : ACADEMY-8 (bridge Ktor) ✅ — c'est une **migration**, pas une
+création : le domaine pur `academy.bridge` (342 lignes, 7 fichiers) est
+**conservé verbatim** (D-ACADEMY-8-4), seule la couche serveur migre.
+
+_Statut_ : 🟡 CADRÉ (S-012) — section détaillée dans `BACKLOG.adoc`.
+Cadrage formel dédié + découpage US à produire en session dédiée (pattern S-057).
+**Non critique MVP0** — à ordonnancer sur décision pilote.
+
+'''
+
 == Sessions
 
 |===
@@ -288,6 +372,7 @@ _Gates S-011_ : `clean check validatePlugins` VERT (311 unit + 10 functional + 2
 | 009 | 2026-09-21 | développement | ACADEMY-5 TERMINÉ — exposition agent opencode : domaine `academy.opencode` (6 fichiers, 11 plugins catalogués), service `workspace` (profile agent, TODO S-007 résolu), `$APP_DIR/project/{Dockerfile,opencode.json,AGENTS.md}` générés (parité Linux/Windows), extension 3 properties ; dogfooding réel (build image, `opencode 1.18.31` learner, bug install-root D-ACADEMY-5-11) | 11/11
 | 010 | 2026-09-21 | développement | ACADEMY-7 TERMINÉ — BYOK LLM multi-provider : domaine `academy.byok` (2 fichiers, mapping `LlmProviderKind` → provider opencode réel vérifié), `OpenCodeConfig`/`OpenCodeConfigGenerator`/`LearnerGuideGenerator` multi-provider (`{env:NAME}`, jamais la valeur), extension +2 properties, `.env` nom-seul + compose transmet, dépendance N0 `runtime-contracts` ; dogfooding réel GEMINI + défaut (clé absente du JSON, byte-identité ACADEMY-5) | 14/14
 | 011 | 2026-09-21 | développement | ACADEMY-8 TERMINÉ — webhooks Moodle + bridge Ktor (décision pilote) : domaine `academy.bridge` (schéma academy, traduction N0 à session stable, routes, anti-corruption `BridgeWire`), serveur Ktor 3.2.0 Netty, tâche `serveWebhookBridge` opt-in (SKIPPED par défaut), extension +3 properties, `AGENTS.md` conditionnel ; dogfooding réel serveur + curl (400/404) ; correction de gouvernance (bridge codebase = stdin/stdout ≠ HTTP) | 19/19
+| 012 | 2026-09-21 | développement + publication | ACADEMY-4 TERMINÉ — consommation du matériel versionné : domaine `academy.material` (lecture N0 + pivot EPIC K, verdict pur sealed), tâche `inspectTrainingMaterial` (n'échoue que si exigence déclarée), extension +4 properties, scaffold `MATERIAL.md` conditionnel ; frontière des verbes corrigée (transport git = bureau, academy lit — zéro git) ; dogfooding réel pivots EPIC K ; **publication Maven Central 0.0.1** (bundle `5c54af3f`, propagation HTTP 200) ; EPIC ACADEMY-10 cadré (Spring Boot WebFlux) | 19/19
 |===
 
 '''
@@ -305,7 +390,7 @@ _Gates S-011_ : `clean check validatePlugins` VERT (311 unit + 10 functional + 2
 | capsule-gradle | `foundry/public/capsule-gradle/capsule-plugin/` | 11 | 2026-05-19
 | workspace-gradle | `foundry/public/workspace-gradle/` | 1 | 2026-05-17
 | magic-stick | `office/sites/magic-stick/` | 4 | 2026-05-11
-| academy-gradle | `foundry/public/academy-gradle/` | 11 | 2026-09-21
+| academy-gradle | `foundry/public/academy-gradle/` | 12 | 2026-09-21
 |===
 
 '''

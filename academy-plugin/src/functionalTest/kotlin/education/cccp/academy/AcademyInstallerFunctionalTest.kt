@@ -296,6 +296,94 @@ class AcademyInstallerFunctionalTest {
         )
     }
 
+    @Test
+    fun `a declared material requirement writes the material guide without a runnable bureau command (ACADEMY-4)`() {
+        writeBuild(
+            """
+            plugins {
+                id("education.cccp.academy")
+            }
+
+            academyInstaller {
+                materialRemoteUrl.set("https://github.com/cccp-education/formation-fpa")
+                materialCurrentVersion.set("v1.0")
+                materialExpectedTypes.set(listOf(education.cccp.academy.material.MaterialArtifactType.SPG))
+            }
+            """.trimIndent(),
+        )
+
+        val result = runner("buildAllInstallers").build()
+        assertEquals(TaskOutcome.SUCCESS, result.task(":buildAllInstallers")?.outcome)
+
+        val scripts = listOf(
+            File(projectDir, "build/academy/installers/linux/install.sh").readText(),
+            File(projectDir, "build/academy/installers/windows/install.bat").readText(),
+        )
+        scripts.forEach { script ->
+            assertTrue(
+                script.contains("cat > \"\$APP_DIR/project/MATERIAL.md\" <<'EOF'") ||
+                    script.contains("> \"%APP_DIR%\\project\\MATERIAL.md\" ("),
+                "the material guide must be written by the installer",
+            )
+            assertTrue(
+                script.contains("https://github.com/cccp-education/formation-fpa"),
+                "the guide must carry the declared remote (parity)",
+            )
+            assertFalse(
+                script.contains("pullMaterial"),
+                "pullMaterial is BUREAU-3 TODO - it must never be cited as runnable (S-007/S-011)",
+            )
+        }
+    }
+
+    @Test
+    fun `inspectTrainingMaterial reports empty on absent material without failing the build (ACADEMY-4)`() {
+        writeBuild(
+            """
+            plugins {
+                id("education.cccp.academy")
+            }
+            """.trimIndent(),
+        )
+
+        val result = runner("inspectTrainingMaterial").build()
+
+        assertEquals(
+            TaskOutcome.SUCCESS,
+            result.task(":inspectTrainingMaterial")?.outcome,
+            "no requirement declared - absent material is a legitimate empty report, never a failure",
+        )
+        assertTrue(
+            result.output.contains("nothing to verify"),
+            "the task must report the empty state",
+        )
+    }
+
+    @Test
+    fun `inspectTrainingMaterial fails when a declared requirement is unsatisfied (ACADEMY-4)`() {
+        writeBuild(
+            """
+            plugins {
+                id("education.cccp.academy")
+            }
+
+            academyInstaller {
+                materialRemoteUrl.set("https://github.com/cccp-education/formation-fpa")
+                materialCurrentVersion.set("v1.0")
+                materialExpectedTypes.set(listOf(education.cccp.academy.material.MaterialArtifactType.SPG))
+            }
+            """.trimIndent(),
+        )
+
+        val result = runner("inspectTrainingMaterial").buildAndFail()
+
+        assertEquals(TaskOutcome.FAILED, result.task(":inspectTrainingMaterial")?.outcome)
+        assertTrue(
+            result.output.contains("pull the tagged version first"),
+            "a declared but absent requirement must fail with an actionable message",
+        )
+    }
+
     private fun writeBuild(content: String) {
         File(projectDir, "settings.gradle.kts").writeText("rootProject.name = \"consumer-sample\"\n")
         File(projectDir, "build.gradle.kts").writeText(content)

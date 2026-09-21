@@ -1,6 +1,6 @@
 = TEST_COVERAGE_ANALYSIS — academy-gradle
 
-_Dernière mise à jour_ : 2026-09-21 (session 011)
+_Dernière mise à jour_ : 2026-09-21 (session 012)
 
 == État des tests
 
@@ -13,6 +13,8 @@ Session 007 : ACADEMY-6-6 terminé — dogfooding bout-en-bout (5 écarts de sca
 Session 008 : ACADEMY-6-7 terminé — Cucumber BDD étendu (contenu OS, chemins, idempotence, erreurs, `opencode.json` différé) + **hôte = Docker uniquement (D-ACADEMY-6-10 appliqué : zéro provisioning Java/Gradle hôte)** ; ACADEMY-6-1/2/3 CADUQUES absorbés.
 Session 009 : **ACADEMY-5 terminé** — exposition agent opencode. Domaine pur `academy.opencode` (`OpenCodeConfig`/`OpenCodePlugin`/`OpenCodeCatalog`/`OpenCodeConfigGenerator`/`LearnerGuideGenerator`/`WorkspaceDockerfileGenerator`), service `workspace` (profile `agent`), `$APP_DIR/project/{Dockerfile,opencode.json,AGENTS.md}` générés (parité Linux/Windows), extension +3 properties. Les 2 scénarios « workspace/opencode différés » migrés en « générés ». Dogfooding réel : build image + `opencode 1.18.31` learner (bug install-root D-ACADEMY-5-11).
 Session 010 : **ACADEMY-7 terminé** — BYOK LLM multi-provider. Domaine pur `academy.byok` (`ByokProviderSpec`/`ByokProviderCatalog`), `OpenCodeConfig` +2 champs, `OpenCodeConfigGenerator` multi-provider, `LearnerGuideGenerator` BYOK concret, extension +2 properties, `.env` nom-seul + compose transmet la variable. Dépendance N0 `runtime-contracts` (supersede D-ACADEMY-5-9). Dogfooding réel GEMINI + défaut.
+Session 011 : **ACADEMY-8 terminé** — bridge Ktor (domaine `academy.bridge`, serveur `testApplication` sans port réel, tâche opt-in SKIPPED, anti-corruption `BridgeWire`).
+Session 012 : **ACADEMY-4 terminé** — consommation du matériel versionné (domaine `academy.material`, lecture du pivot EPIC K, verdict sealed, tâche `inspectTrainingMaterial`, scaffold `MATERIAL.md` conditionnel) + **publication Maven Central 0.0.1**. Le dogfooding a révélé un cas non couvert (exigence par types seuls) → correctif TDD.
 
 ## Ce qui est couvert
 
@@ -27,13 +29,19 @@ Session 010 : **ACADEMY-7 terminé** — BYOK LLM multi-provider. Domaine pur `a
 - **ACADEMY-8-1/2 (domaine `academy.bridge` + serveur Ktor)** : 23 unit — `MoodleEventTest` (3 : identité + payload opaque, payload vide par défaut, invariants), `BridgeEventTranslatorTest` (6 : prompt depuis l'identité, **déterminisme/session stable**, payload → contexte, payload vide → aucun contexte inventé, events distincts → sessions distinctes, type `SessionPrompt`), `BridgeRoutesTest` (4 : routes déclarées, méthode+description, GET/POST, table source unique), `BridgeServerConfigTest` (3 : identité, port hors plage KO, identité vide KO), `WebhookBridgeServerTest` (7 `testApplication` **sans port réel** : `/health` provider+model, `POST /events/moodle` ack+écho, `POST /session` ack, event malformé **400**, JSON invalide **400**, route inconnue **404**, **zéro fuite de credential**) ; `ServeWebhookBridgeTaskTest` (3 : config résolue, provider suivi, bridge désactivé par défaut) ; `AcademyPluginTest` (+1 tâche) ; `LearnerGuideByokTest` (+1 doc conditionnelle) ; `InstallerScriptByokTest` (+1 scaffold conditionnel).
 - **ACADEMY-8-2 (opt-in, TestKit)** : `AcademyInstallerFunctionalTest` (+1) — `serveWebhookBridge` **SKIPPED** par défaut (un build n'ouvre jamais un port) — D-ACADEMY-8-7 prouvé fonctionnellement.
 - **BDD (pattern S-082)** : `cucumberTestBridge` — feature `academy_bridge.feature` `@bridge` (6 scénarios : schéma academy + payload opaque, session stable, sessions distinctes, payload vide sans contexte, table de routes, **le prompt ne revendique aucun format tiers**). Glue préfixée `bridge` (`AcademyBridgeSteps`, S-088).
+- **ACADEMY-4-1 (domaine `academy.material`)** : 30 unit — `MaterialRequirementTest` (5 : remote + version + types, version optionnelle, types vides par défaut, remote blank KO, version blank KO), `MaterialArtifactTypeTest` (4 : résolution cas-insensible des 6 livrables, type inconnu jamais deviné (`Unknown`/`PDF`/vide → null), vocabulaire vision complet, pivotType non-blank), `MaterialManifestTest` (6 : champs du pivot, **champ inconnu ignoré**, type inconnu → `rawType` conservé + enum null, **JSON malformé → null sans lever**, version absente tolérée, model/dependencies vides par défaut), `MaterialInspectorTest` (9 : vide → `Empty`, tout présent → `Ready`, type manquant → `Incomplete(missingTypes)`, divergence de version → `Incomplete(outdated)`, artefact inattendu ignoré, type inconnu ne satisfait pas, exigence sans type → `Ready`, version absente ne compte pas comme outdated, **toutes combinaisons sans exception**), `MaterialGuideGeneratorTest` (6 : remote + version, mécanisme figé « pull » + git + tag, **ne cite jamais `pullMaterial`**, liste les types attendus, sans version n'invente pas de version, zéro credential).
+- **ACADEMY-4-2 (wiring `academy.material`)** : 11 unit — `InspectTrainingMaterialTaskTest` (7 : défauts extension, résolution de l'exigence, dossier absent sans exigence → `Empty` + `hasRequirement` false, exigence déclarée détectée, **types seuls = exigence** (correctif dogfooding), lecture des pivots → `Ready`, manifeste illisible ignoré) ; `InstallerScriptMaterialTest` (4 : sans exigence aucun `MATERIAL.md`, avec exigence le guide est écrit, **ne cite jamais `pullMaterial`**, parité structurelle Windows).
+- **ACADEMY-4-2 (intégration, TestKit)** : `AcademyInstallerFunctionalTest` (+3) — scaffold `MATERIAL.md` écrit sur disque (les 2 plateformes, sans commande inexistante), `inspectTrainingMaterial` **SUCCESS** sans exigence (empty), **FAIL** actionnable avec exigence non satisfaite.
+- **BDD (pattern S-082)** : `cucumberTestMaterial` — feature `academy_material.feature` `@material` (8 scénarios : exigence déclarée, vide → EMPTY, mécanisme pull + jamais `pullMaterial`, tout présent → READY, type manquant → INCOMPLETE, version divergente → outdated, type inconnu ne satisfait pas, **champ producteur inconnu ne casse pas le consommateur**). Glue préfixée `material` (`AcademyMaterialSteps`, S-088).
 
 ## Ce qui est à couvrir
 
-- ACADEMY-2/3/4 (ports N0) et ACADEMY-9 (Qualiopi) : pas de tests tant que non implémentés.
+- ACADEMY-2/3 (ports N0) et ACADEMY-9 (Qualiopi) : pas de tests tant que non implémentés.
+- ACADEMY-4 : le **transport git** (resolver) appartient au **bureau** (`BUREAU-3`) et sera testé par lui — academy teste le parsing + le verdict (D-ACADEMY-4-11).
+- ACADEMY-10 : migration Spring Boot WebFlux — tests à définir au cadrage dédié.
 - ACADEMY-6-1/2/3 : **CADUQUES (S-008)**.
 - ACADEMY-5 : `ToolExposure` (N0) non encore consommé par le code (guardrail porté par `OpenCodeCatalog`) — à brancher en ACADEMY-2.
-- Publication Maven Central d'academy : jamais faite (le plugin n'est pas publié).
+- Publication Maven Central : **faite S-012** (0.0.1) — reste à couvrir par un test de consommation Central au prochain bump.
 
 ## Évolution future
 
@@ -49,4 +57,5 @@ Session 010 : **ACADEMY-7 terminé** — BYOK LLM multi-provider. Domaine pur `a
 | 2026-09-21 | **50 unit + 7 functional + 21 scénarios installer + 5 scénarios opencode** (exposition agent : domaine `academy.opencode`, workspace généré) — RED prouvé par échec de compilation | 0 FAIL — `check` VERT + `validatePlugins` VERT + `publishToMavenLocal` VERT + dogfooding `docker build` + `opencode 1.18.31` |
 | 2026-09-21 | **218 unit + 9 functional + 21 installer + 5 opencode + 8 byok scénarios** (BYOK multi-provider : domaine `academy.byok`, générateur multi-provider, chaîne `.env`→compose→`{env:NAME}`) — RED prouvé par échec de compilation (N0 puis domaine puis wiring) | 0 FAIL — `check` VERT + `validatePlugins` VERT + `publishToMavenLocal` VERT + dogfooding GEMINI/défaut (clé absente du JSON, byte-identité ACADEMY-5) |
 | 2026-09-21 | **311 unit + 10 functional + 21 installer + 5 opencode + 8 byok + 6 bridge scénarios** (bridge Ktor : domaine `academy.bridge`, serveur `testApplication`, tâche opt-in SKIPPED, anti-corruption `BridgeWire`) — RED prouvé par échec de compilation (dépendance → domaine → wiring) + RED de **comportement** (sérialisation N0) | 0 FAIL — `check` VERT + `validatePlugins` VERT + `publishToMavenLocal` VERT + dogfooding réel serveur + curl (`/health` 200, ack, 400/404) |
+| 2026-09-21 | **152 unit + 13 functional + 21 installer + 5 opencode + 8 byok + 6 bridge + 8 material scénarios** (ACADEMY-4 : domaine `academy.material`, lecture pivot EPIC K, verdict sealed, tâche `inspectTrainingMaterial`, scaffold `MATERIAL.md` conditionnel) — RED prouvé par échec de compilation (domaine → wiring) ; dogfooding révèle un cas non couvert (exigence par types seuls) → correctif TDD | 0 FAIL — `check` VERT + `validatePlugins` VERT + `publishToMavenLocal` VERT + `nmcpCheckAggregationFiles` VERT + **publication Maven Central 0.0.1** (bundle `5c54af3f`, propagation HTTP 200) + dogfooding réel (READY/outdated/missing/Empty, `sh -n`, `grep pullMaterial`=0) |
 |===

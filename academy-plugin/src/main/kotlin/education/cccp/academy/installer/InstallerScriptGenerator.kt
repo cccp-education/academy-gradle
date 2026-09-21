@@ -1,6 +1,7 @@
 package education.cccp.academy.installer
 
 import education.cccp.academy.byok.ByokProviderCatalog
+import education.cccp.academy.material.MaterialGuideGenerator
 import education.cccp.academy.opencode.LearnerGuideGenerator
 import education.cccp.academy.opencode.OpenCodeConfigGenerator
 import education.cccp.academy.opencode.WorkspaceDockerfileGenerator
@@ -367,6 +368,7 @@ object InstallerScriptGenerator {
         seedCourseSqlBody().forEach { appendLine(it) }
         appendLine("EOF")
         appendOpenCodeScaffold(platform)
+        appendMaterialScaffold(platform)
         appendLine("echo \"[academy] compose scaffold written - edit \$APP_DIR/.env and \$APP_DIR/docker-compose.yml before running docker compose up\"")
     }
 
@@ -412,7 +414,27 @@ object InstallerScriptGenerator {
         seedCourseSqlBody().forEach { appendLine("echo ${escapeCmd(it)}") }
         appendLine(")")
         appendWindowsOpenCodeScaffold(platform)
+        appendWindowsMaterialScaffold(platform)
         appendLine("rem Edit %APP_DIR%\\.env and %APP_DIR%\\docker-compose.yml before running docker compose up")
+    }
+
+    /**
+     * Writes the material requirement guide (ACADEMY-4) under
+     * `$APP_DIR/project/MATERIAL.md`, only when the platform declares a
+     * requirement ([InstallerPlatform.material]) — the content comes from the
+     * pure [education.cccp.academy.material.MaterialGuideGenerator], the single
+     * source shared by every platform (structural parity, D-ACADEMY-4-10).
+     *
+     * It declares the requirement and the frozen mechanism (git pull); it never
+     * cites a runnable command that does not exist (BUREAU-3 🔴 À FAIRE, S-012).
+     */
+    private fun StringBuilder.appendMaterialScaffold(platform: InstallerPlatform) {
+        val material = platform.material ?: return
+        appendLine("mkdir -p \"\$APP_DIR/project\"")
+        appendLine("echo \"[academy] writing the training material requirement (MATERIAL.md)...\"")
+        appendLine("cat > \"\$APP_DIR/project/MATERIAL.md\" <<'EOF'")
+        MaterialGuideGenerator.render(material).trimEnd().lines().forEach { appendLine(it) }
+        appendLine("EOF")
     }
 
     /**
@@ -433,6 +455,20 @@ object InstallerScriptGenerator {
         appendLine(")")
         appendLine("> \"%APP_DIR%\\project\\AGENTS.md\" (")
         LearnerGuideGenerator.render(config).trimEnd().lines().forEach { appendLine("echo ${escapeCmd(it)}") }
+        appendLine(")")
+    }
+
+    /**
+     * Windows writer of the material requirement guide (ACADEMY-4) — renders the
+     * *same* content as the bash heredoc ([appendMaterialScaffold]) through the
+     * batch `> file (` redirection, so Linux/Windows parity is structural.
+     */
+    private fun StringBuilder.appendWindowsMaterialScaffold(platform: InstallerPlatform) {
+        val material = platform.material ?: return
+        appendLine("rem training material requirement (ACADEMY-4)")
+        appendLine("if not exist \"%APP_DIR%\\project\" mkdir \"%APP_DIR%\\project\"")
+        appendLine("> \"%APP_DIR%\\project\\MATERIAL.md\" (")
+        MaterialGuideGenerator.render(material).trimEnd().lines().forEach { appendLine("echo ${escapeCmd(it)}") }
         appendLine(")")
     }
 

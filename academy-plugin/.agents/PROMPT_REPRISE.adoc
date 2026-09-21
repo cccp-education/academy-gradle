@@ -2,75 +2,79 @@
 
 == Mission de la prochaine session
 
-EPIC ACADEMY-8 **TERMINÉ** (S-011). Passer à **ACADEMY-4** —
-MaterialUpdateContract (liaison avec le bureau pour recevoir le matériel
-versionné). Le mécanisme N0 acté (vision § 3.2 / contrat `MaterialUpdateContract`
-+ `MaterialUpdateResolver`) est **git pull** : l'apprenant **tire** des versions,
-le créateur ne pousse pas. Vérifier la source avant de nommer
-(`runtime-contracts` est sur le classpath depuis ACADEMY-7).
+EPIC ACADEMY-4 **TERMINÉ** (S-012) et **academy est publié sur Maven Central**
+(`academy-plugin` + marker `education.cccp.academy` 0.0.1, bundle nmcp
+`5c54af3f-1bfc-405f-950a-1172fff86b7a`).
 
-Ordre suggéré ensuite : ACADEMY-2/3 (FormationRuntimePort / SessionMemoryContract),
-puis ACADEMY-9 (Qualiopi).
+Deux candidats, dans l'ordre suggéré :
 
-== État de l'architecture (session 011)
+1. **ACADEMY-2/3** (chemin des ports N0) — implémenter `FormationRuntimePort`
+   (`startSession`/`executeTurn`/`endSession`) et `SessionMemoryContract`
+   (`LearnerProfile`). C'est le « trou le plus rentable » (VISION § 6 : 14 types
+   publiés, zéro implémenteur). Prérequis : cadrer d'abord (pattern S-057),
+   décider `ToolExposure` (toujours non branché), et trancher la persistance
+   (locale fichier vs PostgreSQL — liens ACADEMY-10/ACADEMY-9).
+2. **ACADEMY-10** (migration du bridge Ktor → Spring Boot WebFlux) — cadré
+   S-012, à ordonnancer sur décision pilote. Non critique MVP0.
 
-- **ACADEMY-1 TERMINÉ** : socle générateur (extension `academyInstaller`,
-  domaine `installer`, 4 tâches).
-- **ACADEMY-6 TERMINÉ (S-008)** : installeur hybride multiplateforme (compose
-  Moodle/PostgreSQL/Ollama/Portainer + seed data-only, hôte = Docker only).
-- **ACADEMY-5 TERMINÉ (S-009)** : exposition agent (`opencode.json`,
-  `AGENTS.md`, service `workspace` profile `agent`, image générée).
-- **ACADEMY-7 TERMINÉ (S-010)** : BYOK multi-provider — domaine `academy.byok`
-  (`ByokProviderSpec`/`ByokProviderCatalog`), `{env:NAME}` jamais la valeur,
-  `.env` nom-seul + compose transmet, `runtime-contracts` N0.
-- **ACADEMY-8 TERMINÉ (S-011)** : bridge Ktor local (décision pilote — Ktor
-  acté).
-  - Domaine pur `education.cccp.academy.bridge` : `MoodleEvent` (schéma
-    **academy**, pas un format Moodle tiers), `BridgeEventTranslator` (→
-    `SessionPrompt` N0, session id **stable**), `BridgeRoutes` (`/health`,
-    `/events/moodle`, `/session`), `BridgeServerConfig`, `BridgeWire`
-    (anti-corruption — les contrats N0 ne sont **pas** `@Serializable`),
-    `ByokBridgeSupport`.
-  - Serveur `WebhookBridgeServer` (`installBridge` module unique test+prod,
-    `startBridge` Netty daemon).
-  - Tâche `serveWebhookBridge` **opt-in** (`bridgeEnabled` défaut `false`,
-    `onlyIf`), extension +3 properties (`bridgeHost` `127.0.0.1`,
-    `bridgePort` `8765`), `AGENTS.md` documente le bridge seulement si activé.
-  - Le bridge **route et acquitte — il ne pense pas** (zéro LLM).
-  - Ktor 3.2.0 + kotlinx-serialization + `opencode-session-contracts` en
-    `implementation`.
-- Gates S-011 : `clean check validatePlugins` VERT **311 unit + 10 functional +
-  21 installer + 5 opencode + 8 byok + 6 bridge**, `publishToMavenLocal` VERT,
-  zéro secret, dogfooding réel (serveur + curl : `/health` 200,
-  `POST /events/moodle` ack, 400/404).
+== État de l'architecture (session 012)
+
+- **ACADEMY-1/6/5/7/8 TERMINÉS** (S-003→S-011) : socle générateur, installeur
+  hybride (Moodle/PostgreSQL/Ollama/Portainer + seed), exposition agent,
+  BYOK multi-provider, bridge Ktor opt-in.
+- **ACADEMY-4 TERMINÉ (S-012)** : consommation du matériel versionné.
+  - Domaine pur `education.cccp.academy.material` (6 fichiers) :
+    `MaterialArtifactType` (SPG/SPD/SLIDES/DOCUMENT/CAPSULE/QUIZ), 
+    `MaterialRequirement` (lecture du N0 `MaterialUpdateContract`),
+    `MaterialManifest` (lecture du pivot **EPIC K** `metadata.json`, tolérante),
+    `MaterialReadiness` (sealed `Ready`/`Incomplete`/`Empty`),
+    `MaterialInspector` (fonction pure → verdict), `MaterialGuideGenerator`.
+  - **Frontière des verbes (D-ACADEMY-4-1)** : le **transport git appartient au
+    bureau** (`BUREAU-3` 🔴 À FAIRE) ; academy **lit** l'exigence et vérifie le
+    matériel. **Zéro git / zéro `ProcessBuilder` dans academy** (grep = 0).
+    Le guide ne cite **jamais** `pullMaterial` (il n'existe pas — S-007/S-011).
+  - Tâche `inspectTrainingMaterial` : n'échoue **que** si une exigence est
+    déclarée (`materialRemoteUrl` **ou** `materialExpectedTypes`) non satisfaite.
+    Sans exigence : rapport `Empty`, succès (la ressource est générée avant le
+    pull) — backward compat.
+  - Extension +4 properties (`materialRemoteUrl`, `materialCurrentVersion`,
+    `materialDir`, `materialExpectedTypes`) ; scaffold `MATERIAL.md` conditionnel
+    sous `$APP_DIR/project/` (parité Linux/Windows par source unique).
+  - **Publication Maven Central** : nmcp 1.5.0 dans
+    `academy-plugin/settings.gradle.kts`, bundle AUTOMATIC, propagation HTTP 200.
+- Gates S-012 : `clean check validatePlugins` VERT **152 unit + 13 functional +
+  21 installer + 5 opencode + 8 byok + 6 bridge + 8 material scénarios**,
+  `publishToMavenLocal` VERT, `nmcpCheckAggregationFiles` VERT, zéro secret.
+- Dogfooding réel : pivots EPIC K réels → READY / outdated / missing / Empty,
+  `sh -n` VALIDE, `grep pullMaterial` = 0.
 
 == Points en attente / ordre de travail suggéré
 
-1. ACADEMY-4 : MaterialUpdateContract (git pull). Cadrer d'abord (pattern S-057).
-2. ACADEMY-2/3 : ports N0 (FormationRuntimePort / SessionMemoryContract).
-3. `ToolExposure` (N0) toujours non consommé (guardrail porté par
+1. ACADEMY-2/3 : cadrer puis implémenter les ports N0 (le plus rentable).
+2. `ToolExposure` (N0) toujours non consommé (guardrail porté par
    `OpenCodeCatalog`) — à brancher en ACADEMY-2.
-4. ACADEMY-9 : Qualiopi (bilan de session, traces, conformité).
-5. Publication Maven Central d'academy : jamais faite — à planifier sur demande.
+3. ACADEMY-9 : Qualiopi (bilan de session, traces) — la persistance
+   PostgreSQL d'ACADEMY-10 le rendrait adressable.
+4. ACADEMY-10 : migration Spring Boot WebFlux (cadré S-012, doc BACKLOG ;
+   référence de code `sources/draft/api`). Prérequis probable : bump BOM
+   workspace vers Spring Boot 4.1.1 (Jackson 3).
+5. Le bridge est désormais **publié** : vérifier au prochain bump que la
+   consommation Central fonctionne (plus besoin de `publishToMavenLocal`).
 
-## Rappel des ordres de mission
+== Rappels des ordres de mission
 
 - BDD/TDD baby-step strict : RED → GREEN → REFACTOR, 1 fichier de test avant le code.
 - Gouvernance d'abord pour toute décision pilote (pattern S-057).
-- Parité cross-plateforme : tout service/contenu transverse est asserté Linux ET
-  Windows — **préférer une source unique partagée plutôt qu'un doublon asserté**.
+- Parité cross-plateforme : source unique partagée > doublon asserté.
 - DAG N2 : academy importable par N3, jamais N3 → academy. Academy ne consomme
-  pas les tâches N1 (le bridge stdin/stdout de codebase n'est **pas** réutilisé —
-  D-ACADEMY-8-1).
-- Zéro secret dans le code. `publishToMavenLocal` obligatoire après toute modification de code source.
+  pas les tâches N1 (bridge codebase stdin/stdout non réutilisé, D-ACADEMY-8-1).
+- Zéro secret. `publishToMavenLocal` obligatoire après modification de source.
 - Code anglais only (OSS cccp-education), docs gouvernance en français.
-- **Dogfooding = preuve réelle** : un test vert ne prouve pas qu'un scaffold
-  s'exécute (S-007 `moodle:4.5`, S-009 install opencode en root, S-010 non-fuite
-  de la clé, S-011 serveur réel + curl).
+- **Dogfooding = preuve réelle** (S-007 `moodle:4.5`, S-009 install root,
+  S-010 non-fuite clé, S-011 serveur+curl, **S-012 exigence par types seuls**).
 - **Ne jamais inventer un nom d'image, de tâche, de provider ou de plugin** :
-  vérifier la source / le registre avant de l'écrire (models.dev + docs opencode
-  pour ACADEMY-7 ; Central pour Ktor 3.2.0 en ACADEMY-8).
-- **Vérifier la source avant de citer un précédent** : la justification
-  « le bridge opencode existe déjà » (vision D4) était fausse (stdin/stdout ≠
-  HTTP) — leçon S-011.
+  vérifier la source avant de l'écrire (S-011 : le bridge codebase est
+  stdin/stdout, pas HTTP).
+- **Un contrat N0 dormant n'a pas d'implémenteur** : vérifier avant de dire
+  « X l'implémente » (S-012 : `pullMaterial` n'existe que dans une KDoc).
 </content>

@@ -197,6 +197,30 @@ val cucumberTestBridge by tasks.registering(Test::class) {
 
 tasks.check { dependsOn(cucumberTestBridge) }
 
+// ── ACADEMY-4-3 — Dedicated Cucumber runner for academy_material.feature (pattern S-082) ──
+// Scoped to AcademyMaterialCucumberRunner so only the material feature runs.
+val cucumberTestMaterial by tasks.registering(Test::class) {
+    group = "verification"
+    description = "Runs the academy_material.feature Cucumber suite (ACADEMY-4-3)"
+    testClassesDirs = sourceSets.getByName("test").output.classesDirs
+    classpath = configurations.getByName("testRuntimeClasspath") +
+        sourceSets.getByName("test").output +
+        sourceSets.getByName("main").output
+    useJUnitPlatform {
+        excludeEngines("junit-jupiter")
+    }
+    filter {
+        includeTestsMatching("education.cccp.academy.bdd.AcademyMaterialCucumberRunner")
+    }
+    systemProperty("cucumber.junit-platform.naming-strategy", "long")
+    systemProperty("cucumber.features", "src/test/resources/features/academy_material.feature")
+    systemProperty("cucumber.filter.tags", "@material and not @wip and not @integration")
+    shouldRunAfter(tasks.named("test"))
+    outputs.upToDateWhen { false }
+}
+
+tasks.check { dependsOn(cucumberTestMaterial) }
+
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     testLogging {

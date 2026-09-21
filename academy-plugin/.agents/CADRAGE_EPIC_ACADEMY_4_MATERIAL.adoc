@@ -1,0 +1,205 @@
+= Cadrage EPIC ACADEMY-4 — Consommation du matériel versionné (MaterialUpdateContract)
+:date: 2026-09-21
+:session: 012
+:epic: ACADEMY-4
+:origine: BACKLOG academy ACADEMY-4 + PROMPT_REPRISE S-011 + VISION_PIPELINE_FORMATION.adoc § 3.2 / § 5.2 / § 6 + VISION_FORMATION_INTERACTIVE.adoc (figeage S-011) + codebase `Metadata`
+:methode: Cadrage (gouvernance pure) — pattern S-057/S-063
+:statut: CADRÉ — arbitrage pilote 2026-09-21 : la frontière est tranchée (voir D-ACADEMY-4-1)
+
+== Contexte
+
+ACADEMY-6/5/7/8 ont livré la **machine d'expérimentation** : installeur
+hybride (Moodle + PostgreSQL + Ollama + Portainer + workspace),
+exposition de l'agent (`opencode.json` + `AGENTS.md` + image générée),
+BYOK multi-provider, et le bridge HTTP local. La ressource existe ; il
+manque la **matière** : comment le matériel pédagogique versionné
+(SPG/SPD/slides/quiz) arrive dans l'espace de l'apprenant, et comment
+academy en **vérifie** la présence.
+
+`PROMPT_REPRISE` S-011 nomme ACADEMY-4 « MaterialUpdateContract — git pull
+des versions » et rappelle la consigne : **vérifier la source avant de
+nommer**. C'est l'objet de ce cadrage : la source révèle que la formulation
+du BACKLOG est **inexacte** et doit être corrigée avant d'écrire une ligne
+de code (leçon S-007/S-011 : un précédent cité de mémoire est faux).
+
+== Constats (audit S-012 — faits vérifiés, jamais supposés)
+
+. *`MaterialUpdateContract` est une data class, pas une interface.*
+   `workspace-bom/runtime-contracts` expose exactement trois types
+   (`contracts/runtime/`) : `MaterialUpdateContract` (`remoteUrl`,
+   `currentVersion`, `latestVersion` — **data class**), `MaterialUpdateResolver`
+   (**interface** : `fetchLatest(remoteUrl): String?`, `pull(remoteUrl,
+   targetVersion): MaterialUpdateResult`) et `MaterialUpdateResult` (sealed
+   `UpToDate`/`Updated`/`Error`). Le BACKLOG academy écrit « *Implémenter
+   l'interface `MaterialUpdateContract`* » (ACADEMY-4-0) : c'est une erreur
+   de type **et** de propriétaire.
+. *Le mécanisme est FIGÉ : git pull, et il appartient au bureau.* La vision
+   § 3.2 tranche sans ambiguïté — « *Bureau **synce** le matériel (transport
+   git → office/). Academy **consomme** pédagogiquement (présentation +
+   assistance). Un seul propriétaire par verbe. `MaterialUpdateContract` reste
+   N0 (partagé, publié) ; **bureau** l'*implémente*, **academy** le *lit*. » Et
+   `VISION_FORMATION_INTERACTIVE.adoc` : « LocalAdapter = exécute `git` en
+   local via ProcessBuilder ». Le transport (ProcessBuilder + `git fetch &&
+   checkout <tag>`) est le verbe du bureau — `bureau-gradle` a `BUREAU-3
+   PullMaterial task` à son backlog. **Academy ne réimplémente pas git.**
+. *Le transport du bureau n'existe PAS encore — et ne doit donc pas être cité
+   comme disponible.* Vérifié S-012 : `bureau-gradle` ne contient que
+   `BureauPlugin`/`BureauExtension`/`BureauPluginTest` ; `pullMaterial` et
+   `createOffice` n'apparaissent que dans la **KDoc** de `BureauPlugin.kt:12-13`
+   et dans le BACKLOG (`BUREAU-2`/`BUREAU-3` = 🔴 À FAIRE). `grep` confirme
+   **zéro** `tasks.register` dans le borough. Le guide academy déclare donc
+   l'**exigence** et le **mécanisme figé** (git pull de la version taguée),
+   **jamais** une commande exécutable inexistante — c'est la leçon S-007
+   (`moodle:4.5`) et S-011 (« vérifier la source avant de citer un précédent »).
+. *`MaterialUpdateResolver` n'a aucun implémenteur aujourd'hui.* `grep`
+   cross-borough : seules deux mentions **documentaires** (`BureauPlugin.kt:13`
+   et le cadrage racine). Le contrat est publié, dormant, zéro code — comme
+   `FormationRuntimePort`. Faire d'academy l'implémenteur du resolver
+   **dupliquerait** le verbe du bureau et contredirait la vision.
+. *Le contrat N0 est déjà sur le classpath* — `runtime-contracts:0.0.1`
+   (Maven Central, JAR inspecté S-012 : `MaterialUpdateContract.class`,
+   `MaterialUpdateResolver.class`, `MaterialUpdateResult{,$UpToDate,$Updated,$Error}.class`)
+   est une dépendance `implementation` d'academy depuis ACADEMY-7
+   (D-ACADEMY-7-1). Zéro bump BOM requis.
+. *Le pivot du matériel existe et est normé — `metadata.json` (EPIC K).*
+   `TAXONOMIE_WORKSPACE.adoc` § Format Pivot : tout borough producteur écrit
+   un `metadata.json` à côté de sa sortie AsciiDoc
+   (`source`, `type`, `sessions`, `generatedAt`, `model`, `version`,
+   `dependencies`). Un lecteur réel existe déjà côté codebase
+   (`codebase.rag.Metadata` — Jackson, `UnknownMetadata` en repli). Le
+   matériel que l'apprenant reçoit **est** ce pivot : academy ne l'invente
+   pas, il le **lit**.
+. *Academy a déjà une vraie sérialisation depuis ACADEMY-8.*
+   `kotlinx-serialization-json` est une dépendance `implementation`
+   (D-ACADEMY-8-3) : lire un `metadata.json` est possible sans nouvelle
+   dépendance — c'est une entrée, non une sortie, donc le rendu par
+   concaténation littérale (D-ACADEMY-5-3/7-4) ne s'applique pas.
+. *Le vocabulaire des livrables est acté.* Vision § 9.1/9.2 : le matériel
+   d'une formation = **SPG**, **SPD**, **slides** (slider), **PDF**
+   (document), **capsules**, **évaluation/quiz**. C'est le vocabulaire
+   `type` du pivot, pas une invention academy.
+. *Alimenter le seed Moodle depuis le matériel n'est pas prêt.* Le seed
+   (ACADEMY-6-5) crée la **coquille** du cours (`INSERT ... WHERE NOT
+   EXISTS` sur `idnumber='academy-seed'`), pas des sections/modules. Énumérer
+   modules et séances depuis le matériel exige le contrat SPG/SPD canonique
+   (VISION_PIPELINE_FORMATION § 5.1), qui est un livrable **MVP0 training**
+   (TRN-PIPE, non fait). Prétendre l'implémenter reproduirait la classe de
+   bug « scaffold inexécutable » (S-007).
+. *La ressource est générée AVANT que le matériel n'existe.* L'installeur
+   tourne à l'installation ; le matériel est tiré ensuite. Une vérification
+   qui échoue sur du matériel absent casserait l'installation. La vérification
+   doit donc être **dégradée par défaut**, stricte sur opt-in (pattern
+   `BridgeGuide` conditionnel, D-ACADEMY-8-9).
+
+== Décisions
+
+|===
+| ID | Décision | US rattachée
+| D-ACADEMY-4-1 | **Frontière des verbes tranchée (corrige le BACKLOG).** *Bureau* possède le transport : il **implémente `MaterialUpdateResolver`** (git pull / `fetch && checkout <tag>` via `ProcessBuilder`, `BUREAU-3`). *Academy* possède la consommation : il **lit `MaterialUpdateContract`** comme **déclaration d'exigence**, vérifie le matériel présent et le documente à l'apprenant. Academy ne réimplémente **jamais** git. Corrige ACADEMY-4-0 (« implémenter l'interface MaterialUpdateContract » — mauvais type, mauvais propriétaire). | 4-0
+| D-ACADEMY-4-2 | **`MaterialUpdateContract` (N0) = l'exigence consommée.** Academy en dérive `MaterialRequirement` (remote + version + types d'artefacts attendus). Zéro nouvelle dépendance : le contrat est sur le classpath depuis ACADEMY-7 (D-ACADEMY-7-1). | 4-1
+| D-ACADEMY-4-3 | **Domaine pur `education.cccp.academy.material`** (`MaterialRequirement`, `MaterialArtifactType`, `MaterialManifest`, `MaterialInspector`, `MaterialReadiness`, `MaterialGuideGenerator`) — zéro type Gradle, zéro git, zéro I/O réseau : une fonction pure de l'exigence + des manifestes vers un verdict. Testable sans Gradle ni dépôt. | 4-1
+| D-ACADEMY-4-4 | **Le pivot lu est `metadata.json` (EPIC K)** — `source`/`type`/`version`/`generatedAt`/`model`/`dependencies`. Academy réutilise le contrat normé, il n'en invente pas un. `ignoreUnknownKeys` : un champ ajouté par un producteur ne casse pas le consommateur (lecture tolérante, patron `Metadata.fromJson` codebase). | 4-1
+| D-ACADEMY-4-5 | **Sérialisation kotlinx pour l'entrée** (déjà présente, ACADEMY-8) : contrairement aux rendus par concaténation, lire un manifeste exige un vrai décodeur. Zéro nouvelle dépendance. | 4-1
+| D-ACADEMY-4-6 | **`MaterialArtifactType` = le vocabulaire des livrables actés** (vision § 9.1/9.2) : `SPG`, `SPD`, `SLIDES`, `DOCUMENT`, `CAPSULE`, `QUIZ` — mappé 1:1 depuis le champ `type` du pivot, casse normalisée. Une valeur inconnue n'est jamais devinée. | 4-1
+| D-ACADEMY-4-7 | **`MaterialReadiness` sealed, verdict pur** : `Ready` (exigence satisfaite), `Incomplete` (types manquants / version divergente), `Empty` (aucun manifeste). L'inspecteur **ne lève jamais** sur du matériel absent — la ressource se génère avant le pull. | 4-1
+| D-ACADEMY-4-8 | **Extension +3 properties** : `materialRemoteUrl` (défaut vide = pas d'exigence déclarée), `materialCurrentVersion` (défaut vide), `materialDir` (défaut `material` du projet consommateur). Backward compat totale : un consommateur existant n'a rien à changer. | 4-2
+| D-ACADEMY-4-9 | **Tâche `inspectTrainingMaterial`** (groupe `academy`) : lit les manifestes du `materialDir`, journalise le verdict, **échoue uniquement si une exigence est déclarée** (`materialRemoteUrl` non vide) et que le matériel n'est pas `Ready`. Sans exigence déclarée : rapport `Empty`, succès — un build ne casse jamais sur du matériel légitimement absent. | 4-2
+| D-ACADEMY-4-10 | **Le scaffold déclare l'exigence, il ne transporte pas.** `$APP_DIR/project/MATERIAL.md` est généré quand `materialRemoteUrl` est renseigné : il énonce le remote, la version attendue et le **mécanisme figé** (`git fetch && git checkout <tag>` de la version, l'apprenant *tire*). Il ne cite **aucune** commande `bureau-gradle` exécutable : `pullMaterial` n'existe pas encore (BUREAU-3 🔴 À FAIRE, vérifié S-012) — le guide documente le mécanisme, pas un binaire absent (leçon S-007/S-011). | 4-2
+| D-ACADEMY-4-11 | **Surface de test academy = parsing + verdict.** Le transport git appartient au bureau et est testé par lui. Academy teste : lecture du pivot, verdict de complétude, version, dégradation, guide. BDD + dogfooding sur un `metadata.json` réel du format EPIC K. | 4-3
+| D-ACADEMY-4-12 | **Alimenter le seed Moodle (BACKLOG 4-2) est DIFFÉRÉ.** Le seed crée la coquille du cours ; énumérer modules/séances exige le contrat SPG/SPD canonique (MVP0 training, non fait). L'implémenter maintenant produirait un scaffold non exécutable (leçon S-007). US reportée au backlog MVP0, documentée, pas oubliée. | —
+|===
+
+== Schéma du matériel lu (pivot EPIC K — D-ACADEMY-4-4)
+
+[source,json]
+----
+{
+  "source": "training",            // borough producteur
+  "type": "SPG",                   // vocabulaire academy (SPG/SPD/SLIDES/DOCUMENT/CAPSULE/QUIZ)
+  "sessions": 7,                   // métrique de production (non lue par le verdict)
+  "generatedAt": "2026-09-21T...", // ISO 8601
+  "model": "gemma4:31b-cloud",     // modèle LLM (si applicable)
+  "version": "1.0",                // version du matériel
+  "dependencies": ["codebase"]     // boroughs amont
+}
+----
+
+Verdict de l'inspecteur :
+
+```
+requirement(remoteUrl, currentVersion, [SPG, SLIDES])
+   + manifests[]
+   ├── manifests vide                       -> Empty
+   ├── type attendu absent                  -> Incomplete(missingTypes)
+   ├── version != currentVersion (si posée) -> Incomplete(outdated)
+   └── sinon                                -> Ready(types)
+```
+
+== Découpage des US
+
+|===
+| US | Livrable | Tests
+| ACADEMY-4-0 | Ce cadrage (`CADRAGE_EPIC_ACADEMY_4_MATERIAL.adoc`) + correction du BACKLOG (frontière des verbes) | zéro code
+| ACADEMY-4-1 | Domaine pur `academy.material` (`MaterialRequirement`, `MaterialArtifactType`, `MaterialManifest`, `MaterialInspector`, `MaterialReadiness`, `MaterialGuideGenerator`) | +~14 unit
+| ACADEMY-4-2 | Extension +3 properties + tâche `inspectTrainingMaterial` + scaffold `MATERIAL.md` (déclaration d'exigence, renvoi bureau) | +unit + functional TestKit
+| ACADEMY-4-3 | BDD `academy_material.feature` `@material` + runner dédié + dogfooding réel (manifeste EPIC K) | BDD + dogfooding
+|===
+
+== Options écartées
+
+- **Implémenter `MaterialUpdateResolver` dans academy** (lire le BACKLOG au
+  pied de la lettre) : duplique le verbe du bureau (`BUREAU-3`), contredit
+  la vision § 3.2 (« bureau l'implémente, academy le lit »), et met du
+  `ProcessBuilder` + git dans un borough qui ne le possède pas. Écartée
+  (D-ACADEMY-4-1).
+- **Une dépendance N0 `OfficeLayoutContract`** : la vision § 8 D1 laisse la
+  question ouverte (N0 partagé ou interne bureau). La trancher ici
+  dépasserait le périmètre ; academy utilise un `materialDir` configurable.
+  Écartée.
+- **Inventer un format de manifeste academy** : le pivot `metadata.json` est
+  normé (EPIC K) et un lecteur réel existe (codebase). Forger un second
+  format reproduirait un split-brain. Écartée (D-ACADEMY-4-4).
+- **Faire échouer la génération sur matériel absent** : la ressource est
+  générée **avant** le pull ; un build casserait à l'installation. Écartée
+  (D-ACADEMY-4-7/4-9).
+- **Alimenter Moodle depuis le matériel maintenant** : exige le contrat
+  SPG/SPD (MVP0 training, non fait) — scaffold non exécutable garanti.
+  Différée (D-ACADEMY-4-12).
+- **Tester le git transport dans academy** : hors périmètre (verbe bureau),
+  et non reproductible sans dépôt réel. Écartée (D-ACADEMY-4-11).
+
+== Articulation des Épics
+
+```
+ACADEMY-6 (installeur + compose + seed) ✅ S-008
+        │
+ACADEMY-5 (exposition agent) ✅ S-009
+        │
+ACADEMY-7 (BYOK multi-provider) ✅ S-010
+        │
+ACADEMY-8 (bridge Ktor : transport HTTP local) ✅ S-011
+        │
+        ▼
+ACADEMY-4 (consommation du matériel versionné :
+           exigence N0 lue + verdict + guide)  ← CETTE SESSION
+        │        ▲
+        │        └── transport git = BUREAU-3 (bureau-gradle, hors academy)
+        │
+        └─▶ ACADEMY-2/3 (FormationRuntimePort / SessionMemoryContract)
+```
+
+== Gates
+
+- `./gradlew clean check validatePlugins` VERT (unit + functional + cucumber
+  dédiés ; les suites ACADEMY-5/6/7/8 restent vertes).
+- `./gradlew publishToMavenLocal` VERT après modification (Regle 2).
+- Zéro secret (grep `TOKEN|SECRET|PASSWORD|API_KEY|sk-|gho_|ghp_` = 0).
+- Backward compat : `materialRemoteUrl` défaut vide → `inspectTrainingMaterial`
+  reste vert (rapport `Empty`), aucun scaffold `MATERIAL.md` généré, sortie
+  des installers inchangée pour un consommateur sans exigence.
+- Dogfooding réel : un `metadata.json` au format EPIC K est lu par le
+  décodeur réel et le verdict est `Ready` — preuve d'exécution, pas seulement
+  un test vert (leçon S-007/S-009/S-011).
+- Zéro `ProcessBuilder`, zéro `git` dans le code academy (grep = 0) : la
+  frontière D-ACADEMY-4-1 est vérifiable mécaniquement.
+</content>

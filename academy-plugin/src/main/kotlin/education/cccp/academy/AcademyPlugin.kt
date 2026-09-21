@@ -25,6 +25,21 @@ class AcademyPlugin : Plugin<Project> {
         wireDefaults(project, extension)
         registerInstallerTasks(project, extension)
         registerBridgeTask(project, extension)
+        registerMaterialTask(project, extension)
+    }
+
+    /**
+     * Registers the material inspection task (ACADEMY-4-2) — read-only, and
+     * never destructive: it verifies what the learner pulled, academy does not
+     * pull himself (the bureau owns the transport, D-ACADEMY-4-1).
+     */
+    private fun registerMaterialTask(project: Project, extension: AcademyInstallerExtension) {
+        project.tasks.register("inspectTrainingMaterial", InspectTrainingMaterialTask::class.java) { task ->
+            task.materialRemoteUrl.set(extension.materialRemoteUrl)
+            task.materialCurrentVersion.set(extension.materialCurrentVersion)
+            task.materialExpectedTypes.set(extension.materialExpectedTypes)
+            task.materialDir.set(extension.materialDir)
+        }
     }
 
     private fun registerBridgeTask(project: Project, extension: AcademyInstallerExtension) {
@@ -54,6 +69,10 @@ class AcademyPlugin : Plugin<Project> {
         extension.bridgeEnabled.convention(false)
         extension.bridgeHost.convention("127.0.0.1")
         extension.bridgePort.convention(8765)
+        extension.materialRemoteUrl.convention("")
+        extension.materialCurrentVersion.convention("")
+        extension.materialDir.convention(project.layout.projectDirectory.dir("material"))
+        extension.materialExpectedTypes.convention(emptyList())
     }
 
     private fun registerInstallerTasks(project: Project, extension: AcademyInstallerExtension) {

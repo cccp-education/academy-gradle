@@ -1,6 +1,7 @@
 package education.cccp.academy.installer
 
 import contracts.runtime.LlmProviderKind
+import education.cccp.academy.material.MaterialRequirement
 import education.cccp.academy.opencode.BridgeGuide
 import education.cccp.academy.opencode.OpenCodeConfig
 
@@ -29,6 +30,9 @@ import education.cccp.academy.opencode.OpenCodeConfig
  * @param bridgeEnabled whether the local webhook bridge is documented (ACADEMY-8)
  * @param bridgeHost bridge bind address documented in the learner guide
  * @param bridgePort bridge bind port documented in the learner guide
+ * @param material declared training material requirement (ACADEMY-4), or null
+ *   when the project consumes no versioned material — the material guide is
+ *   written only when declared (D-ACADEMY-4-10)
  */
 data class InstallerPlatform(
     val os: TargetOs,
@@ -46,6 +50,7 @@ data class InstallerPlatform(
     val bridgeEnabled: Boolean = false,
     val bridgeHost: String = "127.0.0.1",
     val bridgePort: Int = 8765,
+    val material: MaterialRequirement? = null,
 ) {
     init {
         require(applicationName.isNotBlank()) { "applicationName must not be blank" }
