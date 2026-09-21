@@ -2,79 +2,77 @@
 
 == Mission de la prochaine session
 
-EPIC ACADEMY-4 **TERMINÉ** (S-012) et **academy est publié sur Maven Central**
-(`academy-plugin` + marker `education.cccp.academy` 0.0.1, bundle nmcp
-`5c54af3f-1bfc-405f-950a-1172fff86b7a`).
+ACADEMY-11 est **en cours 3/4 US** (S-013). La frontière runtime est
+**tranchée** (arbitrage pilote) : academy **consomme** la formation produite
+par training et **installe le runtime Docker** ; il **injecte de la data
+structurée** AsciiDoc dans Moodle — il **n'implémente pas** la boucle
+`FormationRuntimePort`.
 
 Deux candidats, dans l'ordre suggéré :
 
-1. **ACADEMY-2/3** (chemin des ports N0) — implémenter `FormationRuntimePort`
-   (`startSession`/`executeTurn`/`endSession`) et `SessionMemoryContract`
-   (`LearnerProfile`). C'est le « trou le plus rentable » (VISION § 6 : 14 types
-   publiés, zéro implémenteur). Prérequis : cadrer d'abord (pattern S-057),
-   décider `ToolExposure` (toujours non branché), et trancher la persistance
-   (locale fichier vs PostgreSQL — liens ACADEMY-10/ACADEMY-9).
-2. **ACADEMY-10** (migration du bridge Ktor → Spring Boot WebFlux) — cadré
-   S-012, à ordonnancer sur décision pilote. Non critique MVP0.
+1. **ACADEMY-11-4** — le scaffold compose du service one-shot
+   `moodle-material` (applique `ingest.sh` au premier `compose up`, après le
+   schéma Moodle). **C'est le seul reste d'ACADEMY-11** : le domaine, le
+   wiring et l'applicateur sont livrés et dogfoodés, mais le service n'est pas
+   encore câblé dans `composeBody()` faute de preuve d'exécution complète.
+2. **ACADEMY-9** (Qualiopi : bilan de session, traces) — adressable maintenant
+   que l'ingestion existe.
+3. **ACADEMY-10** (migration Ktor → Spring Boot WebFlux) — cadré S-012, non
+   critique MVP0, sur décision pilote.
 
-== État de l'architecture (session 012)
+== État de l'architecture (session 013)
 
-- **ACADEMY-1/6/5/7/8 TERMINÉS** (S-003→S-011) : socle générateur, installeur
-  hybride (Moodle/PostgreSQL/Ollama/Portainer + seed), exposition agent,
-  BYOK multi-provider, bridge Ktor opt-in.
-- **ACADEMY-4 TERMINÉ (S-012)** : consommation du matériel versionné.
-  - Domaine pur `education.cccp.academy.material` (6 fichiers) :
-    `MaterialArtifactType` (SPG/SPD/SLIDES/DOCUMENT/CAPSULE/QUIZ), 
-    `MaterialRequirement` (lecture du N0 `MaterialUpdateContract`),
-    `MaterialManifest` (lecture du pivot **EPIC K** `metadata.json`, tolérante),
-    `MaterialReadiness` (sealed `Ready`/`Incomplete`/`Empty`),
-    `MaterialInspector` (fonction pure → verdict), `MaterialGuideGenerator`.
-  - **Frontière des verbes (D-ACADEMY-4-1)** : le **transport git appartient au
-    bureau** (`BUREAU-3` 🔴 À FAIRE) ; academy **lit** l'exigence et vérifie le
-    matériel. **Zéro git / zéro `ProcessBuilder` dans academy** (grep = 0).
-    Le guide ne cite **jamais** `pullMaterial` (il n'existe pas — S-007/S-011).
-  - Tâche `inspectTrainingMaterial` : n'échoue **que** si une exigence est
-    déclarée (`materialRemoteUrl` **ou** `materialExpectedTypes`) non satisfaite.
-    Sans exigence : rapport `Empty`, succès (la ressource est générée avant le
-    pull) — backward compat.
-  - Extension +4 properties (`materialRemoteUrl`, `materialCurrentVersion`,
-    `materialDir`, `materialExpectedTypes`) ; scaffold `MATERIAL.md` conditionnel
-    sous `$APP_DIR/project/` (parité Linux/Windows par source unique).
-  - **Publication Maven Central** : nmcp 1.5.0 dans
-    `academy-plugin/settings.gradle.kts`, bundle AUTOMATIC, propagation HTTP 200.
-- Gates S-012 : `clean check validatePlugins` VERT **152 unit + 13 functional +
-  21 installer + 5 opencode + 8 byok + 6 bridge + 8 material scénarios**,
-  `publishToMavenLocal` VERT, `nmcpCheckAggregationFiles` VERT, zéro secret.
-- Dogfooding réel : pivots EPIC K réels → READY / outdated / missing / Empty,
-  `sh -n` VALIDE, `grep pullMaterial` = 0.
+- **ACADEMY-1/6/5/7/8/4 TERMINÉS** (S-003→S-012) : socle générateur, installeur
+  hybride, exposition agent, BYOK, bridge Ktor, consommation du matériel.
+- **ACADEMY-11 3/4 US (S-013)** : injection du matériel dans Moodle.
+  - Domaine pur `education.cccp.academy.moodle` (6 fichiers) :
+    `MoodleActivityType` + `MoodleActivityMapping` (vocabulaire Moodle **réel**
+    `label`/`page`/`quiz`/`resource`/`url`), `MoodleMaterial` (structure +
+    pivot, **path-only**), `MoodleActivity`/`MoodleSection`, `MoodleImportPlan`,
+    `MoodlePlanBuilder` (pur), `MoodleIngestionScriptGenerator`.
+  - **Découverte décisive** : l'image `erseco/alpine-moodle:v5.2.3` embarque des
+    **outils natifs** — `moodle-blueprint` (format Moodle Playground, appliqué
+    auto au boot via `MOODLE_BLUEPRINT` ; `createSection`/`addModule` =
+    PLANNED) et **`moosh`** (Moodle Shell : `course-create -r` idempotent,
+    `activity-add`, `section-config-set`). L'applicateur **pilote ces outils** :
+    **zéro PHP maison, zéro SQL, zéro DDL**.
+  - **Boundary § 3.3 respecté** : academy ne parse pas le `.adoc` (payload
+    opaque référencé par chemin, lu Moodle-side par `cat`).
+  - Tâche `generateMoodleImport` (opt-in `moodleImportEnabled` défaut `false`,
+    dégradé : matériel vide → rien écrit, installer byte-identique) →
+    `build/academy/moodle/{plan.json,ingest.sh}`.
+  - **Dogfooding réel Moodle 5.2.3 + PostgreSQL 16** : cours `formation-fpa`,
+    sections, activités `label`/`quiz`/`page` réellement injectés ;
+    **3 bugs réels attrapés** (double-quote du shortname, mauvais champ awk du
+    CSV `course-list`, `--intro` vs `--content` selon le type).
+- **ToolExposure (N0) branché** (ex-TODO S-012) : `OpenCodeCatalog.exposure()`
+  lit `contracts.runtime.ToolExposure` ; le guide dérive le guardrail du contrat.
+- Gates S-013 : `clean check validatePlugins` VERT **183 unit + 13 functional +
+  59 scénarios Cucumber** (21 installer + 6 opencode + 8 byok + 6 bridge +
+  8 material + 10 moodle), 0 FAIL ; `publishToMavenLocal` VERT ; zéro secret.
 
 == Points en attente / ordre de travail suggéré
 
-1. ACADEMY-2/3 : cadrer puis implémenter les ports N0 (le plus rentable).
-2. `ToolExposure` (N0) toujours non consommé (guardrail porté par
-   `OpenCodeCatalog`) — à brancher en ACADEMY-2.
-3. ACADEMY-9 : Qualiopi (bilan de session, traces) — la persistance
-   PostgreSQL d'ACADEMY-10 le rendrait adressable.
-4. ACADEMY-10 : migration Spring Boot WebFlux (cadré S-012, doc BACKLOG ;
-   référence de code `sources/draft/api`). Prérequis probable : bump BOM
-   workspace vers Spring Boot 4.1.1 (Jackson 3).
-5. Le bridge est désormais **publié** : vérifier au prochain bump que la
-   consommation Central fonctionne (plus besoin de `publishToMavenLocal`).
+1. ACADEMY-11-4 : câbler le service `moodle-material` dans `composeBody()` +
+   2 scénarios BDD + dogfooding `compose up`. Ne pas livrer sans preuve.
+2. **ACADEMY-2/3 : CLOS côté academy** (D-ACADEMY-11-1) — la boucle runtime
+   appartient à l'étage privé (workspace-gradle/edster). Le TODO « zéro
+   implémenteur » est **périmé** pour `SessionMemoryContract`
+   (`PgVectorSessionMemory`, codex S-094).
+3. ACADEMY-9 : Qualiopi (traces de consommation) — distinct de l'ingestion.
+4. ACADEMY-10 : migration Spring Boot WebFlux (cadré S-012).
 
 == Rappels des ordres de mission
 
 - BDD/TDD baby-step strict : RED → GREEN → REFACTOR, 1 fichier de test avant le code.
 - Gouvernance d'abord pour toute décision pilote (pattern S-057).
+- **L'image est préconstruite avec ses outils natifs** : ne jamais construire
+  une stack (ni PHP maison, ni SQL direct) — vérifier l'image avant de coder.
 - Parité cross-plateforme : source unique partagée > doublon asserté.
-- DAG N2 : academy importable par N3, jamais N3 → academy. Academy ne consomme
-  pas les tâches N1 (bridge codebase stdin/stdout non réutilisé, D-ACADEMY-8-1).
+- DAG N2 : academy importable par N3, jamais N3 → academy.
 - Zéro secret. `publishToMavenLocal` obligatoire après modification de source.
 - Code anglais only (OSS cccp-education), docs gouvernance en français.
-- **Dogfooding = preuve réelle** (S-007 `moodle:4.5`, S-009 install root,
-  S-010 non-fuite clé, S-011 serveur+curl, **S-012 exigence par types seuls**).
-- **Ne jamais inventer un nom d'image, de tâche, de provider ou de plugin** :
-  vérifier la source avant de l'écrire (S-011 : le bridge codebase est
-  stdin/stdout, pas HTTP).
-- **Un contrat N0 dormant n'a pas d'implémenteur** : vérifier avant de dire
-  « X l'implémente » (S-012 : `pullMaterial` n'existe que dans une KDoc).
-</content>
+- **Dogfooding = preuve réelle** (leçon récurrente S-007/S-012/S-013).
+- **Ne jamais inventer** un nom d'image, de tâche, de provider, de fonction ou
+  de champ CSV : vérifier la source (S-007 `moodle:4.5`, S-013 le CSV de
+  `moosh course-list`).

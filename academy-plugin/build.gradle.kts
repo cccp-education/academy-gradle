@@ -221,6 +221,30 @@ val cucumberTestMaterial by tasks.registering(Test::class) {
 
 tasks.check { dependsOn(cucumberTestMaterial) }
 
+// ── ACADEMY-11-3 — Dedicated Cucumber runner for academy_moodle.feature (pattern S-082) ──
+// Scoped to AcademyMoodleCucumberRunner so only the moodle feature runs.
+val cucumberTestMoodle by tasks.registering(Test::class) {
+    group = "verification"
+    description = "Runs the academy_moodle.feature Cucumber suite (ACADEMY-11-3)"
+    testClassesDirs = sourceSets.getByName("test").output.classesDirs
+    classpath = configurations.getByName("testRuntimeClasspath") +
+        sourceSets.getByName("test").output +
+        sourceSets.getByName("main").output
+    useJUnitPlatform {
+        excludeEngines("junit-jupiter")
+    }
+    filter {
+        includeTestsMatching("education.cccp.academy.bdd.AcademyMoodleCucumberRunner")
+    }
+    systemProperty("cucumber.junit-platform.naming-strategy", "long")
+    systemProperty("cucumber.features", "src/test/resources/features/academy_moodle.feature")
+    systemProperty("cucumber.filter.tags", "@moodle and not @wip and not @integration")
+    shouldRunAfter(tasks.named("test"))
+    outputs.upToDateWhen { false }
+}
+
+tasks.check { dependsOn(cucumberTestMoodle) }
+
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     testLogging {

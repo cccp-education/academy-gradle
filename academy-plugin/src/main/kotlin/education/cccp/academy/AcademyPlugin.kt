@@ -26,6 +26,26 @@ class AcademyPlugin : Plugin<Project> {
         registerInstallerTasks(project, extension)
         registerBridgeTask(project, extension)
         registerMaterialTask(project, extension)
+        registerMoodleImportTask(project, extension)
+    }
+
+    /**
+     * Registers the Moodle material injection task (ACADEMY-11-2) — opt-in and
+     * degraded: without material it writes nothing (D-ACADEMY-11-6). The task
+     * only *generates* the plan and the generic CLI script; the one-shot
+     * `moodle-material` service applies them after Moodle created its schema.
+     */
+    private fun registerMoodleImportTask(project: Project, extension: AcademyInstallerExtension) {
+        project.tasks.register("generateMoodleImport", GenerateMoodleImportTask::class.java) { task ->
+            task.group = "academy"
+            task.description = "Generates the Moodle material injection plan + generic CLI script (ACADEMY-11)"
+            task.moodleImportEnabled.set(extension.moodleImportEnabled)
+            task.materialDir.set(extension.moodleMaterialDir)
+            task.courseShortName.set(extension.moodleCourseShortName)
+            task.courseFullName.set(extension.moodleCourseFullName)
+            task.outputDir.set(project.layout.buildDirectory.dir("academy/moodle"))
+            task.onlyIf { extension.moodleImportEnabled.get() }
+        }
     }
 
     /**
@@ -73,6 +93,10 @@ class AcademyPlugin : Plugin<Project> {
         extension.materialCurrentVersion.convention("")
         extension.materialDir.convention(project.layout.projectDirectory.dir("material"))
         extension.materialExpectedTypes.convention(emptyList())
+        extension.moodleImportEnabled.convention(false)
+        extension.moodleMaterialDir.convention(project.layout.projectDirectory.dir("material"))
+        extension.moodleCourseShortName.convention("academy-seed")
+        extension.moodleCourseFullName.convention("Academy - Experimentation Track")
     }
 
     private fun registerInstallerTasks(project: Project, extension: AcademyInstallerExtension) {

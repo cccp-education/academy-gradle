@@ -66,8 +66,8 @@ object LearnerGuideGenerator {
             |
             |## Exposed ecosystem tasks
             |
-            |Only the public boroughs (`foundry/public`) are invocable. The
-            |private boroughs — `training`, `edster`, `workspace`, `waiter`,
+            |Only the public boroughs (`${OpenCodeCatalog.exposure().publicBoroughsRoot}`) are
+            |invocable. The private boroughs — `training`, `edster`, `workspace`, `waiter`,
             |`quizz` — are never exposed to the learner.
             |
             |$taskInventory

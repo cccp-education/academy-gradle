@@ -1,0 +1,180 @@
+= Session 013 — ACADEMY-11 (injection du matériel dans Moodle) + frontière runtime actée + ToolExposure
+
+:date: 2026-09-21
+:session: 013
+:epic: ACADEMY-11
+:us: ACADEMY-11-0 (cadrage) + ACADEMY-11-1 (domaine) + ACADEMY-11-2 (wiring) + ACADEMY-11-3 (BDD + dogfooding) + ToolExposure (TODO S-012)
+:methode: Baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR) — 3 niveaux unit/functional/cucumber
+
+== Mission
+
+Le `PROMPT_REPRISE` S-012 proposait ACADEMY-2/3 (ports N0) ou ACADEMY-10
+(migration Spring Boot). L'arbitrage pilote du 2026-09-21 **recadre** :
+
+[quote]
+____
+« academy aide à **consommer la formation** qui est générée par training et
+**installe le runtime nécessaire au travers de Docker** pour le client qui
+achète l'archive de la formation. »
+« Je n'injecte pas de l'implémentation mais j'injecte de la **data
+structurée** pour être consommée en AsciiDoc et **intégrée dans Moodle**. »
+____
+
+Puis, en cours de session : « on s'appuie sur l'**image préconstruite** et ses
+**outils natifs** » (pas de stack à construire).
+
+== Constats (audit S-013 — faits vérifiés, jamais supposés)
+
+. *La frontière `FormationRuntimePort` exclut academy.* Trois sources
+   convergent (`VISION_FORMATION_INTERACTIVE` § D3 + itération 9, KDoc
+   `BureauPlugin.kt:24`, règle licence 3 étages) : l'implémentation de la
+   boucle agentique appartient à l'étage **privé** (workspace-gradle/edster).
+   `VISION_PIPELINE_FORMATION` § 6 (« academy = implémenteur ») est contredit
+   par ces trois sources. L'arbitrage pilote tranche : academy **consomme**,
+   ne pense pas. Corrige `VISION_PIPELINE_FORMATION` et clôt ACADEMY-2/3 côté
+   boucle.
+. *`SessionMemoryContract` a DÉJÀ un implémenteur — le TODO est périmé.*
+   `codex-plugin/src/main/kotlin/codex/profile/PgVectorSessionMemory.kt:37`
+   l'implémente depuis S-094 (EPIC CDX-RC-04, pgvector + ONNX + tâche
+   `persistLearnerProfile`). Le VISION § 6 était vrai à l'écriture, plus
+   aujourd'hui.
+. *`ToolExposure` (N0) est un contrat orphelin.* Présent dans le JAR publié
+   `runtime-contracts:0.0.1` (`contracts/runtime/ToolExposure.class`) et sur
+   le classpath depuis ACADEMY-7 ; seule mention prod academy = une KDoc
+   (`OpenCodePlugin.kt:9`). Le guardrail `foundry/public` vit dans trois
+   endroits (commentaire, prose du guide, test) → drift possible.
+. *L'IMAGE EMBARQUE DES OUTILS NATIFS (découverte décisive).* Audit de
+   `erseco/alpine-moodle:v5.2.3` (Moodle 5.2.3) :
+   +
+   [cols="2,4,2", options="header"]
+   |===
+   | Outil | Chemin réel vérifié | Capacité
+   | `moodle-blueprint` | `/usr/local/bin/moodle-blueprint` (+ `/usr/local/lib/moodle-blueprint/`) | `blueprint.json` **format Moodle Playground**, appliqué **auto au boot** via `MOODLE_BLUEPRINT`. Étapes implémentées : `createCategory`, `createCourse`, `createUser(s)`, `enrolUser`, `setConfig`, `installMoodlePlugin`, `installTheme`, `setTheme`. `createSection`/`addModule` = **PLANNED** (non implémentées).
+   | `moosh` | `/usr/local/bin/moosh` (+ `/opt/moosh/`) | Moodle Shell CLI : `course-create` (`-f -F -r` idempotent), `activity-add` (`-n -s <type> <courseid>`), `section-config-set` (`-s <n> course <id> name <v>`), `label-create`, `course-restore`.
+   |===
+. *Le format `.mbz` est un binaire opaque.* Le fabriquer à la main
+   reproduirait la classe de bug S-007/S-012. Le mécanisme robuste est
+   l'outil natif de l'image (ou la restauration d'un `.mbz` réel).
+. *Le boundary § 3.3 interdit à academy de parser le `.adoc`.* L'ingestion
+   traite donc le fichier comme un **payload opaque** référencé par chemin,
+   lu Moodle-side (`cat`) par l'applicateur.
+. *La structure du matériel est portée par le filesystem* (convention
+   `FormationMetadataExtractor` : dossier = module, préfixe = ordre) et le
+   **pivot EPIC K** `metadata.json` — déjà lu par `academy.material` (S-012).
+
+== Décisions (cadrage `CADRAGE_EPIC_ACADEMY_11_MOODLE.adoc`, D-ACADEMY-11-1..10)
+
+Structurantes : frontière actée (academy ne porte pas la boucle runtime) ;
+**le mécanisme d'ingestion pilote les outils NATIFS de l'image** (jamais un
+`.mbz` forgé, jamais une stack PHP maison), zéro SQL/DDL ; domaine pur
+`academy.moodle` ; academy **ne parse pas** le contenu AsciiDoc (payload
+opaque) ; application par service one-shot (pattern `moodle-seed`,
+ACADEMY-6-5) ; **dégradé par défaut** (sans matériel : rien généré, installer
+byte-identique) ; mapping type→activité acté (`SPG`→label, `SPD`→page,
+`QUIZ`→quiz, `DOCUMENT`→resource, `SLIDES`/`CAPSULE`→url) ; un type inconnu est
+**ignoré, jamais deviné** ; extension +4 properties (opt-in) ; plan = contrat
+stable, applicateur = générique ; Qualiopi (ACADEMY-9) reste distinct.
+
+== RED (prouvé)
+
+* `OpenCodeCatalogExposureTest` → `Unresolved reference 'exposure'/'PUBLIC_BOROUGHS_ROOT'` (6 erreurs).
+* `MoodleActivityTypeTest` + `MoodlePlanBuilderTest` → `Unresolved reference 'MoodleMaterial'/'MoodlePlanBuilder'/'MoodleActivityType'` (compilateur Kotlin = RED statique).
+* `MoodleIngestionScriptGeneratorTest` → `Unresolved reference 'MoodleIngestionScriptGenerator'`.
+* `GenerateMoodleImportTaskTest` → `Unresolved reference 'GenerateMoodleImportTask'/'moodleImportEnabled'/'moodleCourseShortName'`.
+
+== GREEN
+
+* **ToolExposure** — `OpenCodeCatalog.PUBLIC_BOROUGHS_ROOT` + `exposure()` (lit
+  le contrat N0 `contracts.runtime.ToolExposure`) ; `LearnerGuideGenerator`
+  dérive le guardrail du contrat (source unique, fin du triple énoncé).
+* **Domaine pur `education.cccp.academy.moodle`** (5 fichiers) :
+  `MoodleActivityType` + `MoodleActivityMapping` (vocabulaire Moodle réel),
+  `MoodleMaterial` (structure + pivot, path-only), `MoodleActivity`/`MoodleSection`,
+  `MoodleImportPlan` (`isEmpty`/`activityCount`), `MoodlePlanBuilder` (pur),
+  `MoodleIngestionScriptGenerator` (`renderPlanJson` + `renderApplicator`).
+* **Wiring** — extension +4 properties (`moodleImportEnabled` défaut `false`,
+  `moodleMaterialDir`, `moodleCourseShortName` `academy-seed`,
+  `moodleCourseFullName`), tâche `generateMoodleImport` (thin-wrapper, `onlyIf`
+  opt-in, `@InputDirectory @Optional` tolérante), scaffold `plan.json` +
+  `ingest.sh`, runner `cucumberTestMoodle` (pattern S-082).
+* **Applicateur** : pilote `moosh` (création de cours idempotente `-r`,
+  sections, activités), **zéro PHP maison, zéro SQL, zéro DDL** ; contenu lu
+  Moodle-side (`cat "$SRC"`).
+
+== Dogfooding (preuve réelle — leçons S-007/S-012)
+
+Deux runs réels de Moodle 5.2.3 + PostgreSQL 16 via l'image préconstruite :
+
+. **Test des outils natifs** : `moosh course-create -f ... -r` → cours créé
+   puis **« exists. Skipping »** (idempotence prouvée) ; `section-config-set -s`
+   → nom de section posé ; `activity-add -n -s <type> <id>` → `label`/`page`/`quiz`
+   créés (vérifiés en base `mdl_course_modules`).
+. **Dogfooding bout-en-bout du script GÉNÉRÉ** : consommateur transitoire
+   `/tmp` (pattern Règle 2) + `publishToMavenLocal`, `generateMoodleImport` →
+   `plan.json` + `ingest.sh`, puis application **réelle** du script dans un
+   Moodle installé → cours `formation-fpa`, sections `01_accueil`/`02_coeur`,
+   activités `forum`/`label`/`quiz`/`page`/`page`, contenu de page réel.
+
+**Trois bugs réels attrapés par le dogfooding** (aucun couvert par un test vert) :
+
+. `SHORTNAME=""formation-fpa""` — double guillemet (le `shellQuote` ajoutait
+   déjà les quotes) → shell invalide. Correctif + test de régression
+   `the applicator declares the course identity exactly once-quoted`.
+. `awk -F'"' '$4==s'` — mauvais champ du CSV `moosh course-list` (le shortname
+   est en position 3, CSV `"id","category","shortname",...`) → `could not
+   resolve course`. Correctif `awk -F'","' '$3==s'`.
+. `label` attend `--intro`, `page` attend `--content --contentformat` — mon
+   premier rendu posait `--intro` sur les deux. Correctif + test
+   `the applicator fills the right body field per activity type`.
+
+== Gates
+
+* `./gradlew clean check validatePlugins` → **BUILD SUCCESSFUL** 1m24s
+  — **183 unit + 13 functional + 59 scénarios Cucumber**
+  (21 installer + 6 opencode + 8 byok + 6 bridge + 8 material + **10 moodle**),
+  **0 FAIL**.
+* `./gradlew publishToMavenLocal` → **BUILD SUCCESSFUL** (Règle 2).
+* Zéro secret (grep `sk-|ghp_|gho_|AIza|Bearer` = 0 hors chaînes de test de
+  détection de fuite) ; zéro `ProcessBuilder`/git dans le code prod.
+* Backward compat : sans `moodleImportEnabled` ou sans matériel, le plan est
+  vide et **rien** n'est écrit (D-ACADEMY-11-6, prouvé TestKit + unit).
+* Dogfooding réel Moodle bout-en-bout (voir § précédente) + `sh -n ingest.sh`
+  VALIDE.
+
+== Fichiers modifiés
+
+[cols="2,3", options="header"]
+|===
+| Fichier | Nature
+| `src/main/kotlin/.../moodle/{MoodleActivityType,MoodleMaterial,MoodleActivity,MoodleImportPlan,MoodlePlanBuilder,MoodleIngestionScriptGenerator}.kt` | prod — domaine pur `academy.moodle` (6 fichiers, NOUVEAU)
+| `src/main/kotlin/.../GenerateMoodleImportTask.kt` | prod — tâche thin-wrapper (NOUVEAU)
+| `src/main/kotlin/.../AcademyInstallerExtension.kt` | prod — +4 propriétés moodle
+| `src/main/kotlin/.../AcademyPlugin.kt` | prod — registration `generateMoodleImport` + défauts
+| `src/main/kotlin/.../opencode/OpenCodeCatalog.kt` | prod — `PUBLIC_BOROUGHS_ROOT` + `exposure()` (ToolExposure N0)
+| `src/main/kotlin/.../opencode/LearnerGuideGenerator.kt` | prod — guardrail dérivé du contrat
+| `build.gradle.kts` | build — runner `cucumberTestMoodle` (pattern S-082)
+| `src/test/kotlin/.../moodle/{MoodleActivityType,MoodlePlanBuilder,MoodleIngestionScriptGenerator}Test.kt` | tests — 20 unit (NOUVEAU)
+| `src/test/kotlin/.../GenerateMoodleImportTaskTest.kt` | tests — 7 unit (NOUVEAU)
+| `src/test/kotlin/.../opencode/OpenCodeCatalogExposureTest.kt` | tests — 4 unit (NOUVEAU)
+| `src/test/resources/features/academy_moodle.feature` + `AcademyMoodleCucumberRunner.kt` + `AcademyMoodleSteps.kt` | BDD — 10 scénarios `@moodle` (NOUVEAU)
+| `src/test/resources/features/academy_opencode.feature` + `AcademyOpenCodeSteps.kt` | BDD — +1 scénario guardrail
+| `.agents/CADRAGE_EPIC_ACADEMY_11_MOODLE.adoc` | gouvernance — cadrage (NOUVEAU)
+|===
+
+== Note de clôture — méthode
+
+La règle du **delta source** a été appliquée : le build compilait à l'ouverture,
+aucune suite rejouée « pour confirmer ». Le RED a été prouvé par échec de
+compilation à chaque palier. **Le dogfooding a payé une troisième fois**
+(S-007 `moodle:4.5`, S-012 `hasRequirement()`, S-013 les trois bugs de
+l'applicateur) — et surtout il a **pivoté le design** : la découverte des
+outils natifs de l'image (`moosh`, `moodle-blueprint`) a fait abandonner un
+script PHP maison qui réimplémentait l'API Moodle (une stack) au profit de
+l'appel aux outils préconstruits. Une session de moins aurait livré la mauvaise
+architecture.
+
+_Reste ouvert_ : le scaffold compose du service one-shot `moodle-material`
+(qui applique `ingest.sh` au premier `compose up`) n'est **pas** livré — il
+exige une preuve d'exécution complète `compose up` que cette session n'a pas
+produite ; il est documenté comme US suivante plutôt que livré non prouvé
+(leçon S-007).

@@ -1,5 +1,7 @@
 package education.cccp.academy.opencode
 
+import contracts.runtime.ToolExposure
+
 /**
  * The curated catalog of public ecosystem plugins exposed to the learner
  * (ACADEMY-5-1) — the single source of truth consumed by
@@ -9,8 +11,31 @@ package education.cccp.academy.opencode
  * invented — cf. the S-007 `moodle:4.5` lesson (a plausible-but-inexistent
  * reference that passed tests). Only `foundry/public` boroughs are listed:
  * the guardrail is physical, `foundry/private` never appears here.
+ *
+ * Since ACADEMY-11 the guardrail is also a **contract**, not a comment: see
+ * [exposure], which reads the N0 `ToolExposure` the runtime declares.
  */
 object OpenCodeCatalog {
+
+    /**
+     * The physical boundary the guardrail rests on — the single literal from
+     * which [exposure] is built. `foundry/private` is the complementary
+     * signal: a private borough can never satisfy this root.
+     */
+    const val PUBLIC_BOROUGHS_ROOT: String = "foundry/public"
+
+    /**
+     * The guardrail as the N0 `contracts.runtime.ToolExposure` contract
+     * (ACADEMY-11) — the rule was documented in a KDoc and restated as prose by
+     * [LearnerGuideGenerator], which is exactly the drift the shared contract
+     * exists to prevent. Academy is the contract's consumer; the actual
+     * enforcement lives in the private runtime (pilot N4).
+     *
+     * @param publicBoroughsRoot the public boundary, overridable for a caller
+     *   that relocates the workspace (defaults to [PUBLIC_BOROUGHS_ROOT]).
+     */
+    fun exposure(publicBoroughsRoot: String = PUBLIC_BOROUGHS_ROOT): ToolExposure =
+        ToolExposure(publicBoroughsRoot = publicBoroughsRoot)
 
     /** Public ecosystem plugins with their formation entry points, in chain order. */
     val plugins: List<OpenCodePlugin> = listOf(

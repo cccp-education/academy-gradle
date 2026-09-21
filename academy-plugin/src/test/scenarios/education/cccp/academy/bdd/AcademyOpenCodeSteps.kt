@@ -1,6 +1,7 @@
 package education.cccp.academy.bdd
 
 import education.cccp.academy.opencode.LearnerGuideGenerator
+import education.cccp.academy.opencode.OpenCodeCatalog
 import education.cccp.academy.opencode.OpenCodeConfig
 import education.cccp.academy.opencode.OpenCodeConfigGenerator
 import education.cccp.academy.opencode.WorkspaceDockerfileGenerator
@@ -20,6 +21,7 @@ class AcademyOpenCodeSteps : En {
     private var json: String = ""
     private var guide: String = ""
     private var dockerfile: String = ""
+    private var exposureRoot: String = ""
 
     init {
         Given("an opencode config with provider url {string}") { url: String -> providerUrl = url }
@@ -63,6 +65,14 @@ class AcademyOpenCodeSteps : En {
 
         Then("the dockerfile contains {string}") { fragment: String ->
             assertThat(dockerfile).contains(fragment)
+        }
+
+        When("the exposure guardrail contract is read") {
+            exposureRoot = OpenCodeCatalog.exposure().publicBoroughsRoot
+        }
+
+        Then("the exposure guardrail names the public root {string}") { root: String ->
+            assertThat(exposureRoot).isEqualTo(root)
         }
     }
 

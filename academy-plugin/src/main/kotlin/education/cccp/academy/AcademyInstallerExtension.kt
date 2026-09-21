@@ -128,4 +128,28 @@ abstract class AcademyInstallerExtension {
      * deliverable vocabulary (SPG, SPD, SLIDES, DOCUMENT, CAPSULE, QUIZ).
      */
     abstract val materialExpectedTypes: ListProperty<MaterialArtifactType>
+
+    /**
+     * Whether the material present in [moodleMaterialDir] is injected into the
+     * Moodle course (ACADEMY-11, D-ACADEMY-11-8). Defaults to `false`: the
+     * installation is byte-identical unless the learner opts in, and an empty
+     * material directory produces nothing (D-ACADEMY-11-6).
+     */
+    abstract val moodleImportEnabled: Property<Boolean>
+
+    /**
+     * Directory holding the pulled material to inject (ACADEMY-11) — defaults
+     * to the same `material` directory the inspection reads (ACADEMY-4).
+     */
+    abstract val moodleMaterialDir: DirectoryProperty
+
+    /**
+     * Shortname of the Moodle course the material is injected into (ACADEMY-11).
+     * It is the idempotency key: re-running resolves the existing course instead
+     * of creating a duplicate. Defaults to the seeded course `academy-seed`.
+     */
+    abstract val moodleCourseShortName: Property<String>
+
+    /** Human-readable full name of the target course (ACADEMY-11). */
+    abstract val moodleCourseFullName: Property<String>
 }

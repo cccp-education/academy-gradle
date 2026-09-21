@@ -6,10 +6,10 @@ _Regles absolues_ : voir `AGENT.adoc`
 _DAG_ : N2 — Plugin Gradle de consommation (Regle 4bis)
 _Projet_ : academy-gradle (education.cccp.academy)
 
-_Derniere mise a jour_ : 2026-09-21 (session 012)
-_Session terminee_ : 012 — ACADEMY-4 TERMINÉ : consommation du matériel versionné — domaine pur `academy.material` (`MaterialArtifactType` 6 livrables, `MaterialRequirement` = lecture du N0 `MaterialUpdateContract`, `MaterialManifest` = lecture du pivot EPIC K `metadata.json` tolérante, `MaterialReadiness` sealed, `MaterialInspector` verdict pur, `MaterialGuideGenerator`) + tâche `inspectTrainingMaterial` (n'échoue que si exigence déclarée) + extension +4 properties + scaffold `MATERIAL.md` conditionnel (parité Linux/Windows) ; **frontière des verbes corrigée** (transport git = bureau BUREAU-3, academy lit — zéro git/ProcessBuilder) ; dogfooding réel pivots EPIC K (READY/outdated/missing/Empty) ; **publication Maven Central** academy-plugin + marker 0.0.1 (bundle nmcp `5c54af3f-1bfc-405f-950a-1172fff86b7a`, propagation HTTP 200) ; **EPIC ACADEMY-10 cadré** (migration Ktor → Spring Boot WebFlux + coroutines + R2DBC + PostgreSQL + Jackson 3)
-_Sessions precedent_ : 011 — ACADEMY-8 TERMINÉ (bridge Ktor) ; 010 — ACADEMY-7 TERMINÉ (BYOK multi-provider, `academy.byok`, `{env:NAME}`, `runtime-contracts` N0) ; 009 — ACADEMY-5 TERMINÉ (exposition agent, 6 fichiers, 11 plugins catalogués, service `workspace`) ; 008 — ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ ; 007 — ACADEMY-6-6 TERMINÉ (dogfooding bout-en-bout) ; 006 — ACADEMY-6-5 TERMINÉ (seed DB data-only) ; 005 — ACADEMY-6-4 TERMINÉ (compose complet) ; 004 — Révisions pilote du scaffold compose ; 003 — Socle générateur (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation ; 001 — Alignement article 0124 ; 000 — Bootstrap
-_Prochaine session_ : ACADEMY-2/3 (ports N0 `FormationRuntimePort`/`SessionMemoryContract`) — puis ACADEMY-9 (Qualiopi) et ACADEMY-10 (migration Spring Boot WebFlux).
+_Derniere mise a jour_ : 2026-09-21 (session 013)
+_Session terminee_ : 013 — ACADEMY-11 3/4 US : **injection du matériel pédagogique dans Moodle** — domaine pur `academy.moodle` (`MoodleActivityType`/`MoodleActivityMapping` vocabulaire Moodle réel, `MoodleMaterial` structure+pivot path-only, `MoodleActivity`/`MoodleSection`, `MoodleImportPlan`, `MoodlePlanBuilder`, `MoodleIngestionScriptGenerator`) + tâche `generateMoodleImport` (opt-in, dégradée) + extension +4 properties ; **découverte décisive** : l'image `erseco/alpine-moodle:v5.2.3` embarque des **outils natifs** (`moosh`, `moodle-blueprint`) → l'applicateur les **pilote** (zéro PHP maison, zéro SQL/DDL, zéro stack) ; boundary § 3.3 respecté (le `.adoc` est un payload opaque lu Moodle-side) ; **dogfooding réel Moodle 5.2.3 + PostgreSQL 16** (cours/sections/activités injectés, 3 bugs réels attrapés) ; **ToolExposure (N0) branché** (`OpenCodeCatalog.exposure()`) ; **frontière runtime actée** (academy ne porte pas la boucle `FormationRuntimePort` — D-ACADEMY-11-1) ; **EPIC ACADEMY-11-4 (service compose) reste à faire**
+_Sessions precedent_ : 012 — ACADEMY-4 TERMINÉ + publication Maven Central 0.0.1 ; 011 — ACADEMY-8 TERMINÉ (bridge Ktor) ; 010 — ACADEMY-7 TERMINÉ (BYOK multi-provider, `academy.byok`, `{env:NAME}`, `runtime-contracts` N0) ; 009 — ACADEMY-5 TERMINÉ (exposition agent, 6 fichiers, 11 plugins catalogués, service `workspace`) ; 008 — ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ ; 007 — ACADEMY-6-6 TERMINÉ (dogfooding bout-en-bout) ; 006 — ACADEMY-6-5 TERMINÉ (seed DB data-only) ; 005 — ACADEMY-6-4 TERMINÉ (compose complet) ; 004 — Révisions pilote du scaffold compose ; 003 — Socle générateur (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation ; 001 — Alignement article 0124 ; 000 — Bootstrap
+_Prochaine session_ : ACADEMY-11-4 (service compose one-shot `moodle-material` + dogfooding `compose up`) — puis ACADEMY-9 (Qualiopi) et ACADEMY-10 (migration Spring Boot WebFlux). ACADEMY-2/3 (boucle runtime) : CLOS côté academy (D-ACADEMY-11-1).
 
 '''
 == REGLES ABSOLUES
@@ -356,6 +356,73 @@ Cadrage formel dédié + découpage US à produire en session dédiée (pattern 
 
 '''
 
+== 🟡 EPIC ACADEMY-11 — Injection du matériel pédagogique dans Moodle
+
+_Source_ : Session 013 (**arbitrage pilote 2026-09-21**). Academy **consomme**
+la formation produite par training et **installe le runtime Docker** pour
+l'acheteur ; il **injecte de la data structurée** AsciiDoc dans Moodle — il
+**n'implémente pas** la boucle runtime. Cadrage :
+`CADRAGE_EPIC_ACADEMY_11_MOODLE.adoc`.
+
+_Découverte décisive_ : l'image `erseco/alpine-moodle:v5.2.3` **embarque des
+outils natifs** (`moosh`, `moodle-blueprint`) — l'applicateur les **pilote** au
+lieu de reconstruire une stack PHP/SQL.
+
+_Dependances_ : ACADEMY-4 (matériel lu) ✅, ACADEMY-6 (runtime Docker) ✅.
+
+[cols="1,3,1,1", options="header"]
+|===
+| US | Description | Pts | Statut
+| ACADEMY-11-0
+| *Cadrage* — `CADRAGE_EPIC_ACADEMY_11_MOODLE.adoc` (constats dont la frontière runtime et les outils natifs de l'image, D-ACADEMY-11-1..10, options écartées). Corrige `VISION_PIPELINE_FORMATION` § 6 et le TODO `SessionMemoryContract` périmé.
+| 3
+| ✅ TERMINÉ (S-013)
+| ACADEMY-11-1
+| *Domaine pur `academy.moodle`* — `MoodleActivityType` + `MoodleActivityMapping` (vocabulaire Moodle réel), `MoodleMaterial` (structure + pivot, path-only), `MoodleActivity`/`MoodleSection`, `MoodleImportPlan`, `MoodlePlanBuilder` (pur), `MoodleIngestionScriptGenerator` (plan JSON + applicateur) ; 20 unit.
+| 8
+| ✅ TERMINÉ (S-013)
+| ACADEMY-11-2
+| *Wiring* — extension +4 properties (opt-in), tâche `generateMoodleImport` (dégradée : matériel vide → rien écrit), scaffold `plan.json` + `ingest.sh` ; +7 unit + 11 unit opencode (ToolExposure).
+| 5
+| ✅ TERMINÉ (S-013)
+| ACADEMY-11-3
+| *BDD + dogfooding* — `academy_moodle.feature` 10 scénarios `@moodle` + runner dédié + glue préfixée (S-088) ; dogfooding réel Moodle 5.2.3 (cours/sections/activités injectés, 3 bugs réels attrapés).
+| 3
+| ✅ TERMINÉ (S-013)
+| ACADEMY-11-4
+| *Service compose one-shot `moodle-material`* — câbler le service dans `composeBody()` (applique `ingest.sh` après le schéma Moodle, pattern `moodle-seed`) + 2 scénarios BDD + dogfooding `compose up`. **Non livré S-013** (exige une preuve d'exécution complète — jamais livrer non prouvé).
+| 3
+| 🟡 À FAIRE
+|===
+
+_Total_ : 5 US, ~22 pts. _Methode_ : baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR).
+
+_Statut_ : 🟡 EN COURS 3/4 US — 11-0 ✅ S-013 + 11-1 ✅ S-013 + 11-2 ✅ S-013 + 11-3 ✅ S-013 ; **11-4 à faire**.
+
+_Gates S-013_ : `clean check validatePlugins` VERT **183 unit + 13 functional + 21 installer + 6 opencode + 8 byok + 6 bridge + 8 material + 10 moodle scénarios**, `publishToMavenLocal` VERT, dogfooding réel Moodle bout-en-bout, zéro secret, zéro SQL/DDL, zéro PHP maison.
+
+'''
+
+== ✅ EPIC ACADEMY-2/3 — CLOS côté academy (frontière runtime actée S-013)
+
+_Source_ : Sessions 009 (D-ACADEMY-5-8) → 013 (**arbitrage pilote**).
+
+*Décision (D-ACADEMY-11-1)* : la boucle runtime (`FormationRuntimePort`,
+`InteractionProtocol`) **n'est pas implémentée par academy**. Trois sources
+convergent (`VISION_FORMATION_INTERACTIVE` § D3 + itération 9, KDoc
+`BureauPlugin.kt:24`, règle licence 3 étages) : l'orchestration agentique est
+l'étage **privé** (workspace-gradle/edster, LocalAdapter + CloudAdapter).
+Academy **consomme** la formation et **injecte la data** dans Moodle.
+
+_Découverte S-013_ : le TODO « `SessionMemoryContract` zéro implémenteur » est
+**périmé** — `codex-plugin/.../codex/profile/PgVectorSessionMemory.kt:37`
+l'implémente depuis S-094 (CDX-RC-04, pgvector + ONNX).
+
+_Statut_ : ✅ CLOS côté academy (la boucle est un EPIC privé workspace-gradle).
+`ToolExposure` (N0), lui, est **branché** (S-013 — `OpenCodeCatalog.exposure()`).
+
+'''
+
 == Sessions
 
 |===
@@ -373,6 +440,7 @@ Cadrage formel dédié + découpage US à produire en session dédiée (pattern 
 | 010 | 2026-09-21 | développement | ACADEMY-7 TERMINÉ — BYOK LLM multi-provider : domaine `academy.byok` (2 fichiers, mapping `LlmProviderKind` → provider opencode réel vérifié), `OpenCodeConfig`/`OpenCodeConfigGenerator`/`LearnerGuideGenerator` multi-provider (`{env:NAME}`, jamais la valeur), extension +2 properties, `.env` nom-seul + compose transmet, dépendance N0 `runtime-contracts` ; dogfooding réel GEMINI + défaut (clé absente du JSON, byte-identité ACADEMY-5) | 14/14
 | 011 | 2026-09-21 | développement | ACADEMY-8 TERMINÉ — webhooks Moodle + bridge Ktor (décision pilote) : domaine `academy.bridge` (schéma academy, traduction N0 à session stable, routes, anti-corruption `BridgeWire`), serveur Ktor 3.2.0 Netty, tâche `serveWebhookBridge` opt-in (SKIPPED par défaut), extension +3 properties, `AGENTS.md` conditionnel ; dogfooding réel serveur + curl (400/404) ; correction de gouvernance (bridge codebase = stdin/stdout ≠ HTTP) | 19/19
 | 012 | 2026-09-21 | développement + publication | ACADEMY-4 TERMINÉ — consommation du matériel versionné : domaine `academy.material` (lecture N0 + pivot EPIC K, verdict pur sealed), tâche `inspectTrainingMaterial` (n'échoue que si exigence déclarée), extension +4 properties, scaffold `MATERIAL.md` conditionnel ; frontière des verbes corrigée (transport git = bureau, academy lit — zéro git) ; dogfooding réel pivots EPIC K ; **publication Maven Central 0.0.1** (bundle `5c54af3f`, propagation HTTP 200) ; EPIC ACADEMY-10 cadré (Spring Boot WebFlux) | 19/19
+| 013 | 2026-09-21 | développement + cadrage | ACADEMY-11 3/4 US + ToolExposure (N0) + frontière runtime actée — injection du matériel dans Moodle : domaine `academy.moodle` (vocabulaire Moodle réel, plan pur, applicateur), tâche `generateMoodleImport` (opt-in, dégradée), extension +4 properties ; **outils natifs de l'image découverts** (`moosh`, `moodle-blueprint`) — l'applicateur les pilote (zéro PHP maison, zéro SQL/DDL) ; dogfooding réel Moodle 5.2.3 + PostgreSQL 16 (3 bugs réels attrapés) ; frontière actée (academy ne porte pas `FormationRuntimePort`, D-ACADEMY-11-1) ; `OpenCodeCatalog.exposure()` (ToolExposure N0) | 19/19 |
 |===
 
 '''

@@ -1,0 +1,239 @@
+= Cadrage EPIC ACADEMY-11 — Injection du matériel pédagogique dans Moodle
+:date: 2026-09-21
+:session: 013
+:epic: ACADEMY-11
+:origine: BACKLOG academy (US différée `ACADEMY-4-2*`, D-ACADEMY-4-12) + PROMPT_REPRISE S-012 + arbitrage pilote 2026-09-21 (2 messages) + VISION_PIPELINE_FORMATION.adoc § 3.3 + code `training`/`moodle`
+:methode: Cadrage (gouvernance pure) — pattern S-057/S-063
+:statut: CADRÉ — arbitrage pilote 2026-09-21 : academy **injecte de la data structurée** dans Moodle, **n'implémente pas** de runtime agentique
+
+== Contexte
+
+`PROMPT_REPRISE` S-012 propose deux candidats : ACADEMY-2/3
+(`FormationRuntimePort`/`SessionMemoryContract`) et ACADEMY-10 (migration
+Spring Boot). L'arbitrage pilote du 2026-09-21 **recadre** la mission :
+
+[quote]
+____
+« academy aide à **consommer la formation** qui est générée par training et
+**installe le runtime nécessaire au travers de Docker** pour le client qui
+achète l'archive de la formation. »
+____
+
+[quote]
+____
+« Je n'injecte pas de l'implémentation mais j'injecte de la **data
+structurée** pour être consommée en AsciiDoc et **intégrée dans Moodle**. »
+____
+
+Le trou visé n'est donc **pas** la boucle agentique (ACADEMY-2/3) mais la
+**US différée `ACADEMY-4-2*`** (« alimenter le cours Moodle seedé depuis le
+matériel reçu »), que D-ACADEMY-4-12 avait reportée faute de contrat SPG/SPD
+canonique. Le runtime Docker (ACADEMY-6) et l'exposition agent (ACADEMY-5/7)
+sont déjà livrés ; il manque le **contenu**.
+
+== Constats (audit S-013 — faits vérifiés, jamais supposés)
+
+. *La frontière de `FormationRuntimePort` est tranchée — et elle exclut
+   academy.* Trois sources convergent : `VISION_FORMATION_INTERACTIVE.adoc`
+   § D3 + itération 9 (« Split — academy = infra OSS, **edster/workspace-gradle
+   = runtime agentique privé**, LocalAdapter + CloudAdapter »), la KDoc de
+   `bureau/BureauPlugin.kt:24` (« The private edition (workspace-gradle)
+   implements FormationRuntimePort for edster.cloud ») et la règle licence
+   3 étages (`AGENTS.adoc` : « orchestration agentique = privé, la marge »).
+   `VISION_PIPELINE_FORMATION.adoc` § 6 (« academy est l'implémenteur de ces
+   contrats ») est **contredit** par ces trois sources, toutes postérieures ou
+   plus précises. L'arbitrage pilote S-013 tranche : **academy n'implémente
+   pas la boucle runtime**.
+. *`SessionMemoryContract` a DÉJÀ un implémenteur — le TODO est périmé.*
+   `grep` cross-borough : `codex-plugin/src/main/kotlin/codex/profile/PgVectorSessionMemory.kt:37`
+   implémente le contrat N0 depuis S-094 (EPIC CDX-RC-04), avec persistance
+   pgvector, embedding ONNX `AllMiniLmL6V2` et la tâche `persistLearnerProfile`.
+   Le VISION § 6 (« zéro implémenteur ») était vrai à l'écriture ; il ne l'est
+   plus. Le seul contrat réellement dormant côté runtime est
+   `FormationRuntimePort`.
+. *`ToolExposure` (N0) est un contrat orphelin — academy est son
+   consommateur désigné.* Le JAR `runtime-contracts:0.0.1` publié (inspecté
+   S-013 : `contracts/runtime/ToolExposure.class`) contient le contrat ; son
+   unique mention dans le code prod academy est une KDoc (`OpenCodePlugin.kt:9`).
+   Le guardrail `foundry/public` est aujourd'hui porté par un **commentaire**,
+   pas par le contrat (TODO S-012).
+. *Moodle expose des mécanismes d'ingestion officiels — rien à inventer.*
+   Audit de l'image réelle `erseco/alpine-moodle:v5.2.3` (Moodle **5.2.3**,
+   racine `/usr/src/moodle`, web `/var/www/html`) :
+   +
+   [cols="2,3,2", options="header"]
+   |===
+   | Mécanisme | Chemin réel vérifié | Usage
+   | `create_course()` | `public/course/lib.php:1768` | API officielle de création de cours
+   | `add_moduleinfo()` | `public/course/modlib.php:49` | API officielle d'ajout d'activité à une section
+   | `course_create_sections_if_missing()` | `public/course/lib.php:550` | API officielle de création de section
+   | `restore_backup.php` | `admin/cli/restore_backup.php` (`--file=X.mbz --categoryid=N`) | restauration d'une sauvegarde `.mbz`
+   | `import.php` | `admin/cli/import.php` | import **inter-cours** (source→dest), pas depuis un fichier externe
+   | `uploadcourse.php` | `public/admin/tool/uploadcourse/cli/uploadcourse.php` (`--file=X.csv`) | métadonnées de cours uniquement (pas de contenu)
+   |===
+   +
+   Modules de contenu disponibles : `page`, `label`, `book`, `quiz`, `folder`,
+   `resource`, `subsection`, `url`.
+. *L'IMAGE EMBARQUE DES OUTILS NATIFS — on ne construit pas de stack.*
+   Découverte décisive S-013 (audit image réelle, arbitrage pilote
+   « on s'appuie sur l'image préconstruite et ses outils natifs »). L'image
+   `erseco/alpine-moodle:v5.2.3` **préconstruit** deux outils de provisionnement :
+   +
+   [cols="2,4,2", options="header"]
+   |===
+   | Outil | Chemin réel vérifié | Capacité
+   | `moodle-blueprint` | `/usr/local/bin/moodle-blueprint` (+ lib `/usr/local/lib/moodle-blueprint/`) | applique un `blueprint.json` **format Moodle Playground**, **automatiquement au démarrage** du conteneur via `MOODLE_BLUEPRINT` (hook `docker-entrypoint-init.d/03-apply-blueprint.sh`). Étapes **implémentées** (vérifiées `StepRegistry.php`) : `createCategory`, `createCourse`, `createUser`, `createUsers`, `enrolUser`, `setConfig`, `installMoodlePlugin`, `installTheme`, `setTheme`. Idempotent par `canonicalHash` + marqueur `.done`.
+   | `moosh` | `/usr/local/bin/moosh` (+ `/opt/moosh/`) | Moodle Shell complet (CLI natif) : `course-create` (`-f fullname -F format -r reuse` — **idempotent**), `activity-add` (`-n name -s section <type> <course>`), `section-config-set`, `label-create`, `course-restore`, `category-create`.
+   |===
+   +
+   *Conséquence de conception* : academy n'a **pas** à réimplémenter l'API
+   Moodle dans un script PHP maison (ce serait bâtir une stack). Il génère la
+   **donnée** (le plan) et un applicateur **générique** qui **pilote les outils
+   natifs de l'image**.
+   +
+   _Limite vérifiée_ : `moodle-blueprint` classe `createSection` et `addModule`
+   en **PLANNED** (reconnues mais non implémentées → échec clair). Le cours se
+   crée nativement par blueprint, mais **sections et activités passent par
+   `moosh`** (qui, lui, les implémente).
+. *Le format `.mbz` est un binaire opaque — le fabriquer à la main est un
+   piège.* Aucun `.mbz` ne se génère par concaténation : c'est une archive de
+   sauvegarde Moodle (`backup/moodle2`) dont la structure dépend de la version.
+   Un `.mbz` forgé reproduirait la classe de bug « scaffold inexécutable »
+   (S-007 `moodle:4.5`, S-012 `hasRequirement()`). Le mécanisme robuste est
+   l'**outil natif de l'image** (`moodle-blueprint` + `moosh`), ou la
+   restauration d'un `.mbz` **réel** fourni par le producteur.
+. *Le seed existant crée une coquille, pas du contenu.* ACADEMY-6-5 seede
+   `mdl_course` (`INSERT ... WHERE NOT EXISTS` sur `idnumber='academy-seed'`,
+   service one-shot `moodle-seed`, entrypoint idempotent). Il ne crée ni
+   section, ni activité — c'est précisément ce qu'ACADEMY-11 ajoute.
+. *La structure du matériel est portée par le filesystem (convention over
+   configuration).* `training` infère les métadonnées par convention
+   (`FormationMetadataExtractor` : dossier = module, préfixe numérique = ordre,
+   premier `= Titre` = titre) et produit `build/spg/spg.adoc` +
+   `build/spd/{module}/{session}.adoc` + un `metadata.json` **pivot EPIC K**
+   par artefact. Academy lit déjà ce pivot (`MaterialManifest.fromJson`,
+   S-012) — il le **réutilise** pour l'ingestion.
+. *Le boundary § 3.3 interdit à academy de parser le contenu AsciiDoc.*
+   « academy est un consommateur terminal. Il ne génère rien, n'injecte aucun
+   LLM de génération, **ne parse pas les `.adoc` sources**. Il présente et
+   assiste. » L'ingestion doit donc traiter les fichiers AsciiDoc comme un
+   **payload opaque** (transportés, jamais interprétés) et ne lire que la
+   **structure** (arborescence + pivots).
+. *Le matériel réel est encore rare* — `office/trainings/FPA_CDA/.../prepro-cda_SPG.adoc`
+   = 5 lignes ; `office/metiers/FPA/cours/` porte 19 modules d'AsciiDoc réels
+   mais hors convention training. Le dogfooding devra donc utiliser une
+   **fixture conforme** (pattern S-012), et le matériel FPA réel servira de
+   test d'intégration ultérieur.
+
+== Décisions
+
+|===
+| ID | Décision | US rattachée
+| D-ACADEMY-11-1 | **Frontière actée : academy n'implémente pas la boucle runtime.** `FormationRuntimePort` reste un port N0 OSS dont l'implémentation (LocalAdapter/CloudAdapter) appartient à l'étage privé (workspace-gradle/edster). Academy **consomme** la formation et **l'intègre** dans Moodle. Corrige `VISION_PIPELINE_FORMATION` § 6 et clôt ACADEMY-2/3 pour la partie boucle. | 11-0
+| D-ACADEMY-11-2 | **Le mécanisme d'ingestion pilote les outils NATIFS de l'image, jamais un `.mbz` forgé ni une stack maison.** Academy génère (a) un **plan d'import** — data structurée JSON — et (b) un **applicateur shell générique** qui pilote `moodle-blueprint` (création de cours) et `moosh` (sections + activités), tous deux **déjà présents dans `erseco/alpine-moodle:v5.2.3`**. Academy ne réimplémente pas l'API Moodle (pas de script PHP maison), n'écrit jamais de SQL, et n'accepte un `.mbz` que s'il vient d'un producer réel (`course-restore`). | 11-2
+| D-ACADEMY-11-3 | **Domaine pur `education.cccp.academy.moodle`** — zéro type Gradle, zéro I/O, zéro PHP : une fonction pure de l'arborescence matérielle vers un plan d'import, et un renderer pur du script CLI. Testable sans Moodle ni Docker. | 11-1
+| D-ACADEMY-11-4 | **Academy ne parse pas le contenu AsciiDoc** (boundary § 3.3). Il lit la **structure** (dossier = module, fichier = séance, pivot = métadonnées) et transporte les fichiers en **payload opaque** référencé par chemin. Le rendu AsciiDoc reste Moodle-side (le client choisit son filtre). | 11-1
+| D-ACADEMY-11-5 | **Application par service one-shot `moodle-material`** (pattern `moodle-seed`, ACADEMY-6-5) : idempotent, data-only, au premier `compose up`. Il applique le plan via le script CLI après que Moodle a créé son schéma. Aucun DDL manuel. | 11-2
+| D-ACADEMY-11-6 | **Dégradé par défaut (backward compat).** Sans matériel dans `materialDir` ou sans exigence déclarée, **aucun** plan n'est généré, **aucune** activité n'est créée : l'installation existante est byte-identique. L'injection est un opt-in conditionné à la présence de matériel. | 11-2
+| D-ACADEMY-11-7 | **Mapping type matériel → activité Moodle acté et extensible.** `SPG` → activité de présentation du cours (`label`/`page` en section 0), `SPD` → `page` par séance (une section = un module), `QUIZ` → `quiz`, `DOCUMENT`/`SLIDES` → `resource`/`url` (liens). Un type inconnu est **ignoré**, jamais deviné (patron D-ACADEMY-4-6). | 11-1
+| D-ACADEMY-11-8 | **Extension +3 properties** (`moodleImportEnabled` défaut `false`, `moodleMaterialFile` défaut dérivé, `moodleCourseShortName` défaut `academy-seed`) — backward compat totale, l'injection est opt-in. | 11-2
+| D-ACADEMY-11-9 | **Le plan est le contrat stable ; le script est générique.** Le PHP CLI est le même pour toutes les formations (il lit le plan) ; seul le plan JSON varie avec le matériel. Cela rend le script testable une fois et le plan entièrement piloté par la data. | 11-1/11-2
+| D-ACADEMY-11-10 | **Qualiopi (ACADEMY-9) reste distinct.** Les traces de session (bilan, émoluments, assiduité) ne sont pas l'ingestion de contenu ; ACADEMY-11 rend le contenu présent, ACADEMY-9 tracera sa consommation. Aucune fusion d'EPIC. | —
+|===
+
+== Le mécanisme d'ingestion (fait vérifié — D-ACADEMY-11-2)
+
+```
+materialDir/                              (transporté par le bureau, BUREAU-3)
+├── SPG/metadata.json + spg.adoc          (artefact SPG, pivot EPIC K)
+├── SPD/01_module/001_seance.adoc         (convention : dossier=module, fichier=séance)
+│   └── metadata.json
+└── QUIZ/metadata.json + quiz.adoc
+
+        │  MoodlePlanBuilder (PUR — lit la structure + les pivots)
+        ▼
+build/academy/moodle/plan.json            (DATA STRUCTURÉE — le contrat stable)
+build/academy/moodle/ingest.sh            (applicateur GÉNÉRIQUE — pilote les outils natifs)
+
+        │  service one-shot `moodle-material` (compose, après le schéma Moodle)
+        ▼
+sh /ingest/ingest.sh
+   ├─ moodle-blueprint  (blueprint.json)  → crée le cours (idempotent)
+   └─ moosh course-create -f ... -r        → crée/réutilise le cours
+      moosh section-config-set …           → nomme chaque section (module)
+      moosh activity-add <type> … -s <n>   → injecte chaque activité
+```
+
+*Idempotence* : `moodle-blueprint` marque `.done` par `canonicalHash`,
+`moosh course-create -r` réutilise un cours existant — rejouer ne duplique rien.
+
+== Découpage des US
+
+|===
+| US | Livrable | Tests
+| ACADEMY-11-0 | Ce cadrage + corrections de gouvernance (frontière D3 actée, TODO `SessionMemoryContract` périmé, ACADEMY-2/3 clos côté boucle) | zéro code
+| ACADEMY-11-1 | Domaine pur `academy.moodle` — `MoodleActivityType`, `MoodleModule`, `MoodleImportPlan`, `MoodlePlanBuilder` (structure + pivots → plan), `MoodleIngestionScriptGenerator` | +~20 unit
+| ACADEMY-11-2 | Wiring — extension +3 properties, tâche `generateMoodleImport`, scaffold plan + script + service `moodle-material`, dégradé par défaut | +unit + functional TestKit
+| ACADEMY-11-3 | BDD `academy_moodle.feature` `@moodle` + runner dédié + dogfooding réel (fixture conforme, puis `php -l`) | BDD + dogfooding
+|===
+
+_Note_ : l'EPIC est estimé **~3 sessions** (11-1, 11-2, 11-3). Cette session
+livre 11-0 (cadrage) et, si la place le permet, 11-1 (domaine pur).
+
+== Options écartées
+
+- **Implémenter `FormationRuntimePort` dans academy** (VISION_PIPELINE § 6 lu
+  au pied de la lettre) : déplace la frontière licence et duplique l'étage
+  « orchestration agentique = marge privée ». Écartée (D-ACADEMY-11-1,
+  arbitrage pilote S-013).
+- **Forger un `.mbz` par concaténation** : archive binaire version-dépendante,
+  non fabricable de façon fiable ; reproduirait S-007. Écartée (D-ACADEMY-11-2).
+- **Injecter par SQL direct** (`mdl_page`, `mdl_course_sections`) : couplage
+  fort au schéma interne Moodle, silencieusement cassé à chaque upgrade.
+  Écartée — l'API officielle est stable, le SQL ne l'est pas.
+- **Parser le contenu AsciiDoc dans academy** : viole le boundary § 3.3 et
+  dupliquerait le travail de document/codex. Écartée (D-ACADEMY-11-4).
+- **Fusionner ACADEMY-9 (Qualiopi) dans ACADEMY-11** : périmètres distincts
+  (contenu vs traces). Écartée (D-ACADEMY-11-10).
+- **Exiger le contrat SPG/SPD canonique avant de coder** (raison de la
+  défération S-012) : l'ingestion lit la **structure par convention** déjà
+  implémentée par training (`FormationMetadataExtractor`) et le **pivot EPIC K**
+  déjà lu par academy — elle n'exige pas le contrat sémantique. Le dogfooding
+  utilisera une fixture conforme. Écartée.
+
+== Articulation des Épics
+
+```
+ACADEMY-6 (installeur + compose + seed coquille) ✅ S-008
+        │
+ACADEMY-5 (exposition agent) ✅ S-009
+        │
+ACADEMY-7 (BYOK multi-provider) ✅ S-010
+        │
+ACADEMY-8 (bridge Ktor) ✅ S-011
+        │
+ACADEMY-4 (consommation du matériel : exigence + verdict + guide) ✅ S-012
+        │
+        ▼
+ACADEMY-11 (injection de la data structurée dans Moodle)  ← CETTE SESSION
+        │
+        ├─▶ ACADEMY-9 (Qualiopi : traces de consommation)
+        └─▶ ACADEMY-10 (migration Ktor → Spring Boot WebFlux)
+ACADEMY-2/3 (boucle runtime) : CLOS côté academy (D-ACADEMY-11-1)
+```
+
+== Gates
+
+- `./gradlew clean check validatePlugins` VERT (unit + functional + cucumber
+  dédiés ; les suites ACADEMY-4/5/6/7/8 restent vertes).
+- `./gradlew publishToMavenLocal` VERT après modification (Règle 2).
+- Zéro secret (grep `TOKEN|SECRET|PASSWORD|API_KEY|sk-|gho_|ghp_` = 0).
+- Backward compat : sans matériel / sans opt-in, l'installer généré est
+  **byte-identique** ACADEMY-4 (aucun plan, aucun service `moodle-material`,
+  aucun script).
+- Dogfooding réel : plan généré depuis une fixture conforme ; script validé
+  par `php -l` (ou `sh -n` pour le service) — preuve d'exécution, pas
+  seulement un test vert (leçon S-007/S-009/S-011/S-012).
+- Zéro parsing AsciiDoc dans academy : les fichiers sont référencés, jamais
+  lus (grep `readText` sur les `.adoc` = 0).
+</content>

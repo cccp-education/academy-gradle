@@ -43,3 +43,7 @@ Feature: Academy opencode exposure (ACADEMY-5)
     And the dockerfile contains "zsh"
     And the dockerfile contains "opencode"
     And the dockerfile contains "learner"
+
+  Scenario: the learner guardrail is the N0 contract, not a comment
+    When the exposure guardrail contract is read
+    Then the exposure guardrail names the public root "foundry/public"

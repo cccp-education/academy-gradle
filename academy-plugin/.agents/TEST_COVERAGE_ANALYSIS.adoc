@@ -1,6 +1,6 @@
 = TEST_COVERAGE_ANALYSIS — academy-gradle
 
-_Dernière mise à jour_ : 2026-09-21 (session 012)
+_Dernière mise à jour_ : 2026-09-21 (session 013)
 
 == État des tests
 
@@ -15,6 +15,7 @@ Session 009 : **ACADEMY-5 terminé** — exposition agent opencode. Domaine pur 
 Session 010 : **ACADEMY-7 terminé** — BYOK LLM multi-provider. Domaine pur `academy.byok` (`ByokProviderSpec`/`ByokProviderCatalog`), `OpenCodeConfig` +2 champs, `OpenCodeConfigGenerator` multi-provider, `LearnerGuideGenerator` BYOK concret, extension +2 properties, `.env` nom-seul + compose transmet la variable. Dépendance N0 `runtime-contracts` (supersede D-ACADEMY-5-9). Dogfooding réel GEMINI + défaut.
 Session 011 : **ACADEMY-8 terminé** — bridge Ktor (domaine `academy.bridge`, serveur `testApplication` sans port réel, tâche opt-in SKIPPED, anti-corruption `BridgeWire`).
 Session 012 : **ACADEMY-4 terminé** — consommation du matériel versionné (domaine `academy.material`, lecture du pivot EPIC K, verdict sealed, tâche `inspectTrainingMaterial`, scaffold `MATERIAL.md` conditionnel) + **publication Maven Central 0.0.1**. Le dogfooding a révélé un cas non couvert (exigence par types seuls) → correctif TDD.
+Session 013 : **ACADEMY-11 3/4 US** — injection du matériel dans Moodle (domaine `academy.moodle` : vocabulaire Moodle réel, plan pur, applicateur pilotant les **outils natifs de l'image** `moosh`/`moodle-blueprint`, tâche `generateMoodleImport` opt-in/dégradée) + **ToolExposure (N0) branché** (`OpenCodeCatalog.exposure()`) + frontière runtime actée. Le dogfooding réel Moodle 5.2.3 a révélé **3 bugs réels** (double-quote shortname, champ `awk` du CSV `course-list`, `--intro` vs `--content`) → 3 tests de régression. **L'applicateur PHP maison a été abandonné** au profit des outils natifs (pivot de design).
 
 ## Ce qui est couvert
 
@@ -33,11 +34,16 @@ Session 012 : **ACADEMY-4 terminé** — consommation du matériel versionné (d
 - **ACADEMY-4-2 (wiring `academy.material`)** : 11 unit — `InspectTrainingMaterialTaskTest` (7 : défauts extension, résolution de l'exigence, dossier absent sans exigence → `Empty` + `hasRequirement` false, exigence déclarée détectée, **types seuls = exigence** (correctif dogfooding), lecture des pivots → `Ready`, manifeste illisible ignoré) ; `InstallerScriptMaterialTest` (4 : sans exigence aucun `MATERIAL.md`, avec exigence le guide est écrit, **ne cite jamais `pullMaterial`**, parité structurelle Windows).
 - **ACADEMY-4-2 (intégration, TestKit)** : `AcademyInstallerFunctionalTest` (+3) — scaffold `MATERIAL.md` écrit sur disque (les 2 plateformes, sans commande inexistante), `inspectTrainingMaterial` **SUCCESS** sans exigence (empty), **FAIL** actionnable avec exigence non satisfaite.
 - **BDD (pattern S-082)** : `cucumberTestMaterial` — feature `academy_material.feature` `@material` (8 scénarios : exigence déclarée, vide → EMPTY, mécanisme pull + jamais `pullMaterial`, tout présent → READY, type manquant → INCOMPLETE, version divergente → outdated, type inconnu ne satisfait pas, **champ producteur inconnu ne casse pas le consommateur**). Glue préfixée `material` (`AcademyMaterialSteps`, S-088).
+- **ACADEMY-11-1 (domaine `academy.moodle`)** : 20 unit — `MoodleActivityTypeTest` (2 : vocabulaire Moodle réel `label`/`page`/`quiz`/`resource`/`url`, mapping total des 6 types matériel), `MoodlePlanBuilderTest` (8 : SPG → label de cours, module SPD = section + séance = page, quiz → quiz, document → resource (jamais de corps inliné), titre dérivé du nom de fichier, **type inconnu ignoré jamais deviné**, matériel vide → plan vide, **jamais le corps `.adoc` — seulement le chemin**), `MoodleIngestionScriptGeneratorTest` (10 : plan JSON balancé + identité, entrées par module/type/chemin, échappement d'un guillemet, **applicateur pilote `moosh`/`moodle-blueprint` — jamais d'API maison, jamais `<?php`, jamais SQL/DDL**, `-r` idempotent, résolution de l'id numérique, section par module + `cat "$SRC"` Moodle-side, zéro credential, **quoting une seule fois** (régression dogfooding), **bon champ de corps par type** `--content`/`--intro` (régression dogfooding)).
+- **ACADEMY-11-2 (wiring `academy.moodle`)** : 7 unit — `GenerateMoodleImportTaskTest` (tâche enregistrée, **opt-in par défaut**, matériel vide → plan vide, plan depuis structure+pivots, **pivot illisible ignoré**, jamais d'identité dans l'applicateur).
+- **ToolExposure N0 (S-013)** : 4 unit — `OpenCodeCatalogExposureTest` (contrat exposé, racine physique `foundry/public`, surcharge de racine, invariant N0 rejette une racine vide).
+- **BDD (pattern S-082)** : `cucumberTestMoodle` — feature `academy_moodle.feature` `@moodle` (10 scénarios : SPG → label, modules SPD → sections + pages, quiz, type inconnu ignoré, matériel vide → plan vide, plan JSON balancé, **applicateur pilote les outils natifs** jamais `<?php`/SQL, résolution de l'id numérique, **contenu lu Moodle-side jamais embarqué**, zéro credential). Glue préfixée `moodle` (`AcademyMoodleSteps`, S-088). + `academy_opencode.feature` +1 scénario (guardrail = contrat N0).
 
 ## Ce qui est à couvrir
 
-- ACADEMY-2/3 (ports N0) et ACADEMY-9 (Qualiopi) : pas de tests tant que non implémentés.
-- ACADEMY-4 : le **transport git** (resolver) appartient au **bureau** (`BUREAU-3`) et sera testé par lui — academy teste le parsing + le verdict (D-ACADEMY-4-11).
+- ACADEMY-11-4 : le service compose one-shot `moodle-material` (câblage `composeBody()` + dogfooding `compose up`) — non livré S-013 (exige une preuve d'exécution complète).
+- ACADEMY-9 (Qualiopi) et ACADEMY-10 (Spring Boot WebFlux) : pas de tests tant que non implémentés.
+- ACADEMY-2/3 : **CLOS côté academy** (frontière runtime actée S-013) — la boucle appartient à l'étage privé.
 - ACADEMY-10 : migration Spring Boot WebFlux — tests à définir au cadrage dédié.
 - ACADEMY-6-1/2/3 : **CADUQUES (S-008)**.
 - ACADEMY-5 : `ToolExposure` (N0) non encore consommé par le code (guardrail porté par `OpenCodeCatalog`) — à brancher en ACADEMY-2.
