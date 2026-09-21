@@ -6,10 +6,10 @@ _Regles absolues_ : voir `AGENT.adoc`
 _DAG_ : N2 — Plugin Gradle de consommation (Regle 4bis)
 _Projet_ : academy-gradle (education.cccp.academy)
 
-_Derniere mise a jour_ : 2026-09-21 (session 007)
-_Session terminee_ : 007 — ACADEMY-6-6 TERMINÉ : dogfooding bout-en-bout (5 écarts découverts + corrigés — image Moodle réelle `erseco/alpine-moodle:v5.2.3`, contrat env `DB_*`/`MOODLE_*`, portainer-ce sans healthcheck, workspace différé)
-_Sessions precedent_ : 006 — ACADEMY-6-5 TERMINÉ (seed DB data-only, service one-shot `moodle-seed`, idempotence prouvée) ; 005 — ACADEMY-6-4 TERMINÉ (compose complet) ; 004 — Révisions pilote du scaffold compose (Ollama, Portainer, PostgreSQL) ; 003 — Socle générateur d'installateurs (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation Academy (installeur hybride) ; 001 — Alignement article 0124 + gouvernance + repo Git ; 000 — Bootstrap
-_Prochaine session_ : ACADEMY-6-7 (Cucumber BDD étendu : contenu OS, compose, idempotence, erreurs) puis ACADEMY-5 (opencode.json + session zsh, contient le TODO workspace) — ordre acté 1 → 6 → 5 → 7.
+_Derniere mise a jour_ : 2026-09-21 (session 008)
+_Session terminee_ : 008 — ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ : Cucumber BDD étendu (contenu OS, chemins, idempotence, erreurs, opencode.json différé) + alignement du contenu OS sur D-ACADEMY-6-10 (hôte = Docker uniquement, zéro provisioning Java/Gradle hôte) ; ACADEMY-6-1/2/3 CADUQUES absorbés
+_Sessions precedent_ : 007 — ACADEMY-6-6 TERMINÉ (dogfooding bout-en-bout, 5 écarts corrigés) ; 006 — ACADEMY-6-5 TERMINÉ (seed DB data-only) ; 005 — ACADEMY-6-4 TERMINÉ (compose complet) ; 004 — Révisions pilote du scaffold compose ; 003 — Socle générateur (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation ; 001 — Alignement article 0124 ; 000 — Bootstrap
+_Prochaine session_ : ACADEMY-5 (opencode.json + session zsh, contient le TODO workspace à réinsérer dans `composeBody()`) — puis ACADEMY-7 (BYOK LLM).
 
 '''
 == REGLES ABSOLUES
@@ -119,7 +119,7 @@ _Total_ : 3 US, ~9 pts. _Methode_ : baby-step DDD/TDD/BDD strict (RED → GREEN 
 _Statut_ : 3/3 US terminées (S-003). EPIC ACADEMY-1 CLOS. Gates : check VERT (10 unit + 2 functional + 5 cucumber), validatePlugins VERT, publishToMavenLocal VERT.
 
 '''
-== 🟡 EPIC ACADEMY-6 — Installeur hybride multiplateforme (machine d'expérimentation)
+== ✅ EPIC ACADEMY-6 — Installeur hybride multiplateforme (machine d'expérimentation)
 
 _Source_ : Sessions 003 (cadrage) + 004 (volet compose). Générateur de scripts
 d'installation par plateforme + scaffold `docker-compose.yml` embarqué.
@@ -146,22 +146,22 @@ Desktop, transverse Windows), D-ACADEMY-6-13 (PostgreSQL remplace MariaDB).
 | 5
 | ✅ TERMINÉ (S-006)
 | ACADEMY-6-1/2/3
-| *Raffermissement Linux/Windows/macOS* — partiellement caducs pour le provisioning hôte Java/Gradle (D-ACADEMY-6-10) — recadrer avant implémentation.
+| *Raffermissement Linux/Windows/macOS* — **CADUQUES (S-008)** : absorbés par ACADEMY-6-7 une fois D-ACADEMY-6-10 appliqué (hôte = Docker only, zéro provisioning Java/Gradle hôte à raffermir).
 | —
-| 🟡 À FAIRE
+| ✅ CADUQUE (S-008)
 | ACADEMY-6-6
 | *Dogfooding* conteneur éphémère, installeur Linux réel, étapes 1→7 (validation manuelle).
 | —
 | ✅ TERMINÉ (S-007)
 | ACADEMY-6-7
-| *Cucumber étendu* — contenu OS, compose, idempotence, erreurs.
+| *Cucumber étendu* — contenu OS (hôte Docker-only), chemins, idempotence, erreurs, opencode.json différé + alignement D-ACADEMY-6-10.
 | —
-| 🟡 À FAIRE
+| ✅ TERMINÉ (S-008)
 |===
 
-_Statut_ : ACADEMY-6-0 ✅ + **ACADEMY-6-4 ✅ TERMINÉ S-005** (compose complet, **corrigé S-007** — images réelles) + **ACADEMY-6-5 ✅ TERMINÉ S-006** (seed DB data-only, idempotence prouvée sur PostgreSQL 16 réel) + **ACADEMY-6-6 ✅ TERMINÉ S-007** (dogfooding bout-en-bout : le run réel a prouvé l'enchaînement Docker → PostgreSQL → seed → Moodle up ET révélé 5 écarts de scaffold inexécutable — corrigés D-ACADEMY-6-14..17).
+_Statut_ : **EPIC ACADEMY-6 TERMINÉ (S-008)** — ACADEMY-6-0 ✅ + **ACADEMY-6-4 ✅ S-005** (compose complet, corrigé S-007) + **ACADEMY-6-5 ✅ S-006** (seed DB data-only) + **ACADEMY-6-6 ✅ S-007** (dogfooding bout-en-bout) + **ACADEMY-6-7 ✅ S-008** (BDD étendu + hôte Docker-only) ; **ACADEMY-6-1/2/3 ✅ CADUQUES S-008** (absorbés par 6-7).
 
-_Gates S-007_ : `clean check validatePlugins` VERT (21 unit + 5 functional + 15 scénarios Cucumber ×2 runners), `publishToMavenLocal` VERT, dogfooding réel complet (Moodle 5.2.3 healthy HTTP 200, seed `INSERT 0 1` puis `INSERT 0 0`, Ollama/Portainer healthy/HTTP 200), zéro secret, zéro `mariadb` en prod.
+_Gates S-008_ : `clean check validatePlugins` VERT (28 unit + 6 functional + 21 scénarios Cucumber), `publishToMavenLocal` VERT, dogfooding `sh -n` + `docker compose config` VALIDES, zéro provisioning hôte (grep 0), zéro secret, zéro `mariadb` en prod.
 
 '''
 == Sessions
@@ -176,6 +176,7 @@ _Gates S-007_ : `clean check validatePlugins` VERT (21 unit + 5 functional + 15 
 | 005 | 2026-09-22 | développement | ACADEMY-6-4 TERMINÉ — compose complet (network, volumes nommés, healthcheck PostgreSQL, `.env`) + parité structurelle Linux/Windows + dogfooding `docker compose config` | 5/5
 | 006 | 2026-09-22 | développement | ACADEMY-6-5 TERMINÉ — seed DB data-only (service one-shot `moodle-seed`, entrypoint idempotent, SQL `WHERE NOT EXISTS`) + parité structurelle Linux/Windows + idempotence prouvée PostgreSQL 16 réel | 5/5
 | 007 | 2026-09-21 | développement | ACADEMY-6-6 TERMINÉ — dogfooding bout-en-bout : 5 écarts découverts + corrigés (Moodle réel 5.2.3, contrat env `DB_*`/`MOODLE_*`, portainer-ce, workspace différé) ; run réel complet prouvé | 5/5
+| 008 | 2026-09-21 | développement | ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ — Cucumber BDD étendu (contenu OS, chemins, idempotence, erreurs, opencode.json différé) + hôte = Docker uniquement (D-ACADEMY-6-10 appliqué) ; 6-1/2/3 CADUQUES absorbés | 5/5
 |===
 
 '''

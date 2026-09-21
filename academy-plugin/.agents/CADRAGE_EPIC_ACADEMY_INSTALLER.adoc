@@ -107,6 +107,33 @@ Preuve du run réel (stack reconstruit sur images réelles) :
 `INSERT 0 0` (count = 1) ; Moodle **5.2.3 (Build: 20260914)** `healthy` ;
 `curl /login/index.php` = **200**.
 
+== Constat d'audit (S-008, ACADEMY-6-7)
+
+L'audit du « contenu OS » demandé par ACADEMY-6-7 a révélé une **contradiction
+gouvernance/code** : D-ACADEMY-6-10 (révision pilote S-004) tranche « l'hôte ne
+provisionne **rien d'autre que Docker** — Java/Gradle vivent dans l'image
+workspace », mais `InstallerScriptGenerator` émettait toujours le provisioning
+hôte Java Temurin + Gradle (code S-003 jamais retiré) :
+
+. Linux : blocs `mkdir $INSTALL_ROOT/jdk` + curl `github.com/adoptium/temurin…`
+   + `tar` + `export JAVA_HOME`, puis bloc Gradle curl `services.gradle.org` +
+`unzip`.
+. Windows : downloads `api.adoptium.net` + `services.gradle.org` + `setx
+   JAVA_HOME` / `setx PATH`.
+. macOS : `brew install "openjdk@$JAVA_VERSION"` + `export JAVA_HOME` +
+   `brew install gradle`.
+
+Les tests verrouillaient ce comportement caduc (assertions S-003), ce qui
+masquait l'écart. Décision de session (D-ACADEMY-6-18) : **appliquer D-6-10**
+et **absorber ACADEMY-6-1/2/3** (raffermissement hôte) qui perdent tout objet —
+rien n'est installé sur l'hôte hormis Docker. Le BDD est étendu pour couvrir
+le contenu OS réel (hôte Docker-only, chemins de staging, marqueur versionné,
+erreurs, `opencode.json` différé).
+
+- *Preuve* : `sh -n` VALIDE (linux/macos), `docker compose config` VALIDE,
+  grep `JAVA_HOME|temurin|adoptium|services.gradle.org|setx` sur les 3 scripts
+  générés = **0 occurrence**.
+
 == Décisions
 
 |===
@@ -128,6 +155,7 @@ Preuve du run réel (stack reconstruit sur images réelles) :
 | D-ACADEMY-6-15 | **Révision pilote (2026-09-21) — contrat d'environnement Moodle réel** : le scaffold du service `moodle` **ne peut pas** utiliser le contrat `MOODLE_DATABASE_*` (faux : aucune image ne l'expose). Le contrat effectif est `DB_TYPE=pgsql` + `DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASS` (wiring PostgreSQL) + `MOODLE_USERNAME`/`MOODLE_PASSWORD`/`MOODLE_SITENAME` (auto-install). Les valeurs restent des `${...}` depuis `.env` — **jamais de secret**. `.env` documente `MOODLE_USERNAME`/`MOODLE_PASSWORD` (valeurs vides). Découvert par le dogfooding ACADEMY-6-6 (le scaffold était inexécutable). | 6-4
 | D-ACADEMY-6-16 | **Révision pilote (2026-09-21) — Portainer CE + workspace différé** : (1) l'image Portainer est `portainer/portainer-ce` (`portainer/portainer` est obsolète) ; (2) le service `workspace` (`cccp-education/academy-workspace:latest`, D-ACADEMY-6-10) est **retiré du compose actif** tant que l'image n'est pas publiée — décision pilote « marqué en TODO » : le compose généré reste **directement exécutable** (`docker compose up`), et le TODO `ACADEMY-5` documente le point d'insertion. | 6-4/6-5
 | D-ACADEMY-6-17 | **Révision pilote (2026-09-21) — pas de healthcheck Portainer** : l'image `portainer/portainer-ce` est *distroless* (ni `sh`, ni `wget`, ni `curl`) ; le healthcheck `wget -q --spider` du scaffold échoue systématiquement (`exec: "wget": executable file not found`) et marque le service `unhealthy` alors qu'il sert réellement HTTP 200. Décision : **retirer le healthcheck Portainer** (aucun outil exécutable dans l'image), Portainer reste un service up sans sonde — découvert par le dogfooding ACADEMY-6-6. | 6-4
+| D-ACADEMY-6-18 | **Application de D-6-10 (2026-09-21, S-008)** : le scaffold ne provisionne plus Java Temurin ni Gradle sur l'hôte — retrait des blocs Linux (curl adoptium + tar + `JAVA_HOME`), Gradle (curl `services.gradle.org` + unzip), Windows (`api.adoptium.net` + `setx JAVA_HOME`/PATH) et macOS (`brew install openjdk@…`/`gradle`). `JAVA_VERSION`/`GRADLE_VERSION` restent des **pins documentaires** de l'image workspace ; Docker est la **seule** exigence hôte (check + `exit` non-zéro avec message actionnable) ; macOS installe Docker Desktop via Homebrew **conditionné** à l'absence de Docker. **ACADEMY-6-1/2/3 CADUQUES** (absorbés par 6-7). Découvert à l'audit ACADEMY-6-7. | 6-7
 |===
 
 == Découpage des US
@@ -141,7 +169,7 @@ Preuve du run réel (stack reconstruit sur images réelles) :
 | ACADEMY-6-4 | `docker-compose.yml` complet : network, volumes, healthchecks, `.env` | +5 unit — ✅ TERMINÉ S-005 (dogfooding `docker compose config` VALIDE)
 | ACADEMY-6-5 | Seed DB data-only au premier up (entrypoint `seed.sh` idempotent, `seed-course.sql` minimal) | +8 unit + BDD + 1 FT — ✅ TERMINÉ S-006
 | ACADEMY-6-6 | Dogfooding : conteneur éphémère, installeur Linux réel, étapes 1→7 | validation manuelle
-| ACADEMY-6-7 | Cucumber BDD installeur étendu (contenu OS, compose, idempotence, erreurs) | +6 scénarios
+| ACADEMY-6-7 | Cucumber BDD installeur étendu (contenu OS, compose, idempotence, erreurs) | +6 scénarios — ✅ TERMINÉ S-008 (+ alignement hôte Docker-only D-6-10)
 |===
 
 == Options écartées

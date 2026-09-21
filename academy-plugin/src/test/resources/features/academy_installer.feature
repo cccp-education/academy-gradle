@@ -145,6 +145,53 @@ Feature: Academy installer generation (ACADEMY-1)
     And the script contains "mdl_course"
     And the script contains "WHERE NOT EXISTS"
 
+  Scenario: linux host bootstrap provisions Docker only
+    Given a platform targeting "linux"
+    When the installer generator renders the platform
+    Then the script contains "command -v docker"
+    And the script does not contain "JAVA_HOME"
+    And the script does not contain "temurin"
+    And the script does not contain "services.gradle.org"
+
+  Scenario: windows host bootstrap provisions Docker only with the admin guard
+    Given a platform targeting "windows"
+    When the installer generator renders the platform
+    Then the script contains "net session"
+    And the script contains "Get-Command docker"
+    And the script does not contain "adoptium"
+    And the script does not contain "services.gradle.org"
+    And the script does not contain "setx JAVA_HOME"
+
+  Scenario: macos host bootstrap provisions Docker only without sudo
+    Given a platform targeting "macos"
+    When the installer generator renders the platform
+    Then the script contains "brew install --cask docker"
+    And the script does not contain "brew install openjdk"
+    And the script does not contain "brew install gradle"
+    And the script does not contain "sudo"
+
+  Scenario: installers abort with an actionable message when Docker is missing
+    Given a platform targeting "linux"
+    When the installer generator renders the platform
+    Then the script contains "Docker is required"
+    And the script contains "exit 1"
+
+  Scenario: compose scaffold is staged under the application directory
+    Given a platform targeting "linux"
+    And compose embedding enabled
+    When the installer generator renders the platform
+    Then the script contains "mkdir -p \"$APP_DIR\""
+    And the script contains "$APP_DIR/docker-compose.yml"
+    And the script contains "$APP_DIR/.env"
+    And the script contains "$APP_DIR/seed/seed.sh"
+
+  Scenario: opencode configuration is deferred until the workspace image is published
+    Given a platform targeting "linux"
+    And compose embedding enabled
+    When the installer generator renders the platform
+    Then the script does not contain "opencode.json"
+    And the script contains "TODO ACADEMY-5"
+
   Scenario: credentials are a convention, never embedded values
     Given a platform targeting "linux"
     And credential env prefix "MY_ACADEMY_"
@@ -153,13 +200,13 @@ Feature: Academy installer generation (ACADEMY-1)
     And the script does not contain "SECRET="
     And the script does not contain "TOKEN="
 
-  Scenario: windows installer is a batch script with admin check and setx
+  Scenario: windows installer is a batch script with admin check and docker bootstrap
     Given a platform targeting "windows"
     When the installer generator renders the platform
     Then exactly one file "install.bat" is produced
     And the script starts with "@echo off"
     And the script contains "net session"
-    And the script contains "setx"
+    And the script contains "Get-Command docker"
     And the script uses PowerShell
 
   Scenario: macos installer uses Homebrew Docker Desktop without sudo

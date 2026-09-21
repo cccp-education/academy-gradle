@@ -2,50 +2,48 @@
 
 == Mission de la prochaine session
 
-Poursuivre l'EPIC ACADEMY-6 (installeur hybride) — ordre acté **1 → 6 → 5 → 7**.
-US suivante : **ACADEMY-6-7** — Cucumber BDD étendu (contenu OS, compose,
-idempotence, erreurs, opencode.json). Ensuite ACADEMY-5 (opencode.json + session
-zsh) puis ACADEMY-7 (BYOK LLM).
+EPIC ACADEMY-6 **TERMINÉ** (S-008). Passer à **ACADEMY-5** — Intégration du
+contrat InteractionProtocol : `opencode.json` + session zsh dans le conteneur
+workspace, exposition des tâches Gradle `education.cccp`.
 
-== État de l'architecture (session 007)
+**Contient le TODO laissé par S-007** : publier
+`cccp-education/academy-workspace:latest` puis réinsérer le service
+`workspace` dans `composeBody()` (point d'insertion marqué
+`# TODO ACADEMY-5`).
+
+== État de l'architecture (session 008)
 
 - **ACADEMY-1 TERMINÉ (3/3 US)** : socle générateur. Extension
   `academyInstaller` Property-based, domaine pur
   `education.cccp.academy.installer`, tâches generateLinux/Windows/MacInstaller
   + buildAllInstallers.
-- **ACADEMY-6-4 TERMINÉ (S-005, corrigé S-007)** : compose complet (network
-  `academy-net`, volumes nommés, healthcheck PostgreSQL, `.env`), parité
-  **structurelle** Linux/Windows via `composeBody()`/`envBody()`.
-- **ACADEMY-6-5 TERMINÉ (S-006)** : seed DB data-only. Service one-shot
-  `moodle-seed`, entrypoint idempotent (`poll mdl_course` puis
-  `psql -f seed-course.sql`), SQL `INSERT ... WHERE NOT EXISTS` sur
-  `idnumber='academy-seed'`.
-- **ACADEMY-6-6 TERMINÉ (S-007)** : dogfooding bout-en-bout. Le run réel a
-  **prouvé l'enchaînement** (PostgreSQL/Ollama/Moodle healthy, seed `INSERT 0 1`
-  puis `INSERT 0 0`, Moodle 5.2.3 `/login` HTTP 200) **et révélé que le scaffold
-  était inexécutable** — 5 écarts corrigés (D-ACADEMY-6-14..17) :
-  image `moodle:4.5` **inexistante** → `erseco/alpine-moodle:v5.2.3` ;
-  contrat env faux `MOODLE_DATABASE_*` → réel `DB_*` + `MOODLE_USERNAME/
-  PASSWORD/SITENAME` ; `portainer/portainer` → `portainer/portainer-ce`
-  (healthcheck retiré, image distroless) ; service `workspace` retiré du
-  compose actif (image non publiée, TODO ACADEMY-5).
-- Gates S-007 : `clean check validatePlugins` VERT **21 unit + 5 functional +
-  15 scénarios Cucumber ×2 runners**, `publishToMavenLocal` VERT, zéro secret,
-  zéro `mariadb`.
+- **ACADEMY-6 TERMINÉ** (6-0 cadrage, 6-4 compose, 6-5 seed, 6-6 dogfooding,
+  6-7 BDD étendu ; **6-1/2/3 CADUQUES** absorbés par 6-7) :
+  - compose complet (network `academy-net`, volumes nommés, healthcheck
+    PostgreSQL, `.env`), parité **structurelle** Linux/Windows via
+    `composeBody()`/`envBody()`.
+  - seed DB data-only, service one-shot `moodle-seed`, SQL
+    `INSERT ... WHERE NOT EXISTS`.
+  - **hôte = Docker uniquement (D-ACADEMY-6-10 appliqué S-008)** : les 3
+    scripts ne provisionnent plus Java Temurin ni Gradle ; `JAVA_VERSION`/
+    `GRADLE_VERSION` restent des pins documentaires de l'image workspace.
+  - dogfooding bout-en-bout (S-007) : Moodle 5.2.3 `/login` HTTP 200, seed
+    idempotent prouvé.
+- Gates S-008 : `clean check validatePlugins` VERT **28 unit + 21 scénarios
+  Cucumber + 6 functional**, `publishToMavenLocal` VERT, zéro secret,
+  zéro `mariadb`, dogfooding `sh -n` + `docker compose config` VALIDES.
 
 == Points en attente / ordre de travail suggéré
 
-1. ACADEMY-6-7 : Cucumber BDD étendu — couvrir le contenu OS (chemins,
-   alternatives), le compose (images réelles, contrat env), l'idempotence et
-   les erreurs. La feature `academy_installer.feature` compte déjà 15 scénarios.
-2. ACADEMY-5 : `opencode.json` + session zsh. **Contient le TODO laissé par
-   S-007** : publier `cccp-education/academy-workspace:latest` puis réinsérer
-   le service `workspace` dans `composeBody()` (point d'insertion marqué
-   `# TODO ACADEMY-5`).
-3. ACADEMY-6-1/2/3 (raffermissement Linux/Windows/macOS) : **partiellement
-   caducs** pour le provisioning hôte Java/Gradle (D-ACADEMY-6-10) — à
-   recadrer, voire à absorber dans le seul bootstrap Docker.
-4. ACADEMY-7 (BYOK LLM) après ACADEMY-5.
+1. ACADEMY-5 : `opencode.json` + session zsh ; réinsérer le service
+   `workspace` dans `composeBody()` une fois l'image publiée. Cadrer d'abord
+   (pattern S-057) : quel contenu d'`opencode.json`, comment il expose les
+   tâches Gradle `education.cccp`.
+2. ACADEMY-7 (BYOK LLM) après ACADEMY-5 : fournisseur (OLLAMA_LOCAL,
+   OLLAMA_CLOUD, GEMINI, HUGGINGFACE, CUSTOM) alimentant le `.env` par
+   convention (jamais de valeur).
+3. ACADEMY-4/2/3 (contrats MaterialUpdate / FormationRuntimePort /
+   SessionMemoryContract) séquencés après la machine fonctionnelle.
 
 ## Rappel des ordres de mission
 
@@ -59,3 +57,4 @@ zsh) puis ACADEMY-7 (BYOK LLM).
 - **Dogfooding = preuve réelle** : un test vert ne prouve pas qu'un scaffold
   s'exécute (S-007 l'a démontré — `moodle:4.5` passait les 43 checks et était
   inexistant).
+</content>

@@ -1,0 +1,135 @@
+= Session 008 — ACADEMY-6-7 : Cucumber BDD étendu + alignement du contenu OS sur D-ACADEMY-6-10
+
+:date: 2026-09-21
+:session: 008
+:epic: ACADEMY-6
+:us: ACADEMY-6-7 (TERMINÉ) + ACADEMY-6-1/2/3 (CADUQUES) + clôture EPIC ACADEMY-6
+:methode: Baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR) — 3 niveaux unit/functional/cucumber
+
+== Mission
+
+Suite de l'EPIC ACADEMY-6 (installeur hybride), ordre acté **1 → 6 → 5 → 7**.
+US : **ACADEMY-6-7** — Cucumber BDD étendu (contenu OS, compose, idempotence,
+erreurs, opencode.json).
+
+Mission tenue, et élargie d'un constat d'audit : le « contenu OS » asserté par
+les tests était **contradictoire avec D-ACADEMY-6-10** (hôte = Docker
+uniquement). Le scaffold émettait encore le provisioning hôte Java Temurin +
+Gradle (héritage S-003), jamais retiré. La session a donc :
+
+. étendu le BDD (6-7) au contenu OS, aux chemins, au marqueur d'idempotence,
+   aux erreurs et à l'opencode.json différé ;
+. **aligné le contenu OS sur D-ACADEMY-6-10** (hôte = Docker only) ;
+. absorbé ACADEMY-6-1/2/3 (raffermissement hôte) qui devenaient caducs.
+
+== Constats (audit d'ouverture)
+
+. *Contradiction gouvernance/code* : D-ACADEMY-6-10 (révision pilote S-004)
+   tranche « l'hôte ne provisionne **rien d'autre que Docker** — Java/Gradle
+   vivent dans l'image workspace ». Or `InstallerScriptGenerator` émettait
+   toujours `JAVA_HOME`, `temurin`, `services.gradle.org`, `setx JAVA_HOME`,
+   `brew install openjdk@/gradle` (code S-003 jamais retiré).
+. *Le prompt de reprise le signalait* : ACADEMY-6-1/2/3 « partiellement
+   caducs pour le provisioning hôte Java/Gradle (D-ACADEMY-6-10) — à
+   recadrer, voire à absorber dans le seul bootstrap Docker ».
+. *Le BDD était incomplet sur le contenu OS* : pas de scénario sur l'absence
+   du provisioning hôte, les chemins de staging, le marqueur versionné,
+   les erreurs « Docker requis », ni l'`opencode.json` différé.
+. *Le functional ne vérifiait pas* que les scripts générés étaient exempts de
+   tout provisioning hôte.
+
+== Décision de session
+
+*Absorber ACADEMY-6-1/2/3 dans le seul bootstrap Docker.* Une fois D-6-10
+appliqué, le raffermissement par plateforme (arch aarch64, persistance
+PATH/JAVA_HOME, profil Windows 64-bit, Rosetta macOS) n'a plus d'objet :
+rien n'est installé sur l'hôte hormis Docker. Les trois US sont marquées
+**✅ CADUQUE (S-008)**.
+
+== RED (prouvé aux 3 niveaux)
+
+Tests étendus avant le code (prod au HEAD) :
+
+* `InstallerScriptGeneratorTest` — 7 nouveaux tests (hôte Docker-only Linux/
+  Windows/macOS, erreurs Docker requis, marqueur versionné, staging compose,
+  opencode.json différé) + 1 test migré (`JAVA_HOME`→`JAVA_VERSION="25"`) ;
+* `academy_installer.feature` — 6 nouveaux scénarios `@installer` + 1 migré
+  (`setx`→`Get-Command docker`) ;
+* `AcademyInstallerFunctionalTest` — 1 TestKit (hôte Docker-only).
+
+RED prouvé (prod au HEAD) :
+* `./gradlew test --tests "...InstallerScriptGeneratorTest"` → **46 tests,
+  6 failed** ;
+* `./gradlew cucumberTestInstaller` → **42 tests, 6 failed** ;
+* `./gradlew functionalTest` → **6 tests, 1 failed**.
+
+== GREEN (prouvé)
+
+`InstallerScriptGenerator.kt` — les 3 scripts n'émettent plus aucun
+provisioning hôte :
+
+* Linux : `docker` est l'unique exigence hôte (`command -v docker` sinon
+  `exit 1` avec message actionnable) ; suppression du bloc Temurin
+  (curl+tar) et du bloc Gradle (curl+unzip) ; `JAVA_VERSION`/`GRADLE_VERSION`
+  restent déclarés comme **pins documentaires** de l'image workspace.
+* Windows : garde admin `net session` conservée, check `Get-Command docker`
+  suivi de `if errorlevel 1 exit /b 1`, suppression des downloads
+  `adoptium`/`services.gradle.org` et des `setx JAVA_HOME`/PATH.
+* macOS : Docker Desktop via Homebrew **conditionné** à l'absence de Docker
+  (`command -v docker`), plus d'`openjdk@`/`gradle` brew, zéro `sudo`.
+
+== REFACTOR
+
+* KDoc `InstallerScriptGenerator` alignée sur D-6-10 (pins = image workspace,
+  Docker = seule exigence hôte, `opencode.json` différé avec le workspace).
+* KDoc `InstallerPlatform` : `javaVersion`/`gradleVersion` précisés comme
+  versions de l'**image workspace**.
+* Tests : suppression du helper `platform()` dupliqué (2 définitions) au
+  profit d'un unique helper paramétré (`credentialsEnvPrefix`).
+
+== Dogfooding (validation externe)
+
+`./gradlew publishToMavenLocal` puis `buildAllInstallers` sur le consommateur
+racine → 3 installeurs régénérés :
+
+* `sh -n` → **VALIDE** (linux + macos) ;
+* `docker compose config` sur le YAML extrait → **VALIDE** ;
+* grep provisioning hôte (`JAVA_HOME|temurin|adoptium|services.gradle.org|
+  setx`) sur les 3 scripts → **0 occurrence** ;
+* zéro secret, zéro `mariadb`.
+
+== Gates
+
+* `./gradlew clean check validatePlugins` → **BUILD SUCCESSFUL** —
+  **28 unit + 21 scénarios Cucumber + 6 functional**, 0 FAIL.
+* `./gradlew publishToMavenLocal` → **BUILD SUCCESSFUL**.
+* grep secrets `src/main` → valeurs documentées par convention seulement
+  (`POSTGRES_PASSWORD=${...}` / `=` vide), zéro valeur.
+* grep `mariadb` `src/main` → **ZÉRO**.
+
+== Fichiers modifiés
+
+[cols="2,3", options="header"]
+|===
+| Fichier | Nature
+| `src/main/kotlin/.../installer/InstallerScriptGenerator.kt` | prod — hôte Docker-only (3 scripts), pins documentaires, KDoc D-6-10
+| `src/main/kotlin/.../installer/InstallerPlatform.kt` | prod — KDoc (versions = image workspace)
+| `src/test/kotlin/.../installer/InstallerScriptGeneratorTest.kt` | tests — 7 unit ajoutés, 2 migrés, helper consolidé
+| `src/test/resources/features/academy_installer.feature` | BDD — 6 scénarios ajoutés, 1 migré
+| `src/functionalTest/kotlin/.../AcademyInstallerFunctionalTest.kt` | functional — 1 TestKit hôte Docker-only
+| `.agents/CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` | gouvernance — constat S-008 + absorption 6-1/2/3
+|===
+
+== Clôture EPIC ACADEMY-6
+
+ACADEMY-6-0 ✅ + 6-4 ✅ + 6-5 ✅ + 6-6 ✅ + 6-7 ✅ + 6-1/2/3 ✅ CADUQUE =
+**EPIC ACADEMY-6 TERMINÉ**. Prochaine US : **ACADEMY-5** (opencode.json +
+session zsh, contient le TODO workspace à réinsérer dans `composeBody()`).
+
+== Note de clôture — méthode
+
+Règle du **delta source** appliquée : à l'ouverture, sources inchangées depuis
+S-007 (git clean) → compilation seule, aucun test rejoué « pour confirmer ».
+Tests lancés uniquement après codage (RED prouvé), puis à la clôture (GREEN).
+Le dogfooding (déjà couvert par l'US) est le seul élément exécuté en plus.
+</content>

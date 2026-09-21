@@ -1,6 +1,6 @@
 = TEST_COVERAGE_ANALYSIS — academy-gradle
 
-_Dernière mise à jour_ : 2026-09-22 (session 006)
+_Dernière mise à jour_ : 2026-09-21 (session 008)
 
 == État des tests
 
@@ -9,18 +9,20 @@ Session 003 : implémentation EPIC ACADEMY-1 (socle générateur d'installateurs
 Session 004 : révisions pilote du scaffold compose (postgres + ollama + portainer, parité Linux/Windows).
 Session 005 : ACADEMY-6-4 terminé — compose complet (network, volumes nommés, healthcheck PostgreSQL, `.env`) + parité structurelle (source unique `composeBody()`/`envBody()`).
 Session 006 : ACADEMY-6-5 terminé — seed DB data-only (service one-shot `moodle-seed`, entrypoint idempotent, SQL `WHERE NOT EXISTS`) + parité structurelle Linux/Windows (`seedScriptBody()`/`seedCourseSqlBody()`) + idempotence prouvée PostgreSQL 16 réel.
+Session 007 : ACADEMY-6-6 terminé — dogfooding bout-en-bout (5 écarts de scaffold inexécutable corrigés).
+Session 008 : ACADEMY-6-7 terminé — Cucumber BDD étendu (contenu OS, chemins, idempotence, erreurs, `opencode.json` différé) + **hôte = Docker uniquement (D-ACADEMY-6-10 appliqué : zéro provisioning Java/Gradle hôte)** ; ACADEMY-6-1/2/3 CADUQUES absorbés.
 
 ## Ce qui est couvert
 
 - **ACADEMY-1-0 (wiring)** : `AcademyPluginTest` (3 unit) — chargement du plugin, conventions d'extension par défaut, aggregation des 3 plateformes, surcharges (applicationName/outputDir).
-- **ACADEMY-1-1 (domaine)** : `InstallerScriptGeneratorTest` (13 unit) — contenu Linux (pins toolchain, garde idempotence `~/.academy/.installed-`), scaffold compose conditionnel, **compose complet Linux (network `academy-net`, volumes nommés `postgres-data`/`ollama-models`/`portainer-data`, healthcheck `pg_isready`, `.env` + `POSTGRES_PASSWORD=` vide, Moodle `pgsql`)**, **seed DB data-only (service one-shot `moodle-seed`, entrypoint `poll mdl_course` + `psql -f seed-course.sql`, SQL `INSERT ... WHERE NOT EXISTS` sur `idnumber='academy-seed'`)** , convention credentials (prefix seulement, jamais de valeur), rendu Windows (admin, PowerShell, setx, **escape cmd `2^>^&1`**), macOS (Homebrew, sans sudo), composition du path relatif, **parité Windows du contrat compose + seed**.
-- **ACADEMY-1-2 / 6-4 / 6-5 (intégration)** : `AcademyInstallerFunctionalTest` (4 TestKit) — `buildAllInstallers` écrit les 3 fichiers dans le layout attendu ; applicationName/outputDir custom honorés via TestKit Gradle runner ; **écriture réelle de `docker-compose.yml` + `.env` + `seed/seed.sh` + `seed/seed-course.sql` sur disque** (bash `cat >` et batch `> ... (`) avec network/volumes/healthcheck/seed assertés sur les deux plateformes.
-- **BDD (pattern S-082)** : `cucumberTestInstaller` — feature `academy_installer.feature` `@installer` (11 scénarios : linux bash deterministe toolchain, compose only when enabled + postgres/ollama/portainer, compose complet Linux, credentials convention, windows batch admin/setx, macos Homebrew sans sudo, parité Windows du contrat compose complet, **seed service one-shot, seed entrypoint idempotent, seed sql data-only, parité Windows des fichiers seed**). Steps domaine pur (zéro Gradle/IO).
+- **ACADEMY-1-1 (domaine)** : `InstallerScriptGeneratorTest` (25 unit) — contenu Linux (pins toolchain documentaires, garde idempotence versionnée `~/.academy/.installed-`), scaffold compose conditionnel, **compose complet Linux (network `academy-net`, volumes nommés `postgres-data`/`ollama-models`/`portainer-data`, healthcheck `pg_isready`, `.env` + `POSTGRES_PASSWORD=` vide, Moodle `pgsql`)**, **seed DB data-only (service one-shot `moodle-seed`, entrypoint `poll mdl_course` + `psql -f seed-course.sql`, SQL `INSERT ... WHERE NOT EXISTS` sur `idnumber='academy-seed'`)** , convention credentials (prefix seulement, jamais de valeur), rendu Windows (admin, PowerShell, **escape cmd `2^>^&1`**), macOS (Homebrew, sans sudo), **hôte Docker-only sur les 3 OS (absence `JAVA_HOME`/`temurin`/`adoptium`/`services.gradle.org`/`setx JAVA_HOME`)**, **erreurs « Docker requis » + exit non-zéro**, **marqueur d'idempotence versionné**, **staging compose sous `$APP_DIR`**, **`opencode.json` différé (TODO ACADEMY-5)**, invariants de plateforme, composition du path relatif, **parité Windows du contrat compose + seed**.
+- **ACADEMY-1-2 / 6-4 / 6-5 / 6-7 (intégration)** : `AcademyInstallerFunctionalTest` (6 TestKit) — `buildAllInstallers` écrit les 3 fichiers dans le layout attendu ; applicationName/outputDir custom honorés via TestKit Gradle runner ; **écriture réelle de `docker-compose.yml` + `.env` + `seed/seed.sh` + `seed/seed-course.sql` sur disque** (bash `cat >` et batch `> ... (`) avec network/volumes/healthcheck/seed assertés sur les deux plateformes ; **hôte Docker-only (aucun provisioning hôte dans les scripts générés)**.
+- **BDD (pattern S-082)** : `cucumberTestInstaller` — feature `academy_installer.feature` `@installer` (21 scénarios : linux bash deterministe toolchain, compose only when enabled + postgres/ollama/portainer, compose complet Linux, **hôte Docker-only Linux/Windows/macOS**, **erreurs Docker requis**, **staging compose sous `$APP_DIR`**, **opencode.json différé**, credentials convention, windows batch admin + docker bootstrap, macos Homebrew sans sudo, parité Windows du contrat compose complet, **seed service one-shot, seed entrypoint idempotent, seed sql data-only, parité Windows des fichiers seed**). Steps domaine pur (zéro Gradle/IO).
 
 ## Ce qui est à couvrir
 
-- EPIC ACADEMY-6 : dogfooding conteneur (6-6, validation manuelle — `docker compose config` + `sh -n` + idempotence SQL PG16 déjà verts S-006), Cucumber étendu (6-7 : erreurs, idempotence) ; raffermissement Linux (arch aarch64, persistence PATH/JAVA_HOME, partiellement caduc D-6-10), Windows profil 64-bit, macOS Rosetta.
-- ACADEMY-5 (opencode.json), ACADEMY-7 (BYOK LLM), contrats ACADEMY-4/2/3 : pas de tests tant que non implémentés.
+- ACADEMY-5 (opencode.json + session zsh + réinsertion du service `workspace` dans `composeBody()`), ACADEMY-7 (BYOK LLM), contrats ACADEMY-4/2/3 : pas de tests tant que non implémentés.
+- ACADEMY-6-1/2/3 : **CADUQUES (S-008)** — aucun raffermissement hôte à couvrir (hôte = Docker only).
 
 ## Évolution future
 
@@ -31,4 +33,6 @@ Session 006 : ACADEMY-6-5 terminé — seed DB data-only (service one-shot `mood
 | 2026-09-22 | 12 unit (dont parité Windows) + 2 functional + 5 cucumber | 0 FAIL — `check` VERT |
 | 2026-09-22 | 26 unit (dont compose complet Linux/Windows) + 3 functional (compose+env sur disque) + 14 cucumber (7 scénarios × 2 runners) | 0 FAIL — `check` VERT (43 checks) |
 | 2026-09-22 | 16 unit + 4 functional (dont seed sur disque) + 11 scénarios cucumber (dont seed ×4) — RED prouvé (unit/cucumber/functional) | 0 FAIL — `check` VERT + `validatePlugins` VERT |
+| 2026-09-21 | 21 unit + 5 functional + 15 scénarios cucumber (dogfooding 5 écarts) | 0 FAIL — `check` VERT + `validatePlugins` VERT |
+| 2026-09-21 | 28 unit + 6 functional + 21 scénarios cucumber (hôte Docker-only, chemins, erreurs, opencode.json différé) — RED prouvé aux 3 niveaux (unit 6 failed / cucumber 6 failed / functional 1 failed) | 0 FAIL — `check` VERT + `validatePlugins` VERT + `publishToMavenLocal` VERT |
 |===

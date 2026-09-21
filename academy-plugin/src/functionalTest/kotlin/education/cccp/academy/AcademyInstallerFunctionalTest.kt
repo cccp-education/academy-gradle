@@ -165,6 +165,32 @@ class AcademyInstallerFunctionalTest {
         assertTrue(windows.contains("mdl_course"), "windows seed entrypoint must wait for the schema (parity)")
     }
 
+    @Test
+    fun `host bootstrap provisions docker only - no host toolchain is installed`() {
+        writeBuild(
+            """
+            plugins {
+                id("education.cccp.academy")
+            }
+            """.trimIndent(),
+        )
+
+        val result = runner("buildAllInstallers").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":buildAllInstallers")?.outcome)
+
+        val scripts = listOf(
+            File(projectDir, "build/academy/installers/linux/install.sh").readText(),
+            File(projectDir, "build/academy/installers/macos/install.sh").readText(),
+            File(projectDir, "build/academy/installers/windows/install.bat").readText(),
+        )
+        scripts.forEach { script ->
+            assertTrue(script.contains("docker"), "every installer must bootstrap Docker")
+            assertFalse(script.contains("JAVA_HOME"), "the host must not provision Java (D-ACADEMY-6-10)")
+            assertFalse(script.contains("services.gradle.org"), "the host must not download Gradle (D-ACADEMY-6-10)")
+        }
+    }
+
     private fun writeBuild(content: String) {
         File(projectDir, "settings.gradle.kts").writeText("rootProject.name = \"consumer-sample\"\n")
         File(projectDir, "build.gradle.kts").writeText(content)

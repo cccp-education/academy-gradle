@@ -11,8 +11,8 @@ package education.cccp.academy.installer
  * @param os target operating system
  * @param applicationName resource name (never blank)
  * @param applicationVersion distributed version (never blank)
- * @param javaVersion Java Temurin major version (digits only)
- * @param gradleVersion Gradle version pin (never blank)
+ * @param javaVersion Java Temurin major version of the workspace image (digits only)
+ * @param gradleVersion Gradle version pin of the workspace image (never blank)
  * @param composeEnabled whether the script embeds the docker-compose scaffold
  * @param credentialsEnvPrefix env prefix the credentials are read from
  */

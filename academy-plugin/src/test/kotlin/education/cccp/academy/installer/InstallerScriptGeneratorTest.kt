@@ -22,6 +22,7 @@ class InstallerScriptGeneratorTest {
     private fun platform(
         os: TargetOs = TargetOs.LINUX,
         composeEnabled: Boolean = true,
+        credentialsEnvPrefix: String = "ACADEMY_",
     ) = InstallerPlatform(
         os = os,
         applicationName = "academy",
@@ -29,7 +30,7 @@ class InstallerScriptGeneratorTest {
         javaVersion = "25",
         gradleVersion = "9.7.1",
         composeEnabled = composeEnabled,
-        credentialsEnvPrefix = "ACADEMY_",
+        credentialsEnvPrefix = credentialsEnvPrefix,
     )
 
     @Test
@@ -39,9 +40,8 @@ class InstallerScriptGeneratorTest {
         val script = files.single()
         assertEquals("install.sh", script.relativePath)
         assertTrue(script.content.startsWith("#!/usr/bin/env bash"))
-        assertTrue(script.content.contains("JAVA_HOME"))
-        assertTrue(script.content.contains("25"))
-        assertTrue(script.content.contains("9.7.1"))
+        assertTrue(script.content.contains("JAVA_VERSION=\"25\""))
+        assertTrue(script.content.contains("GRADLE_VERSION=\"9.7.1\""))
         assertTrue(script.content.contains("academy"))
     }
 
@@ -221,7 +221,7 @@ class InstallerScriptGeneratorTest {
     @Test
     fun `credentials never hold values - only the env prefix convention`() {
         val script = InstallerScriptGenerator.render(
-            platform(credentialsPrefixShallBe = "MY_ACADEMY_"),
+            platform(credentialsEnvPrefix = "MY_ACADEMY_"),
         ).single().content
 
         assertTrue(script.contains("MY_ACADEMY_"))
@@ -230,14 +230,14 @@ class InstallerScriptGeneratorTest {
     }
 
     @Test
-    fun `windows installer is a batch script with admin check and setx env`() {
+    fun `windows installer is a batch script with admin check and the docker bootstrap`() {
         val script = InstallerScriptGenerator.render(platform(TargetOs.WINDOWS)).single().content
 
         assertEquals("install.bat", InstallerScriptGenerator.render(platform(TargetOs.WINDOWS)).single().relativePath)
         assertTrue(script.startsWith("@echo off"))
         assertTrue(script.contains("net session"), "windows installer must check admin rights")
-        assertTrue(script.contains("setx"), "windows installer must set env vars")
-        assertTrue(script.contains("PowerShell"), "windows installer must use PowerShell downloads")
+        assertTrue(script.contains("Get-Command docker"), "windows installer must check the Docker engine")
+        assertTrue(script.contains("PowerShell"), "windows installer must use PowerShell")
         assertTrue(script.contains("25"))
         assertTrue(script.contains("9.7.1"))
         assertTrue(script.contains("ollama"), "windows compose scaffold must embed the ollama service (parity D-ACADEMY-6-10)")
@@ -264,6 +264,79 @@ class InstallerScriptGeneratorTest {
     }
 
     @Test
+    fun `linux host bootstrap provisions docker only - the toolchain lives in the workspace image`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
+
+        assertTrue(script.contains("command -v docker"), "linux installer must check the Docker engine")
+        assertFalse(script.contains("JAVA_HOME"), "the host must not provision Java (D-ACADEMY-6-10)")
+        assertFalse(script.contains("temurin"), "the host must not download Temurin (D-ACADEMY-6-10)")
+        assertFalse(script.contains("services.gradle.org"), "the host must not download Gradle (D-ACADEMY-6-10)")
+        assertFalse(script.contains("jdk"), "the host must not install a JDK (D-ACADEMY-6-10)")
+    }
+
+    @Test
+    fun `windows host bootstrap provisions docker only and keeps the admin guard`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.WINDOWS)).single().content
+
+        assertTrue(script.contains("net session"), "windows installer must keep the admin check")
+        assertTrue(script.contains("Get-Command docker"), "windows installer must check the Docker engine")
+        assertFalse(script.contains("adoptium"), "windows must not download Temurin (D-ACADEMY-6-10)")
+        assertFalse(script.contains("services.gradle.org"), "windows must not download Gradle (D-ACADEMY-6-10)")
+        assertFalse(script.contains("setx JAVA_HOME"), "windows must not set JAVA_HOME on the host (D-ACADEMY-6-10)")
+    }
+
+    @Test
+    fun `macos host bootstrap provisions docker only via homebrew without sudo`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.MACOS)).single().content
+
+        assertTrue(script.contains("brew install --cask docker"), "macos installer must bootstrap Docker Desktop via Homebrew")
+        assertFalse(script.contains("brew install openjdk"), "macos must not provision Java (D-ACADEMY-6-10)")
+        assertFalse(script.contains("brew install gradle"), "macos must not provision Gradle (D-ACADEMY-6-10)")
+        assertFalse(script.contains("sudo"), "macos installer must not require sudo")
+    }
+
+    @Test
+    fun `installers abort with an actionable message when docker is missing`() {
+        val linux = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
+        val windows = InstallerScriptGenerator.render(platform(TargetOs.WINDOWS)).single().content
+        val macos = InstallerScriptGenerator.render(platform(TargetOs.MACOS)).single().content
+
+        assertTrue(linux.contains("Docker is required"), "linux must explain Docker is required")
+        assertTrue(linux.contains("exit 1"), "linux must abort non-zero when Docker is missing")
+        assertTrue(windows.contains("Docker"), "windows must explain Docker is required")
+        assertTrue(windows.contains("exit /b 1"), "windows must abort non-zero when Docker is missing")
+        assertTrue(macos.contains("Docker"), "macos must explain Docker is required")
+    }
+
+    @Test
+    fun `idempotence marker is versioned so a version bump re-provisions`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
+
+        assertTrue(script.contains("INSTALL_ROOT"), "linux installer must define its install root")
+        assertTrue(script.contains(".installed-\$APP_VERSION"), "the idempotence marker must be versioned")
+        assertTrue(script.contains("already installed"), "a second run must short-circuit as a no-op")
+    }
+
+    @Test
+    fun `compose scaffold is staged under the application directory`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
+
+        assertTrue(script.contains("APP_DIR=\"\$INSTALL_ROOT/\$APP_NAME\""), "the app dir must be derived from the install root")
+        assertTrue(script.contains("mkdir -p \"\$APP_DIR\""), "the app dir must be created before writing")
+        assertTrue(script.contains("\$APP_DIR/docker-compose.yml"), "compose must land in the app dir")
+        assertTrue(script.contains("\$APP_DIR/.env"), ".env must land in the app dir")
+        assertTrue(script.contains("\$APP_DIR/seed/seed.sh"), "seed entrypoint must land in the app seed dir")
+    }
+
+    @Test
+    fun `opencode configuration is deferred with the workspace service`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
+
+        assertFalse(script.contains("opencode.json"), "opencode.json must not be generated before ACADEMY-5")
+        assertTrue(script.contains("TODO ACADEMY-5"), "the deferred opencode/workspace step must be traced")
+    }
+
+    @Test
     fun `platform invariants reject blank identity and non numeric java version`() {
         assertThrows<IllegalArgumentException> {
             platform().copy(applicationName = "  ")
@@ -275,15 +348,4 @@ class InstallerScriptGeneratorTest {
             platform().copy(gradleVersion = "")
         }
     }
-
-    private fun platform(os: TargetOs = TargetOs.LINUX, composeEnabled: Boolean = true, credentialsPrefixShallBe: String = "ACADEMY_") =
-        InstallerPlatform(
-            os = os,
-            applicationName = "academy",
-            applicationVersion = "0.0.1",
-            javaVersion = "25",
-            gradleVersion = "9.7.1",
-            composeEnabled = composeEnabled,
-            credentialsEnvPrefix = credentialsPrefixShallBe,
-        )
 }
