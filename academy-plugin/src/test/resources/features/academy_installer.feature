@@ -68,6 +68,50 @@ Feature: Academy installer generation (ACADEMY-1)
     And the script contains "MOODLE_DATABASE_TYPE"
     And the script contains "pgsql"
 
+  Scenario: compose declares a one-shot seed service applying the course sql
+    Given a platform targeting "linux"
+    And compose embedding enabled
+    When the installer generator renders the platform
+    Then the script contains "moodle-seed"
+    And the script contains "restart: \"no\""
+    And the script contains "seed/seed.sh"
+    And the script contains "seed/seed-course.sql"
+    And the script contains "./seed:/seed"
+
+  Scenario: seed entrypoint is idempotent and waits for the Moodle schema
+    Given a platform targeting "linux"
+    And compose embedding enabled
+    When the installer generator renders the platform
+    Then the script contains "set -eu"
+    And the script contains "mdl_course"
+    And the script contains "until psql"
+    And the script contains "PGPASSWORD"
+    And the script contains "seed-course.sql"
+
+  Scenario: course seed sql is data-only and idempotent
+    Given a platform targeting "linux"
+    And compose embedding enabled
+    When the installer generator renders the platform
+    Then the script contains "INSERT INTO mdl_course"
+    And the script contains "WHERE NOT EXISTS"
+    And the script contains "academy-seed"
+    And the script does not contain "DROP "
+    And the script does not contain "DELETE "
+    And the script does not contain "TRUNCATE "
+    And the script does not contain "UPDATE "
+
+  Scenario: windows installer writes the seed files with cmd-safe escaping
+    Given a platform targeting "windows"
+    And compose embedding enabled
+    When the installer generator renders the platform
+    Then the script contains "moodle-seed"
+    And the script contains "restart: \"no\""
+    And the script contains "seed\seed.sh"
+    And the script contains "seed\seed-course.sql"
+    And the script contains "2^>^&1"
+    And the script contains "mdl_course"
+    And the script contains "WHERE NOT EXISTS"
+
   Scenario: credentials are a convention, never embedded values
     Given a platform targeting "linux"
     And credential env prefix "MY_ACADEMY_"

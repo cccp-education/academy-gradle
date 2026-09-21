@@ -242,6 +242,22 @@ object InstallerScriptGenerator {
         "      - \"./workspace:/home/opencode/workspace\"",
         "    networks:",
         "      - academy-net",
+        "  moodle-seed:",
+        "    image: postgres:16",
+        "    restart: \"no\"",
+        "    entrypoint: [\"sh\", \"/seed/seed.sh\"]",
+        "    environment:",
+        "      PGHOST: postgres",
+        "      PGDATABASE: \${POSTGRES_DB}",
+        "      PGUSER: postgres",
+        "      PGPASSWORD: \${POSTGRES_PASSWORD}",
+        "    volumes:",
+        "      - \"./seed:/seed\"",
+        "    depends_on:",
+        "      postgres:",
+        "        condition: service_healthy",
+        "    networks:",
+        "      - academy-net",
         "",
         "networks:",
         "  academy-net:",
@@ -266,6 +282,58 @@ object InstallerScriptGenerator {
         "OLLAMA_HOST=http://ollama:11434",
     )
 
+    /**
+     * Seed entrypoint body (D-ACADEMY-6-6) — the single source of truth shared
+     * by every platform. The one-shot `moodle-seed` service runs it on the first
+     * `compose up`: it polls until Moodle has created its schema (`mdl_course`)
+     * then applies [seedCourseSqlBody]. It never migrates, never deletes.
+     *
+     * The value of `PGPASSWORD` is read from the environment at runtime — this
+     * scaffold embeds the convention only, never a secret.
+     */
+    private fun seedScriptBody(): List<String> = listOf(
+        "#!/bin/sh",
+        "# Academy Moodle seed entrypoint - idempotent, data-only (D-ACADEMY-6-6)",
+        "set -eu",
+        "echo \"[academy] waiting for the Moodle schema (mdl_course)...\"",
+        "attempt=0",
+        "until psql -tAc \"SELECT to_regclass('public.mdl_course')\" 2>&1 | grep -q mdl_course; do",
+        "  attempt=\$((attempt + 1))",
+        "  if [ \"\$attempt\" -ge 60 ]; then",
+        "    echo \"[academy] Moodle schema not ready after 60 attempts - aborting seed\"",
+        "    exit 1",
+        "  fi",
+        "  sleep 5",
+        "done",
+        "echo \"[academy] applying data-only course seed...\"",
+        "psql -v ON_ERROR_STOP=1 -f /seed/seed-course.sql",
+        "echo \"[academy] course seed applied (idempotent)\"",
+    )
+
+    /**
+     * Minimal course seed SQL (D-ACADEMY-6-6) — **data-only and idempotent**:
+     * a single `INSERT ... WHERE NOT EXISTS` keyed by a stable `idnumber`, so
+     * running it twice is a no-op. No `DDL`, no `DELETE`, no `UPDATE`.
+     */
+    private fun seedCourseSqlBody(): List<String> = listOf(
+        "-- Academy minimal course seed - data-only, idempotent (D-ACADEMY-6-6)",
+        "-- The course lives in the default category (id 1) created by Moodle install.",
+        "INSERT INTO mdl_course (",
+        "  category, sortorder, fullname, shortname, idnumber, summary, summaryformat,",
+        "  format, showgrades, newsitems, startdate, enddate, visible, groupmode,",
+        "  groupmodeforce, defaultgroupingid, lang, timecreated, timemodified,",
+        "  enablecompletion, showactivitydates, showcompletionconditions, requested",
+        ")",
+        "SELECT 1, 0, 'Academy - Experimentation Track', 'academy-seed', 'academy-seed',",
+        "       'Minimal Moodle course seeded by the academy installer.', 1,",
+        "       'topics', 1, 0, 0, 0, 1, 0,",
+        "       0, 0, 'en', extract(epoch FROM now())::bigint, extract(epoch FROM now())::bigint,",
+        "       1, 1, 1, 0",
+        "WHERE NOT EXISTS (",
+        "  SELECT 1 FROM mdl_course WHERE idnumber = 'academy-seed'",
+        ");",
+    )
+
     private fun StringBuilder.appendComposeScaffold(platform: InstallerPlatform) {
         if (!platform.composeEnabled) return
         appendLine("mkdir -p \"\$APP_DIR\"")
@@ -275,6 +343,13 @@ object InstallerScriptGenerator {
         appendLine("EOF")
         appendLine("cat > \"\$APP_DIR/.env\" <<'EOF'")
         envBody().forEach { appendLine(it) }
+        appendLine("EOF")
+        appendLine("mkdir -p \"\$APP_DIR/seed\"")
+        appendLine("cat > \"\$APP_DIR/seed/seed.sh\" <<'EOF'")
+        seedScriptBody().forEach { appendLine(it) }
+        appendLine("EOF")
+        appendLine("cat > \"\$APP_DIR/seed/seed-course.sql\" <<'EOF'")
+        seedCourseSqlBody().forEach { appendLine(it) }
         appendLine("EOF")
         appendLine("echo \"[academy] compose scaffold written - edit \$APP_DIR/.env and \$APP_DIR/docker-compose.yml before running docker compose up\"")
     }
@@ -289,6 +364,27 @@ object InstallerScriptGenerator {
         appendLine("> \"%APP_DIR%\\.env\" (")
         envBody().forEach { appendLine("echo $it") }
         appendLine(")")
+        appendLine("if not exist \"%APP_DIR%\\seed\" mkdir \"%APP_DIR%\\seed\"")
+        appendLine("> \"%APP_DIR%\\seed\\seed.sh\" (")
+        seedScriptBody().forEach { appendLine("echo ${escapeCmd(it)}") }
+        appendLine(")")
+        appendLine("> \"%APP_DIR%\\seed\\seed-course.sql\" (")
+        seedCourseSqlBody().forEach { appendLine("echo ${escapeCmd(it)}") }
+        appendLine(")")
         appendLine("rem Edit %APP_DIR%\\.env and %APP_DIR%\\docker-compose.yml before running docker compose up")
     }
+
+    /**
+     * Escapes the cmd metacharacters that are special inside a batch
+     * `> file (` block: `^` `>` `&` `|` `(` `)`. Required so a line redirecting
+     * stderr (`2>&1`) or calling a SQL function (`to_regclass(...)`) is echoed
+     * literally by the Windows writer — the caret is consumed by cmd and the
+     * written file keeps the original character.
+     */
+    private fun escapeCmd(line: String): String = line
+        .replace("^", "^^")
+        .replace(">", "^>")
+        .replace("&", "^&")
+        .replace("(", "^(")
+        .replace(")", "^)")
 }

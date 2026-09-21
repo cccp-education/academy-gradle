@@ -6,10 +6,10 @@ _Regles absolues_ : voir `AGENT.adoc`
 _DAG_ : N2 — Plugin Gradle de consommation (Regle 4bis)
 _Projet_ : academy-gradle (education.cccp.academy)
 
-_Derniere mise a jour_ : 2026-09-22 (session 005)
-_Session terminee_ : 005 — ACADEMY-6-4 TERMINÉ : compose complet (network, volumes nommés, healthcheck PostgreSQL, `.env`) + parité structurelle Linux/Windows
-_Sessions precedent_ : 004 — Révisions pilote du scaffold compose (Ollama, Portainer, PostgreSQL) ; 003 — Socle générateur d'installateurs (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation Academy (installeur hybride) ; 001 — Alignement article 0124 + gouvernance + repo Git ; 000 — Bootstrap
-_Prochaine session_ : ACADEMY-6-5 (seed DB data-only au premier `compose up`) puis ACADEMY-6-6/6-7 — ordre acté 1 → 6 → 5 → 7.
+_Derniere mise a jour_ : 2026-09-22 (session 006)
+_Session terminee_ : 006 — ACADEMY-6-5 TERMINÉ : seed DB data-only (service one-shot `moodle-seed`, entrypoint idempotent, SQL `WHERE NOT EXISTS`) + parité structurelle Linux/Windows
+_Sessions precedent_ : 005 — ACADEMY-6-4 TERMINÉ (compose complet, network, volumes, healthcheck, `.env`) ; 004 — Révisions pilote du scaffold compose (Ollama, Portainer, PostgreSQL) ; 003 — Socle générateur d'installateurs (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation Academy (installeur hybride) ; 001 — Alignement article 0124 + gouvernance + repo Git ; 000 — Bootstrap
+_Prochaine session_ : ACADEMY-6-6 (dogfooding conteneur éphémère, installeur Linux réel, étapes 1→7) puis ACADEMY-6-7 — ordre acté 1 → 6 → 5 → 7.
 
 '''
 == REGLES ABSOLUES
@@ -141,12 +141,12 @@ Desktop, transverse Windows), D-ACADEMY-6-13 (PostgreSQL remplace MariaDB).
 | *Scaffold compose* — Moodle + **PostgreSQL** + **Ollama** + **Portainer** + workspace opencode zsh, parité Linux/macOS + Windows. Network dédié, volumes nommés, healthcheck PostgreSQL, `.env` documenté livrés (S-005).
 | 5
 | ✅ TERMINÉ (S-005)
+| ACADEMY-6-5
+| *Seed DB data-only* — service one-shot `moodle-seed`, entrypoint idempotent (`poll mdl_course` puis `psql -f seed-course.sql`), SQL `INSERT ... WHERE NOT EXISTS` sur `idnumber='academy-seed'` (zéro DDL/DELETE/UPDATE), parité structurelle Linux/Windows (S-006).
+| 5
+| ✅ TERMINÉ (S-006)
 | ACADEMY-6-1/2/3
 | *Raffermissement Linux/Windows/macOS* — partiellement caducs pour le provisioning hôte Java/Gradle (D-ACADEMY-6-10) — recadrer avant implémentation.
-| —
-| 🟡 À FAIRE
-| ACADEMY-6-5
-| *Seed DB data-only* au premier `compose up` (entrypoint idempotent, course minimale).
 | —
 | 🟡 À FAIRE
 | ACADEMY-6-6
@@ -159,7 +159,9 @@ Desktop, transverse Windows), D-ACADEMY-6-13 (PostgreSQL remplace MariaDB).
 | 🟡 À FAIRE
 |===
 
-_Statut_ : ACADEMY-6-0 ✅ + **ACADEMY-6-4 ✅ TERMINÉ S-005** (compose complet : network `academy-net`, volumes `postgres-data`/`ollama-models`/`portainer-data`, healthcheck `pg_isready` + `service_healthy`, Moodle `pgsql`, `.env` noms-seuls ; parité structurelle `composeBody()`/`envBody()` Linux/Windows ; dogfooding `docker compose config` VALIDE). Gates S-005 : check VERT (26 unit + 14 cucumber + 3 functional = 43 checks), publishToMavenLocal VERT, validatePlugins VERT, zéro `mariadb` en prod, zéro secret hardcodé.
+_Statut_ : ACADEMY-6-0 ✅ + **ACADEMY-6-4 ✅ TERMINÉ S-005** (compose complet) + **ACADEMY-6-5 ✅ TERMINÉ S-006** (seed DB data-only : service one-shot `moodle-seed`, entrypoint idempotent, SQL `WHERE NOT EXISTS`, parité structurelle Linux/Windows ; dogfooding `docker compose config` + `sh -n` VALIDES, idempotence prouvée sur PostgreSQL 16 réel).
+
+_Gates S-006_ : `clean check validatePlugins` VERT (16 unit + 4 functional + 11 scénarios Cucumber ×2 runners), `publishToMavenLocal` VERT, zéro secret, zéro `mariadb` en prod.
 
 '''
 == Sessions
@@ -172,6 +174,7 @@ _Statut_ : ACADEMY-6-0 ✅ + **ACADEMY-6-4 ✅ TERMINÉ S-005** (compose complet
 | 003 | 2026-09-20 | développement | Socle générateur d'installateurs (ACADEMY-1 3/3 US, BDD 5 scénarios) + cadrage ACADEMY-6-0 | 17/17
 | 004 | 2026-09-22 | développement | Révisions pilote du scaffold compose (Ollama + Portainer + PostgreSQL, parité Linux/Windows) | 5/5
 | 005 | 2026-09-22 | développement | ACADEMY-6-4 TERMINÉ — compose complet (network, volumes nommés, healthcheck PostgreSQL, `.env`) + parité structurelle Linux/Windows + dogfooding `docker compose config` | 5/5
+| 006 | 2026-09-22 | développement | ACADEMY-6-5 TERMINÉ — seed DB data-only (service one-shot `moodle-seed`, entrypoint idempotent, SQL `WHERE NOT EXISTS`) + parité structurelle Linux/Windows + idempotence prouvée PostgreSQL 16 réel | 5/5
 |===
 
 '''

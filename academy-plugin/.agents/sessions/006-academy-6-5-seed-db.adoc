@@ -1,0 +1,140 @@
+= Session 006 — ACADEMY-6-5 : seed DB data-only au premier `compose up`
+
+:date: 2026-09-22
+:session: 006
+:epic: ACADEMY-6
+:us: ACADEMY-6-5 (TERMINÉ)
+:methode: Baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR) — gouvernance pure d'abord (pattern S-057)
+
+== Mission
+
+Suite de l'EPIC ACADEMY-6 (installeur hybride), ordre acté **1 → 6 → 5 → 7**.
+US suivante : **ACADEMY-6-5** — seed DB **data-only** au premier `compose up`
+(entrypoint idempotent, import d'une course Moodle minimale), conformément à
+D-ACADEMY-6-6.
+
+== Constats (audit d'ouverture)
+
+. Le scaffold compose S-005 livrait 5 services (Moodle, PostgreSQL, Ollama,
+   Portainer, workspace) mais **aucun seed** : la base Moodle démarrait vide,
+   aucun cours n'était importé — D-ACADEMY-6-6 non satisfait.
+. La décision D-ACADEMY-6-6 était volontairement abstraite (« entrypoint s'il
+   n'existe pas », « matériel SPG/SPD quand ACADEMY-4 le fournit ») : le
+   mécanisme concret (service one-shot, staging, SQL data-only) restait à
+   trancher.
+. Aucune écriture de fichier seed par l'installeur : `$APP_DIR/seed/` n'était
+   ni créé ni peuplé côté bash, ni côté batch.
+. Le writer batch ne sait écrire que des lignes littérales : un contenu seed
+   contenant `(`, `)`, `>`, `&` (fonction SQL `to_regclass(...)`, redirection
+   `2>&1`) serait consommé par cmd au lieu d'être écrit — besoin d'un escape.
+
+== Gouvernance (pattern S-057, zéro code)
+
+Précision de `D-ACADEMY-6-6` dans `CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` :
+service **one-shot** `moodle-seed` (image `postgres:16` réutilisée,
+`restart: "no"`, entrypoint `sh /seed/seed.sh`), SQL **data-only idempotent**
+(`INSERT ... WHERE NOT EXISTS`, `idnumber` stable `academy-seed`, zéro
+`DDL`/`DELETE`/`UPDATE`/`TRUNCATE`), staging `$APP_DIR/seed/`, **parité
+structurelle** Linux/Windows via `seedScriptBody()`/`seedCourseSqlBody()`
+rendus par le heredoc bash et le writer batch (escape des métacaractères cmd
+`^>^&^(^)`). Découpage US ACADEMY-6-5 aligné (`+8 unit + BDD + 1 FT`).
+
+== RED (prouvé)
+
+Tests étendus avant le code :
+* `InstallerScriptGeneratorTest` — 4 tests : `compose declares a one-shot seed
+  service applying the course sql`, `seed entrypoint waits for the moodle schema
+  then applies the course seed`, `course seed sql is data-only and idempotent`,
+  `windows installer writes the seed files with cmd-safe escaping` ;
+* `academy_installer.feature` — 4 scénarios `@installer` (miroir Linux/Windows) ;
+* `AcademyInstallerFunctionalTest` — 1 TestKit : `seed entrypoint and course sql
+  are written as real files with the full contract`.
+
+RED prouvé par stash de la prod (`InstallerScriptGenerator.kt` au HEAD) :
+* `./gradlew test --tests "...InstallerScriptGeneratorTest"` → **20 tests,
+  4 failed** ;
+* `./gradlew cucumberTestInstaller` → **4 scénarios FAILED** (×2 runners =
+  8 failed) ;
+* `./gradlew functionalTest --tests "*seed entrypoint and course sql*"` →
+  **1 test, 1 failed**.
+
+== GREEN (prouvé)
+
+`InstallerScriptGenerator.kt` :
+* service `moodle-seed` ajouté à `composeBody()` — image `postgres:16`,
+  `restart: "no"`, `entrypoint: ["sh", "/seed/seed.sh"]`, env
+  `PGHOST`/`PGDATABASE`/`PGUSER`/`PGPASSWORD` depuis `${...}` (jamais de valeur),
+  `volumes: ["./seed:/seed"]`, `depends_on: postgres: service_healthy`,
+  `networks: academy-net` ;
+* `seedScriptBody()` — entrypoint sh idempotent : `set -eu`, poll `until psql
+  ... to_regclass('public.mdl_course')` (max 60 tentatives), puis `psql -v
+  ON_ERROR_STOP=1 -f /seed/seed-course.sql` ;
+* `seedCourseSqlBody()` — **data-only idempotent** : un seul `INSERT INTO
+  mdl_course (...) SELECT ... WHERE NOT EXISTS (SELECT 1 FROM mdl_course WHERE
+  idnumber = 'academy-seed')` (colonnes NOT NULL Moodle remplies, `idnumber`
+  stable) ; zéro DDL/DELETE/UPDATE/TRUNCATE ;
+* `appendComposeScaffold` (bash) : `mkdir -p $APP_DIR/seed` + heritage
+  `seed.sh` / `seed-course.sql` ;
+* `appendWindowsComposeScaffold` (batch) : `mkdir %APP_DIR%\seed` + writer
+  `> ... (` avec `escapeCmd()` (caret-escape `^ > & ( )`).
+
+== REFACTOR (prouvé)
+
+Les deux corps seed sont des **sources uniques** (`seedScriptBody()`,
+`seedCourseSqlBody()`) rendues par le heredoc bash *et* par le writer batch —
+même garantie structurelle que `composeBody()`/`envBody()` S-005 : la parité
+cross-plateforme n'est plus assertée a posteriori, elle est **garantie par
+construction**. L'escape cmd est isolé dans une fonction pure `escapeCmd()`
+(une seule responsabilité, testable par la feature Windows).
+
+== Dogfooding réel (validation externe)
+
+`./gradlew publishToMavenLocal` puis `./gradlew buildAllInstallers` sur le
+consommateur racine → 3 installeurs régénérés. Extraction des heredocs réels :
+* `docker compose config --quiet` → **COMPOSE VALIDE** ;
+* `sh -n seed.sh` → **SHELL VALIDE** ;
+* **idempotence SQL prouvée sur PostgreSQL 16 réel** (conteneur jetable,
+  table `mdl_course` synthétique) : run 1 = `INSERT 0 1`, run 2 = `INSERT 0 0`,
+  `count(*) = 1` — le seed est réellement idempotent, pas seulement grep-asserté.
+* rendu batch Windows inspecté : lignes seed présentes avec escape caret.
+
+== Gates
+
+* `./gradlew clean check validatePlugins` → **BUILD SUCCESSFUL**
+  (16 unit + 4 functional + 11 scénarios Cucumber ×2 runners = **22 checks
+  BDD**), 0 FAIL.
+* `./gradlew publishToMavenLocal` → **BUILD SUCCESSFUL**.
+* grep secrets `src/main` → **ZÉRO**. grep `mariadb` `src/main` → **ZÉRO**.
+
+== Décisions de session
+
+. **Seed = service one-shot, pas un entrypoint Moodle** : un conteneur
+   `moodle-seed` dédié (image Postgres réutilisée) garde l'image Moodle
+   intacte, évite un entrypoint custom fragile et survit à un `compose up`
+   répété (`restart: "no"`).
+. **Polling du schéma plutôt que course** : le seed attend `mdl_course`
+   (Moodle crée son schéma au premier boot) au lieu de courir et d'échouer.
+. **SQL data-only idempotent par `idnumber` stable** : la clé
+   `academy-seed` rend le seed rejouable sans doublon — aligné
+   D-ACADEMY-6-6 (« zéro migration destructive »).
+. **Parité structurelle des corps seed** : un seul `seedScriptBody()` /
+   `seedCourseSqlBody()`, deux writers — même leçon que S-005 (cf. bug de drift
+   S-004).
+
+== Fichiers modifiés
+
+|===
+| Fichier | Nature
+| `src/main/kotlin/.../installer/InstallerScriptGenerator.kt` | prod — service `moodle-seed` + `seedScriptBody()`/`seedCourseSqlBody()` + `escapeCmd()` + writers seed
+| `src/test/kotlin/.../installer/InstallerScriptGeneratorTest.kt` | tests — 4 unit seed
+| `src/test/resources/features/academy_installer.feature` | BDD — 4 scénarios seed
+| `src/functionalTest/kotlin/.../AcademyInstallerFunctionalTest.kt` | functional — 1 TestKit seed
+| `.agents/CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` | gouvernance — D-ACADEMY-6-6 précisée + découpage
+|===
+
+== Reste à faire (ACADEMY-6)
+
+`ACADEMY-6-6` (dogfooding conteneur éphémère, installeur Linux réel,
+étapes 1→7 — validation manuelle documentée) **prochaine session**, puis
+`ACADEMY-6-7` (Cucumber BDD étendu). `ACADEMY-6-1/2/3` restent **partiellement
+caducs** pour le provisioning hôte Java/Gradle (D-ACADEMY-6-10).

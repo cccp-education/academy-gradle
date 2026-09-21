@@ -90,6 +90,46 @@ class AcademyInstallerFunctionalTest {
         assertTrue(windows.contains("pg_isready"), "windows postgres must ship a healthcheck (parity)")
     }
 
+    @Test
+    fun `seed entrypoint and course sql are written as real files with the full contract`() {
+        writeBuild(
+            """
+            plugins {
+                id("education.cccp.academy")
+            }
+            """.trimIndent(),
+        )
+
+        val result = runner("buildAllInstallers").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":buildAllInstallers")?.outcome)
+
+        val linux = File(projectDir, "build/academy/installers/linux/install.sh").readText()
+        assertTrue(
+            linux.contains("cat > \"\$APP_DIR/seed/seed.sh\" <<'EOF'"),
+            "linux script must write the seed entrypoint",
+        )
+        assertTrue(
+            linux.contains("cat > \"\$APP_DIR/seed/seed-course.sql\" <<'EOF'"),
+            "linux script must write the seed sql",
+        )
+        assertTrue(linux.contains("moodle-seed"), "linux compose must declare the seed service")
+        assertTrue(linux.contains("until psql"), "linux seed entrypoint must poll the schema")
+        assertTrue(linux.contains("WHERE NOT EXISTS"), "linux seed sql must be idempotent")
+
+        val windows = File(projectDir, "build/academy/installers/windows/install.bat").readText()
+        assertTrue(
+            windows.contains("> \"%APP_DIR%\\seed\\seed.sh\" ("),
+            "windows script must write the seed entrypoint",
+        )
+        assertTrue(
+            windows.contains("> \"%APP_DIR%\\seed\\seed-course.sql\" ("),
+            "windows script must write the seed sql",
+        )
+        assertTrue(windows.contains("moodle-seed"), "windows compose must declare the seed service (parity)")
+        assertTrue(windows.contains("mdl_course"), "windows seed entrypoint must wait for the schema (parity)")
+    }
+
     private fun writeBuild(content: String) {
         File(projectDir, "settings.gradle.kts").writeText("rootProject.name = \"consumer-sample\"\n")
         File(projectDir, "build.gradle.kts").writeText(content)

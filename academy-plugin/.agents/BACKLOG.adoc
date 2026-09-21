@@ -2,7 +2,7 @@
 :toc:
 :toclevels: 2
 
-_Dernière mise à jour_ : 2026-09-22 — ACADEMY-6-4 **TERMINÉ (S-005)** : `docker-compose.yml` complet et exécutable (network `academy-net`, volumes nommés, healthcheck PostgreSQL, `.env` noms-seuls), parité structurelle Linux/Windows (`composeBody()`/`envBody()` source unique), dogfooding `docker compose config` VALIDE. Prochaine US : ACADEMY-6-5 (seed DB data-only).
+_Dernière mise à jour_ : 2026-09-22 — ACADEMY-6-5 **TERMINÉ (S-006)** : seed DB **data-only** au premier `compose up` (service one-shot `moodle-seed`, entrypoint idempotent `seed.sh`, `seed-course.sql` `INSERT ... WHERE NOT EXISTS`), parité structurelle Linux/Windows, idempotence prouvée sur PostgreSQL 16 réel. Prochaine US : ACADEMY-6-6 (dogfooding conteneur éphémère, étapes 1→7).
 
 '''
 == Vision actée (S-002, arbitrage pilote)
@@ -37,7 +37,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-0 | Bootstrap academy-gradle (création des fichiers de gouvernance, structure du plugin, placeholder de code) | ✅ TERMINÉ (S-000)
 | ACADEMY-0-BIS | Mise en conformité architecture article 0124 + fusion gouvernance + licence Apache 2.0 + repo Git | ✅ TERMINÉ (S-001)
 | ACADEMY-1 | Socle du plugin générateur d'installateurs (extension, tâches de génération, agrégateur) | ✅ TERMINÉ (S-003)
-| ACADEMY-6 | Installeur hybride multiplateforme (Docker + compose Moodle/PostgreSQL/Ollama/Portainer/workspace opencode zsh : network, volumes nommés, healthcheck PostgreSQL, `.env`, DB seedée) | 🟡 EN COURS (ACADEMY-6-0 ✅ S-003 ; ACADEMY-6-4 ✅ TERMINÉ S-005 ; reste 6-5/6-6/6-7)
+| ACADEMY-6 | Installeur hybride multiplateforme (Docker + compose Moodle/PostgreSQL/Ollama/Portainer/workspace opencode zsh : network, volumes nommés, healthcheck PostgreSQL, `.env`, DB seedée data-only) | 🟡 EN COURS (ACADEMY-6-0 ✅ S-003 ; ACADEMY-6-4 ✅ TERMINÉ S-005 ; ACADEMY-6-5 ✅ TERMINÉ S-006 ; reste 6-6/6-7)
 | ACADEMY-5 | Intégration du contrat InteractionProtocol (exposition de opencode.json + session zsh opencode lançant les tâches Gradle de l'écosystème) | 🟡 À FAIRE
 | ACADEMY-7 | Intégration du BYOK LLM (configuration du fournisseur LLM : OLLAMA_LOCAL, OLLAMA_CLOUD, GEMINI, HUGGINGFACE, CUSTOM) | 🟡 À FAIRE
 | ACADEMY-4 | Intégration du contrat MaterialUpdateContract (liaison avec le bureau pour recevoir le matériel versionné) | 🟡 À FAIRE
@@ -76,7 +76,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 
 === ACADEMY-6 : Installeur hybride multiplateforme (machine d'expérimentation)
 
-*Statut* : 🟡 EN COURS — ACADEMY-6-0 (cadrage) ✅ S-003 — doc `CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` (5 constats, 9 décisions D-ACADEMY-6-1..9, options écartées, articulation 1→6→5→7) ; **ACADEMY-6-4 (scaffold compose complet) ✅ TERMINÉ S-005**.
+*Statut* : 🟡 EN COURS — ACADEMY-6-0 (cadrage) ✅ S-003 — doc `CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` (5 constats, 9 décisions D-ACADEMY-6-1..9, options écartées, articulation 1→6→5→7) ; **ACADEMY-6-4 (scaffold compose complet) ✅ TERMINÉ S-005** ; **ACADEMY-6-5 (seed DB data-only) ✅ TERMINÉ S-006**.
 
 *Orientation actée (S-002)* : la ressource contient TOUT pour expérimenter la formation :
 - Hôte : Docker uniquement (D-ACADEMY-6-10 — le toolchain Java/Gradle vit dans l'image workspace).
@@ -91,7 +91,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-6-2 | Générateur d'installateur Windows (`.bat`) : vérif admin, PowerShell downloads, variables d'environnement, profil 64-bit — **partiellement caduc (D-ACADEMY-6-10)**
 | ACADEMY-6-3 | Générateur d'installateur macOS (`.sh`) : Homebrew/cask Docker Desktop, détection arch, Java/Gradle via brew, sans sudo — **partiellement caduc (D-ACADEMY-6-10)**
 | ACADEMY-6-4 | Génération `docker-compose.yml` : services Moodle + **PostgreSQL** (base Moodle, `POSTGRES_PASSWORD`/`POSTGRES_DB`, volumes persistants, D-ACADEMY-6-13) + workspace opencode zsh + **Ollama** (image `ollama/ollama`, volume modèles, port `11434`, D-ACADEMY-6-11) + **Portainer** (image `portainer/portainer`, port `9000`, volume données, mount `/var/run/docker.sock` — surface GUI remplaçant Docker Desktop, D-ACADEMY-6-12), **network dédié `academy-net`, volumes nommés `postgres-data`/`ollama-models`/`portainer-data`, healthcheck PostgreSQL `pg_isready` + `depends_on: service_healthy`, Moodle câblé `pgsql`, fichier `.env` généré (noms seulement, valeurs runtime)** — parité **structurelle** Linux/macOS + Windows (`composeBody()`/`envBody()` source unique partagée par le heredoc bash et le writer batch). ✅ **TERMINÉ S-005** (dogfooding `docker compose config` VALIDE)
-| ACADEMY-6-5 | Seed de la base Moodle + configuration volumes (première optimisation, création des répertoires/droits, fichiers de config) au premier `compose up` — **prochaine session**
+| ACADEMY-6-5 | Seed de la base Moodle + configuration volumes au premier `compose up` — service one-shot `moodle-seed` (image `postgres:16`, `restart: "no"`, `entrypoint sh /seed/seed.sh`), entrypoint idempotent (poll `mdl_course` puis `psql -f /seed/seed-course.sql`), SQL data-only (`INSERT ... WHERE NOT EXISTS` sur `idnumber='academy-seed'`), staging `$APP_DIR/seed/`, parité structurelle Linux/Windows (`seedScriptBody()`/`seedCourseSqlBody()` + `escapeCmd()`). ✅ **TERMINÉ S-006** (idempotence prouvée PostgreSQL 16 réel)
 | ACADEMY-6-6 | Dogfooding : build réel de l'installeur Linux sur un conteneur éphémère, validation des étapes 1→7 (dépendances → validation)
 | ACADEMY-6-7 | Cucumber BDD : scénarios installeur étendus (contenu OS, compose, idempotence, erreurs, opencode.json)
 |===
@@ -157,6 +157,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | 2026-09-20 | S-003 : ACADEMY-1 TERMINÉ 3/3 US (extension Property-based, domaine pur, 4 tâches, 17 checks verts — check VERT + validatePlugins + publishToMavenLocal) ; ACADEMY-6-0 cadrage rédigé (CADRAGE_EPIC_ACADEMY_INSTALLER.adoc) ; push origin cccp-education/academy-gradle
 | 2026-09-22 | S-004 : révisions pilote actées sur le scaffold compose — (1) Ollama embarqué (D-ACADEMY-6-11), (2) Portainer remplace Docker Desktop (D-ACADEMY-6-12, transverse Windows), (3) **PostgreSQL remplace MariaDB** (D-ACADEMY-6-13). ACADEMY-6-4 aligné (parité Linux/mac + Windows). |
 | 2026-09-22 | S-005 : **ACADEMY-6-4 TERMINÉ** — compose complet (network `academy-net`, volumes nommés `postgres-data`/`ollama-models`/`portainer-data`, healthcheck PostgreSQL `pg_isready` + `service_healthy`, Moodle `pgsql`, `.env` noms-seuls) ; REFACTOR `composeBody()`/`envBody()` = source unique partagée bash/batch (**parité structurelle**) ; tests 43 checks 0 FAIL ; dogfooding `docker compose config` VALIDE. |
+| 2026-09-22 | S-006 : **ACADEMY-6-5 TERMINÉ** — seed DB data-only (service one-shot `moodle-seed`, entrypoint idempotent `seed.sh`, `seed-course.sql` `INSERT ... WHERE NOT EXISTS`) ; REFACTOR `seedScriptBody()`/`seedCourseSqlBody()` = source unique partagée + `escapeCmd()` (parité structurelle) ; 16 unit + 4 functional + 11 scénarios cucumber 0 FAIL ; dogfooding `docker compose config` + `sh -n` VALIDES + idempotence SQL prouvée PostgreSQL 16 réel (run1 `INSERT 0 1`, run2 `INSERT 0 0`). |
 |===
 
 '''
@@ -166,8 +167,8 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 [x] ACADEMY-1-0 : extension typée `academyInstaller` (pattern Property-based)
 [x] ACADEMY-6-0 : rédiger `CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` (frontières, contenu des scripts, seed DB, articulation 1/5/6/7)
 [x] ACADEMY-6-4 : compose complet (network, volumes nommés, healthcheck PostgreSQL, `.env` noms-seuls) + parité structurelle Linux/Windows + dogfooding `docker compose config`
-[ ] ACADEMY-6-5 : seed DB data-only au premier `compose up` (entrypoint idempotent, course minimale) — prochaine session
-[ ] ACADEMY-6-6 : dogfooding conteneur éphémère (installeur Linux réel, étapes 1→7)
+[x] ACADEMY-6-5 : seed DB data-only au premier `compose up` (service one-shot `moodle-seed`, entrypoint idempotent, `seed-course.sql`) + parité structurelle Linux/Windows + idempotence prouvée PostgreSQL 16 réel
+[ ] ACADEMY-6-6 : dogfooding conteneur éphémère (installeur Linux réel, étapes 1→7) — prochaine session
 [ ] ACADEMY-6-7 : Cucumber BDD étendu (contenu OS, erreurs, idempotence)
 [ ] Recadrer ACADEMY-6-1/2/3 (partiellement caducs pour le provisioning hôte Java/Gradle, D-ACADEMY-6-10) avant implémentation
 [ ] Vérifier la conformité avec les décisions actées dans VISION_PIPELINE_FORMATION.adoc (sections 3.3, 9.2, 8.2)

@@ -107,6 +107,56 @@ class InstallerScriptGeneratorTest {
     }
 
     @Test
+    fun `compose declares a one-shot seed service applying the course sql`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
+
+        assertTrue(script.contains("moodle-seed"), "compose must declare the one-shot seed service")
+        assertTrue(script.contains("restart: \"no\""), "seed service must be one-shot")
+        assertTrue(script.contains("entrypoint"), "seed service must override the container entrypoint")
+        assertTrue(script.contains("./seed:/seed"), "seed directory must be mounted into the seed container")
+        assertTrue(script.contains("seed/seed.sh"), "seed service must run the idempotent entrypoint")
+        assertTrue(script.contains("seed/seed-course.sql"), "seed service must apply the course sql")
+    }
+
+    @Test
+    fun `seed entrypoint waits for the moodle schema then applies the course seed`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
+
+        assertTrue(script.contains("set -eu"), "seed entrypoint must fail fast")
+        assertTrue(script.contains("psql"), "seed entrypoint must use psql")
+        assertTrue(script.contains("mdl_course"), "seed entrypoint must wait for the Moodle schema")
+        assertTrue(script.contains("until"), "seed entrypoint must poll instead of racing Moodle")
+        assertTrue(script.contains("PGPASSWORD"), "seed entrypoint must read the runtime password from the environment")
+        assertTrue(script.contains("seed-course.sql"), "seed entrypoint must apply the sql file")
+    }
+
+    @Test
+    fun `course seed sql is data-only and idempotent`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
+
+        assertTrue(script.contains("mdl_course"), "seed sql must target the Moodle course table")
+        assertTrue(script.contains("INSERT INTO"), "seed sql must insert the minimal course")
+        assertTrue(script.contains("WHERE NOT EXISTS"), "seed sql must be idempotent")
+        assertTrue(script.contains("academy-seed"), "seed sql must use a stable course idnumber")
+        listOf("DROP ", "DELETE ", "TRUNCATE ", "ALTER ", "UPDATE ").forEach { destructive ->
+            assertFalse(script.contains(destructive), "seed sql must be data-only, found: $destructive")
+        }
+    }
+
+    @Test
+    fun `windows installer writes the seed files with cmd-safe escaping`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.WINDOWS)).single().content
+
+        assertTrue(script.contains("moodle-seed"), "windows compose must declare the seed service (parity)")
+        assertTrue(script.contains("restart: \"no\""), "windows seed service must be one-shot (parity)")
+        assertTrue(script.contains("seed\\seed.sh"), "windows must write the seed entrypoint")
+        assertTrue(script.contains("seed\\seed-course.sql"), "windows must write the seed sql")
+        assertTrue(script.contains("2^>^&1"), "windows seed lines must escape cmd redirection metacharacters")
+        assertTrue(script.contains("mdl_course"), "windows seed must wait for the Moodle schema (parity)")
+        assertTrue(script.contains("WHERE NOT EXISTS"), "windows seed sql must be idempotent (parity)")
+    }
+
+    @Test
     fun `credentials never hold values - only the env prefix convention`() {
         val script = InstallerScriptGenerator.render(
             platform(credentialsPrefixShallBe = "MY_ACADEMY_"),
