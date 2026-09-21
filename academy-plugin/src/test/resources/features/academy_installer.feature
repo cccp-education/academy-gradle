@@ -27,7 +27,11 @@ Feature: Academy installer generation (ACADEMY-1)
     When the installer generator renders the platform
     Then the script contains "docker-compose.yml"
     And the script contains "moodle"
-    And the script contains "mariadb"
+    And the script contains "postgres"
+    And the script contains "POSTGRES_PASSWORD"
+    And the script does not contain "mariadb"
+    And the script contains "ollama"
+    And the script contains "portainer"
 
     Given a platform targeting "linux"
     And compose embedding disabled

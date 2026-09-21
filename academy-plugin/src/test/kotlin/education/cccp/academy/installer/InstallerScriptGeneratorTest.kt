@@ -13,7 +13,8 @@ import kotlin.test.assertTrue
  * The generator renders a deterministic per-platform installer scaffold
  * (pure function, no I/O): host provisioning (Docker bootstrap, Java Temurin,
  * Gradle), idempotence guard, credential env convention, and the embedded
- * `docker-compose.yml` scaffold (Moodle + MariaDB + opencode workspace) as a
+ * `docker-compose.yml` scaffold (Moodle + PostgreSQL + Ollama + Portainer +
+ * opencode workspace) as a
  * heredoc when [InstallerPlatform.composeEnabled] is true.
  */
 class InstallerScriptGeneratorTest {
@@ -59,7 +60,16 @@ class InstallerScriptGeneratorTest {
 
         assertTrue(withCompose.contains("docker-compose.yml"))
         assertTrue(withCompose.contains("moodle"))
-        assertTrue(withCompose.contains("mariadb"))
+        assertTrue(withCompose.contains("postgres"), "compose scaffold must embed postgres as the Moodle database (pilot: postgres over mariadb)")
+        assertTrue(withCompose.contains("POSTGRES_PASSWORD"), "postgres service must configure its password via environment")
+        assertFalse(withCompose.contains("mariadb"), "mariadb must be fully replaced by postgres")
+        assertTrue(withCompose.contains("ollama"), "compose scaffold must embed the ollama service (D-ACADEMY-6-10)")
+        assertTrue(withCompose.contains("ollama/ollama"), "ollama service must use the official ollama image")
+        assertTrue(withCompose.contains("11434"), "ollama service must expose the model port 11434")
+        assertTrue(withCompose.contains("portainer"), "compose scaffold must embed the portainer service replacing the Docker Desktop GUI (pilot decision)")
+        assertTrue(withCompose.contains("portainer/portainer"), "portainer must use the official portainer image")
+        assertTrue(withCompose.contains("9000"), "portainer must expose its web UI on port 9000")
+        assertTrue(withCompose.contains("/var/run/docker.sock"), "portainer must mount the host docker socket")
         assertFalse(withoutCompose.contains("docker-compose.yml"))
     }
 
@@ -85,6 +95,16 @@ class InstallerScriptGeneratorTest {
         assertTrue(script.contains("PowerShell"), "windows installer must use PowerShell downloads")
         assertTrue(script.contains("25"))
         assertTrue(script.contains("9.7.1"))
+        assertTrue(script.contains("ollama"), "windows compose scaffold must embed the ollama service (parity D-ACADEMY-6-10)")
+        assertTrue(script.contains("ollama/ollama"), "windows ollama service must use the official ollama image")
+        assertTrue(script.contains("11434"), "windows ollama service must expose the model port 11434")
+        assertTrue(script.contains("portainer"), "windows compose scaffold must embed the portainer service replacing Docker Desktop")
+        assertTrue(script.contains("portainer/portainer"), "windows portainer must use the official portainer image")
+        assertTrue(script.contains("9000"), "windows portainer must expose its web UI on port 9000")
+        assertTrue(script.contains("/var/run/docker.sock"), "windows portainer must mount the host docker socket")
+        assertTrue(script.contains("postgres"), "windows compose scaffold must embed postgres as the Moodle database (parity)")
+        assertTrue(script.contains("POSTGRES_PASSWORD"), "windows postgres service must configure its password via environment")
+        assertFalse(script.contains("mariadb"), "windows scaffold must not keep mariadb after the postgres switch")
     }
 
     @Test

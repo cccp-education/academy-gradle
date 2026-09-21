@@ -18,7 +18,7 @@ import org.junit.platform.suite.api.Suite
  * The scenarios lock the socle contract: a deterministic bash/batch script
  * per platform with the pinned toolchain, Docker host bootstrap, idempotence
  * guard, environment-only credentials, and an optional docker-compose
- * scaffold (Moodle + MariaDB + opencode workspace).
+ * scaffold (Moodle + PostgreSQL + Ollama + Portainer + opencode workspace).
  */
 @Suite
 @IncludeEngines("cucumber")

@@ -1,0 +1,110 @@
+= Session 004 — Révisions pilote du scaffold compose (Ollama, Portainer, PostgreSQL)
+
+:date: 2026-09-22
+:session: 004
+:epic: ACADEMY-6
+:us: ACADEMY-6-4 (partiel, volet compose scaffold)
+:methode: Baby-step DDD/TDD strict (RED → GREEN) — gouvernance pure d'abord (pattern S-057)
+
+== Mission
+
+Acter et implémenter les trois révisions pilote sur le scaffold compose du
+générateur d'installateurs (EPIC ACADEMY-6) :
+
+. **Ollama embarqué** — « il installe aussi l'image docker de ollama »
+. **Portainer remplace Docker Desktop** — « installer portainer plutot que
+  docker desktop »
+. **PostgreSQL remplace MariaDB** — « je prefere postgres a mariadb »
+
+== Constats (audit d'ouverture)
+
+. `InstallerScriptGenerator.appendComposeScaffold` (Linux/macOS) embarquait
+   déjà `ollama` + `portainer` (2 edits d'une session interrompue) mais le
+   scaffold Windows `appendWindowsComposeScaffold` n'avait **ni l'un ni
+   l'autre** → parité cross-plateforme rompue.
+. Le test unitaire Linux assertait `mariadb` + `ollama` + `portainer` ;
+   le test unitaire Windows assertait `ollama` + `portainer` mais **sans
+   assertions `mariadb`/`postgres`** ; la feature Cucumber
+   `academy_installer.feature` assertait encore **`mariadb`** seul.
+. La gouvernance (CADRAGE + BACKLOG) mentionnait encore `MariaDB` à 7
+   endroits ; CADRAGE contenait un **doublon** `D-ACADEMY-6-10` (l.87 + l.88).
+. Aucune référence `ollama`/`portainer`/`postgres` dans la gouvernance
+   (seules les mentions Ollama+Portainer partielles du BACKLOG ACADEMY-6-4).
+
+== Gouvernance (pattern S-057, zéro code)
+
+CADRAGE_EPIC_ACADEMY_INSTALLER.adoc :
+* schéma ASCII : `MariaDB` → `PostgreSQL` + ajout `Ollama` + `Portainer` ;
+* constat l.53 : scaffold compose `Moodle + PostgreSQL + Ollama + Portainer + workspace` ;
+* `D-ACADEMY-6-5` : services `Moodle + PostgreSQL + Ollama + Portainer + workspace`, ports 8080/11434/9000 ;
+* doublon `D-ACADEMY-6-10` (l.87-88) **consolidé** et remplacé par 4 décisions distinctes :
+  - `D-ACADEMY-6-10` — hôte = Docker uniquement, le reste est de l'image ;
+  - `D-ACADEMY-6-11` — Ollama embarqué (`ollama/ollama`, volume `ollama-models`, port 11434, healthcheck) ;
+  - `D-ACADEMY-6-12` — Portainer remplace Docker Desktop (`portainer/portainer`, port 9000, mount docker.sock) — **transverse, vaut Windows** ;
+  - `D-ACADEMY-6-13` — PostgreSQL remplace MariaDB (`postgres` + `POSTGRES_PASSWORD`/`POSTGRES_DB`, volumes persistants, `depends_on` moodle→postgres).
+
+BACKLOG.adoc :
+* schéma ASCII aligné ;
+* table des épics : `ACADEMY-6` → `compose Moodle/PostgreSQL/Ollama/Portainer/workspace` ;
+* orientation : `Moodle + PostgreSQL + Ollama + Portainer + workspace` ;
+* `ACADEMY-6-4` : description alignée (PostgreSQL + Ollama D-6-11 + Portainer D-6-12 + D-6-13) ;
+* `D-ACADEMY-1` : `Moodle + PostgreSQL + Ollama + Portainer + workspace` ;
+* entrée d'historique S-004.
+
+== RED (prouvé)
+
+Tests étendus avant le code :
+* `InstallerScriptGeneratorTest` l.62-64 : `postgres` + `POSTGRES_PASSWORD` + `assertFalse(mariadb)` ;
+* `InstallerScriptGeneratorTest` test Windows : + `postgres` + `POSTGRES_PASSWORD` + `assertFalse(mariadb)` ;
+* `academy_installer.feature` scénario compose : `postgres` + `POSTGRES_PASSWORD` + `not contain mariadb` + `ollama` + `portainer`.
+
+`./gradlew test --tests "education.cccp.academy.installer.InstallerScriptGeneratorTest"`
+→ **BUILD FAILED — 12 tests, 3 failed** (compose Linux postgres, compose Linux mariadb-absent, Windows parité).
+
+== GREEN (prouvé)
+
+`InstallerScriptGenerator.kt` :
+* `appendComposeScaffold` (Linux/macOS) : bloc `mariadb:11` + `MARIADB_*` remplacé par
+  `postgres:16` + `POSTGRES_PASSWORD`/`POSTGRES_DB` + volume `postgres-data`, `depends_on: postgres` ;
+* `appendWindowsComposeScaffold` : même swap mariadb→postgres **et** ajout des services
+  `ollama` + `portainer` (parité echo-prefixed avec le scaffold Linux/macOS).
+
+KDoc alignés (3 fichiers) : `InstallerScriptGenerator`, `AcademyInstallerExtension`,
+`AcademyInstallerCucumberRunner` — `Moodle + PostgreSQL + Ollama + Portainer + opencode workspace`.
+
+Gates :
+* `./gradlew test --tests ...InstallerScriptGeneratorTest` → **BUILD SUCCESSFUL** (12/12) ;
+* `./gradlew test ... --rerun-tasks` → **BUILD SUCCESSFUL** (unit + Cucumber 12/12) ;
+* `./gradlew check` → **BUILD SUCCESSFUL** (unit + functional TestKit + cucumberTestInstaller + validatePlugins + Kover) ;
+* `./gradlew publishToMavenLocal` → **BUILD SUCCESSFUL** ;
+* grep `mariadb` en `src/main` → **ZÉRO** ;
+* grep secrets (`TOKEN|SECRET|API_KEY|gho_|ghp_`) → seules les assertions négatives des tests.
+
+== Décisions de session
+
+. Parité cross-plateforme cadenassée par tests : un service transverse
+  (`ollama`, `portainer`, `postgres`) doit être asserté **sur Linux ET Windows**.
+. Décision pilote PostgreSQL actée en gouvernance **avant** le code
+  (pattern S-057), pas de mariadb résiduel en production.
+. Doublon de décision `D-ACADEMY-6-10` nettoyé : une décision par révision
+  pilote (D-6-10/11/12/13) pour traçabilité.
+
+== Fichiers modifiés
+
+|===
+| Fichier | Nature
+| `src/main/kotlin/.../installer/InstallerScriptGenerator.kt` | prod — swap postgres + parité Windows ollama/portainer
+| `src/main/kotlin/.../AcademyInstallerExtension.kt` | KDoc
+| `src/test/kotlin/.../installer/InstallerScriptGeneratorTest.kt` | tests — postgres + parité Windows
+| `src/test/resources/features/academy_installer.feature` | BDD — postgres + ollama + portainer
+| `src/test/scenarios/.../bdd/AcademyInstallerCucumberRunner.kt` | KDoc
+| `.agents/CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` | gouvernance
+| `.agents/BACKLOG.adoc` | gouvernance
+|===
+
+== Reste à faire (ACADEMY-6)
+
+`ACADEMY-6-4` reste partiel : network dédié, volumes nommés Moodle + Ollama +
+Portainer, `.env`, course seedée via entrypoint (ACADEMY-6-5), healthcheck
+PostgreSQL. Le raffermissement Linux/macOS/Windows (6-1/2/3) demeure planifié
+mais **partiellement caduc** pour le provisioning hôte Java/Gradle (D-ACADEMY-6-10).

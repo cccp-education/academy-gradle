@@ -18,7 +18,9 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
                                │ docker compose
 ┌───────────────────────────── ▼  DOCKER  ─────────────────────────┐
 │  Moodle 4.x  (LMS formation, cours seedé)                        │
-│  MariaDB     (base Moodle, volumes persistants)                  │
+│  PostgreSQL  (base Moodle, volumes persistants)  ← pilote 09-22  │
+│  Ollama      (runtime LLM, modèles, port 11434)                  │
+│  Portainer   (GUI Docker, port 9000 — remplace Docker Desktop)   │
 │  workspace   (session zsh + opencode via conteneur)              │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -35,7 +37,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-0 | Bootstrap academy-gradle (création des fichiers de gouvernance, structure du plugin, placeholder de code) | ✅ TERMINÉ (S-000)
 | ACADEMY-0-BIS | Mise en conformité architecture article 0124 + fusion gouvernance + licence Apache 2.0 + repo Git | ✅ TERMINÉ (S-001)
 | ACADEMY-1 | Socle du plugin générateur d'installateurs (extension, tâches de génération, agrégateur) | ✅ TERMINÉ (S-003)
-| ACADEMY-6 | Installeur hybride multiplateforme (Docker + Java 25 + Gradle 9.7.1 + compose Moodle/MariaDB/workspace opencode zsh + volumes + DB seedée) | 🟡 À FAIRE (cadrage ACADEMY-6-0 ✅ S-003)
+| ACADEMY-6 | Installeur hybride multiplateforme (Docker + Java 25 + Gradle 9.7.1 + compose Moodle/PostgreSQL/Ollama/Portainer/workspace opencode zsh + volumes + DB seedée) | 🟡 À FAIRE (cadrage ACADEMY-6-0 ✅ S-003)
 | ACADEMY-5 | Intégration du contrat InteractionProtocol (exposition de opencode.json + session zsh opencode lançant les tâches Gradle de l'écosystème) | 🟡 À FAIRE
 | ACADEMY-7 | Intégration du BYOK LLM (configuration du fournisseur LLM : OLLAMA_LOCAL, OLLAMA_CLOUD, GEMINI, HUGGINGFACE, CUSTOM) | 🟡 À FAIRE
 | ACADEMY-4 | Intégration du contrat MaterialUpdateContract (liaison avec le bureau pour recevoir le matériel versionné) | 🟡 À FAIRE
@@ -78,7 +80,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 
 *Orientation actée (S-002)* : la ressource contient TOUT pour expérimenter la formation :
 - Hôte : Docker + Java Temurin 25 + Gradle 9.7.1 (lance les plugins education.cccp).
-- Docker : Moodle + MariaDB (volumes persistants + base seedée) + conteneur workspace zsh+opencode.
+- Docker : Moodle + PostgreSQL (volumes persistants + base seedée) + Ollama (runtime LLM) + Portainer (GUI Docker, remplace Docker Desktop) + conteneur workspace zsh+opencode.
 - opencode (hôte ou conteneur) déclenche les tâches Gradle de l'écosystème sur le projet apprenant.
 
 [cols="2,3", options="header"]
@@ -88,7 +90,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-6-1 | Générateur d'installateur Linux (`.sh`) : bootstrap Docker, téléchargement Java Temurin 25, Gradle 9.7.1, PATH/JAVA_HOME/alternatives, garde idempotence — prochaine session
 | ACADEMY-6-2 | Générateur d'installateur Windows (`.bat`) : vérif admin, PowerShell downloads, variables d'environnement, profil 64-bit
 | ACADEMY-6-3 | Générateur d'installateur macOS (`.sh`) : Homebrew/cask Docker Desktop, détection arch, Java/Gradle via brew, sans sudo
-| ACADEMY-6-4 | Génération `docker-compose.yml` : services Moodle + MariaDB + workspace opencode zsh, volumes persistants, network, healthchecks, variables `.env`
+| ACADEMY-6-4 | Génération `docker-compose.yml` : services Moodle + **PostgreSQL** (base Moodle, `POSTGRES_PASSWORD`/`POSTGRES_DB`, volumes persistants, D-ACADEMY-6-13) + workspace opencode zsh + **Ollama** (image `ollama/ollama`, volume modèles, port `11434`, D-ACADEMY-6-11) + **Portainer** (image `portainer/portainer`, port `9000`, volume données, mount `/var/run/docker.sock` — surface GUI remplaçant Docker Desktop, D-ACADEMY-6-12), volumes persistants, network, healthchecks, variables `.env` — **parité Linux/mac + Windows**
 | ACADEMY-6-5 | Seed de la base Moodle + configuration volumes (première optimisation, création des répertoires/droits, fichiers de config) au premier `compose up`
 | ACADEMY-6-6 | Dogfooding : build réel de l'installeur Linux sur un conteneur éphémère, validation des étapes 1→7 (dépendances → validation)
 | ACADEMY-6-7 | Cucumber BDD : scénarios installeur (contenu, idempotence, agrégation, opencode.json)
@@ -138,7 +140,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 
 |===
 | ID | Décision | Session
-| D-ACADEMY-1 | La ressource academy = machine d'expérimentation complète du pipeline cccp.education : hôte = Docker + Java 25 + Gradle 9.7.1 ; Docker = Moodle + MariaDB + workspace opencode zsh. Sans VPS, mono-utilisateur. | S-002
+| D-ACADEMY-1 | La ressource academy = machine d'expérimentation complète du pipeline cccp.education : hôte = Docker + Java 25 + Gradle 9.7.1 ; Docker = Moodle + PostgreSQL + Ollama + Portainer + workspace opencode zsh. Sans VPS, mono-utilisateur. | S-002
 | D-ACADEMY-2 | L'installateur par plateforme (sh/bat) provisionne l'hôte, génère compose, seede la DB Moodle et les volumes, expose opencode.json — le premier `gradle build` dogfood l'écosystème. | S-002
 | D-ACADEMY-3 | Le plugin academy est un générateur de ressource de distribution — il ne réplique pas KINSHASA (provisionnement dev), qui reste N0. | S-002
 | D-ACADEMY-4 | `com.example.installer` (proposition externe) rejetée : l'identité reste `education.cccp.academy`, code anglais only, TDD/BDD baby-step strict. fichiers `files/` et `files.zip` supprimés. | S-002
@@ -153,6 +155,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | 2026-09-19 | S-001 : ajout EPIC ACADEMY-0-BIS ✅ TERMINÉ (architecture 0124, gouvernance, licence, repo)
 | 2026-09-20 | S-002 : recadrage de l'orientation — vision hybride actée (D-ACADEMY-1..4), suppression files/ + files.zip, ACADEMY-1 pivoté vers socle générateur, ACADEMY-6 révisé en « installeur hybride » (US-0 cadrage ✅), ordre des Épics réordonné
 | 2026-09-20 | S-003 : ACADEMY-1 TERMINÉ 3/3 US (extension Property-based, domaine pur, 4 tâches, 17 checks verts — check VERT + validatePlugins + publishToMavenLocal) ; ACADEMY-6-0 cadrage rédigé (CADRAGE_EPIC_ACADEMY_INSTALLER.adoc) ; push origin cccp-education/academy-gradle
+| 2026-09-22 | S-004 : révisions pilote actées sur le scaffold compose — (1) Ollama embarqué (D-ACADEMY-6-11), (2) Portainer remplace Docker Desktop (D-ACADEMY-6-12, transverse Windows), (3) **PostgreSQL remplace MariaDB** (D-ACADEMY-6-13). ACADEMY-6-4 aligné (parité Linux/mac + Windows). |
 |===
 
 '''

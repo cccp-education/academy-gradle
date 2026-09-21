@@ -1,22 +1,23 @@
 = TEST_COVERAGE_ANALYSIS — academy-gradle
 
-_Dernière mise à jour_ : 2026-09-20 (session 003)
+_Dernière mise à jour_ : 2026-09-22 (session 004)
 
 == État des tests
 
 Sessions 000-002 : aucune modification de code source (bootstrap, architecture, gouvernance).
 Session 003 : implémentation EPIC ACADEMY-1 (socle générateur d'installateurs) — première vraie couverture de code.
+Session 004 : révisions pilote du scaffold compose (postgres + ollama + portainer, parité Linux/Windows).
 
 ## Ce qui est couvert
 
 - **ACADEMY-1-0 (wiring)** : `AcademyPluginTest` (3 unit) — chargement du plugin, conventions d'extension par défaut, aggregation des 3 plateformes, surcharges (applicationName/outputDir).
-- **ACADEMY-1-1 (domaine)** : `InstallerScriptGeneratorTest` (7 unit) — contenu Linux (pins toolchain, garde idempotence `~/.academy/.installed-`), scaffold compose conditionnel, convention credentials (prefix seulement, jamais de valeur), rendu Windows (admin, PowerShell, setx), macOS (Homebrew, sans sudo), composition du path relatif.
+- **ACADEMY-1-1 (domaine)** : `InstallerScriptGeneratorTest` (8 unit) — contenu Linux (pins toolchain, garde idempotence `~/.academy/.installed-`), scaffold compose conditionnel, convention credentials (prefix seulement, jamais de valeur), rendu Windows (admin, PowerShell, setx), macOS (Homebrew, sans sudo), composition du path relatif, **scaffold compose Postgres + Ollama + Portainer sur Linux ET Windows (parité)**.
 - **ACADEMY-1-2 (intégration)** : `AcademyInstallerFunctionalTest` (2 TestKit) — `buildAllInstallers` écrit les 3 fichiers dans le layout attendu ; applicationName/outputDir custom honorés via TestKit Gradle runner.
-- **BDD (pattern S-082)** : `cucumberTestInstaller` — feature `academy_installer.feature` `@installer` (5 scénarios : linux bash deterministe toolchain, compose only when enabled, credentials convention, windows batch admin/setx, macos Homebrew sans sudo). Steps domaine pur (zéro Gradle/IO).
+- **BDD (pattern S-082)** : `cucumberTestInstaller` — feature `academy_installer.feature` `@installer` (5 scénarios : linux bash deterministe toolchain, compose only when enabled + postgres/ollama/portainer, credentials convention, windows batch admin/setx, macos Homebrew sans sudo). Steps domaine pur (zéro Gradle/IO).
 
 ## Ce qui est à couvrir
 
-- EPIC ACADEMY-6 : raffermissement Linux (arch aarch64, persistence PATH/JAVA_HOME), Windows profil 64-bit, macOS Rosetta, compose complet (network/volumes/healthchecks/.env), seed DB, dogfooding conteneur (validation manuelle), Cucumber étendu (erreurs, idempotence).
+- EPIC ACADEMY-6 : raffermissement Linux (arch aarch64, persistence PATH/JAVA_HOME, partiellement caduc D-6-10), Windows profil 64-bit, macOS Rosetta, compose complet (network/volumes/healthchecks/.env, healthcheck PostgreSQL), seed DB, dogfooding conteneur (validation manuelle), Cucumber étendu (erreurs, idempotence).
 - ACADEMY-5 (opencode.json), ACADEMY-7 (BYOK LLM), contrats ACADEMY-4/2/3 : pas de tests tant que non implémentés.
 
 ## Évolution future
@@ -25,4 +26,5 @@ Session 003 : implémentation EPIC ACADEMY-1 (socle générateur d'installateurs
 | 2026-09-19 | Aucun (session build/gouvernance) | N/A |
 | 2026-09-20 | Aucun (session recadrage gouvernance) | N/A |
 | 2026-09-20 | 10 unit + 2 functional + 5 cucumber (17 checks) | 0 FAIL — `check` VERT |
+| 2026-09-22 | 12 unit (dont parité Windows) + 2 functional + 5 cucumber | 0 FAIL — `check` VERT |
 |===

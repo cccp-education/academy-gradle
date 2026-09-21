@@ -52,7 +52,8 @@ abstract class AcademyInstallerExtension {
 
     /**
      * Whether the generated script embeds the `docker-compose.yml` scaffold
-     * (Moodle + MariaDB + opencode workspace) written at install time.
+     * (Moodle + PostgreSQL + Ollama + Portainer + opencode workspace) written
+     * at install time.
      */
     abstract val composeEnabled: Property<Boolean>
 

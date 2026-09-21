@@ -2,30 +2,48 @@
 
 == Mission de la prochaine session
 
-Travailler sur l'EPIC ACADEMY-6 (installeur hybride) — ordre acté **1 → 6 → 5 → 7**.
-Première US : **ACADEMY-6-1** (installeur Linux raffermi : arch aarch64, persistence `JAVA_HOME`/`PATH`/`~/.local/bin`, exit Docker documenté).
+Poursuivre l'EPIC ACADEMY-6 (installeur hybride) — ordre acté **1 → 6 → 5 → 7**.
+US suivante : **ACADEMY-6-4 (suite)** — compléter le `docker-compose.yml` :
+network dédié, volumes nommés (Moodle + PostgreSQL + Ollama + Portainer),
+healthcheck PostgreSQL, variables `.env` — puis **ACADEMY-6-5** (seed DB
+data-only au premier `compose up`).
 
 Contexte :
 - Le borough Bagdad (academy-gradle) livre une **machine d'expérimentation complète du pipeline cccp.education** (vision actée S-002, D-ACADEMY-1..4).
-- Ressource = hôte (Docker + Java Temurin 25 + Gradle 9.7.1) + Docker (Moodle + MariaDB + workspace opencode en session zsh).
+- Ressource = hôte (**Docker UNIQUEMENT**, D-ACADEMY-6-10) + Docker (Moodle + PostgreSQL + Ollama + Portainer + workspace opencode en session zsh).
 - L'apprenant consomme les plugins education.cccp (bakery, document, slider, capsule…) via Maven Central + Gradle, zéro VPS, mono-utilisateur.
 
-== État de l'architecture (session 003)
+== État de l'architecture (session 004)
 
-- **ACADEMY-1 TERMINÉ (3/3 US)** : socle générateur d'installateurs. Extension `academyInstaller` Property-based (8 properties), domaine pur `education.cccp.academy.installer` (TargetOs / InstallerPlatform / InstallerFile / InstallerScriptGenerator), tâches generateLinux/Windows/MacInstaller + buildAllInstallers (thin-wrapper GenerateInstallerTask). Gate `check` VERT (10 unit + 2 functional + cucumberTestInstaller 5/5), publishToMavenLocal VERT.
-- **ACADEMY-6-0 cadrage rédigé** → `.agents/CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` (5 constats, 9 décisions D-ACADEMY-6-1..9, US 6-1..7 découpées, options écartées, articulation 1→6→5→7).
-- Push vers origin cccp-education/academy-gradle effectué en clôture S-003.
+- **ACADEMY-1 TERMINÉ (3/3 US)** : socle générateur. Extension `academyInstaller`
+  Property-based, domaine pur `education.cccp.academy.installer`, tâches
+  generateLinux/Windows/MacInstaller + buildAllInstallers.
+- **ACADEMY-6-0 cadrage** → `.agents/CADRAGE_EPIC_ACADEMY_INSTALLER.adoc`
+  (constats, décisions **D-ACADEMY-6-1..13**, US 6-1..7, options écartées).
+- **ACADEMY-6-4 (volet compose scaffold) avancé S-004** : le scaffold compose
+  embarque **Moodle + PostgreSQL + Ollama + Portainer + workspace**, sur
+  **Linux/macOS ET Windows** (parité cadenassée par tests). Gate `check` VERT
+  (12/12), `publishToMavenLocal` VERT, zéro `mariadb` en production.
+- Révisions pilote actées : D-6-10 (hôte=Docker only), D-6-11 (Ollama),
+  D-6-12 (Portainer remplace Docker Desktop, transverse), D-6-13 (PostgreSQL
+  remplace MariaDB).
 
 == Points en attente / ordre de travail suggéré
 
-1. ACADEMY-6-1 (Linux) : aarch64, persistence PATH/JAVA_HOME `~/.profile` + symlinks `~/.local/bin`, message exit Docker documenté (+4 unit + 1 FT).
-2. ACADEMY-6-2 (Windows profil 64-bit), ACADEMY-6-3 (macOS Rosetta zéro sudo).
-3. ACADEMY-6-4 (docker-compose.yml complet : network/volumes/healthchecks/.env), ACADEMY-6-5 (seed DB data-only), ACADEMY-6-6 (dogfooding conteneur), ACADEMY-6-7 (Cucumber étendu).
-4. Ensuite ACADEMY-5 (opencode.json + session zsh) puis ACADEMY-7 (BYOK LLM).
+1. ACADEMY-6-4 (suite) : network dédié, volumes nommés, healthcheck PostgreSQL,
+   `.env` documenté (noms seulement, zéro valeur — règle Secrets).
+2. ACADEMY-6-5 : seed DB data-only (entrypoint idempotent, course minimale).
+3. ACADEMY-6-6 (dogfooding conteneur), ACADEMY-6-7 (Cucumber étendu).
+4. ACADEMY-6-1/2/3 (raffermissement Linux/Windows/macOS) : **partiellement
+   caducs** pour le provisioning hôte Java/Gradle (D-ACADEMY-6-10) — recadrer
+   avant implémentation.
+5. Ensuite ACADEMY-5 (opencode.json + session zsh) puis ACADEMY-7 (BYOK LLM).
 
 ## Rappel des ordres de mission
 
 - BDD/TDD baby-step strict : RED → GREEN → REFACTOR, 1 fichier de test avant le code.
+- Gouvernance d'abord pour toute décision pilote (pattern S-057).
+- Parité cross-plateforme : tout service compose transverse est asserté Linux ET Windows.
 - DAG N2 : academy importable par N3, jamais N3 → academy.
 - Zéro secret dans le code. `publishToMavenLocal` obligatoire après toute modification de code source.
 - Code anglais only (OSS cccp-education), docs gouvernance en français.

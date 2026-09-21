@@ -21,7 +21,9 @@ un **installeur hybride multiplateforme** :
                                │ docker compose
 ┌───────────────────────────── ▼  DOCKER  ─────────────────────────┐
 │  Moodle 4.x  (LMS formation, cours seedé)                        │
-│  MariaDB     (base Moodle, volumes persistants)                  │
+│  PostgreSQL  (base Moodle, volumes persistants)  ← pilote 09-22  │
+│  Ollama      (runtime LLM, modèles, port 11434)                  │
+│  Portainer   (GUI Docker, port 9000 — remplace Docker Desktop)   │
 │  workspace   (session zsh + opencode via conteneur)              │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -50,8 +52,8 @@ l'articulation avec les Épics voisins.
    shell Linux / cask Homebrew macOS / admin + PowerShell Windows),
    garde d'idempotence (`~/.academy/.installed-<version>`), préfixe de
    credentials via environnement (`ENV_PREFIX`) sans jamais embarquer de
-   valeur, scaffold compose (Moodle + MariaDB + workspace opencode zsh)
-   en heredoc uniquement quand `composeEnabled=true`.
+   valeur, scaffold compose (Moodle + PostgreSQL + Ollama + Portainer +
+   workspace opencode zsh) en heredoc uniquement quand `composeEnabled=true`.
 . *Le canonical du socle est volontairement naïf* ($ sous `~/.academy`,
    Temurin/Linux via curl+tar x64, Windows via adoptium API + `setx`,
    macOS via Homebrew) — il satisfait les 7 tests de la feature mais doit
@@ -79,11 +81,15 @@ l'articulation avec les Épics voisins.
 | D-ACADEMY-6-2 | Linux : `install.sh` bootstrap Docker (doc + exit si absent), Temurin via `APT`/`curl` selon arch (`x86_64`/`aarch64`), Gradle `services.gradle.org`, `JAVA_HOME` + `PATH` persistés dans `~/.profile`, `gradle` proxy via `~/.local/bin` symlinks. Garde idempotence conservée (layer S-003). | 6-1
 | D-ACADEMY-6-3 | Windows : `.bat` admin (`net session`), downloads PowerShell (Temurin API + zip Gradle), `setx` `JAVA_HOME`/`PATH` (profil 64-bit documenté), fonctionne sur Windows 11. | 6-2
 | D-ACADEMY-6-4 | macOS : `.sh` Homebrew (`brew install --cask docker`, `openjdk@25`, `gradle`), `uname -m` pour Rosetta, **zéro sudo**. | 6-3
-| D-ACADEMY-6-5 | Le `docker-compose.yml` généré est **complet et directement exécutable** : services Moodle + MariaDB + workspace, network dédié, volumes nommés persistants, ports exposés (Moodle 8080), healthchecks, course seedée via entrypoint dédié, variables depuis `.env`. | 6-4/6-5
+| D-ACADEMY-6-5 | Le `docker-compose.yml` généré est **complet et directement exécutable** : services Moodle + PostgreSQL + Ollama + Portainer + workspace, network dédié, volumes nommés persistants, ports exposés (Moodle 8080, Ollama 11434, Portainer 9000), healthchecks, course seedée via entrypoint dédié, variables depuis `.env`. | 6-4/6-5
 | D-ACADEMY-6-6 | Le seed DB est **data-only** au premier `compose up` (entrypoint s'il n'existe pas) : création répertoires/configuration Moodle, import d'un cours minimal (matériel SPG/SPD quand ACADEMY-4 le fournit). Zéro migration destructive, idempotent. | 6-5
 | D-ACADEMY-6-7 | Articulation 1/5/6/7 : ACADEMY-1 = socle d'extension+tâches (déjà acté S-003) ; ACADEMY-6 = contenu définitif des scripts + compose + seed (cet EPIC) ; ACADEMY-5 = `opencode.json` + session zsh (consomme le workspace du conteneur) ; ACADEMY-7 = fournisseur LLM (alimente le `.env`/convention de l'installeur, jamais la valeur). Les ordres : ACADEMY-1 → 6 → 5 → 7. | articulation
 | D-ACADEMY-6-8 | ACADEMY-6 n'ajoute **aucune dépendance compile** (reste un pur générateur). Le dogfooding ACADEMY-6-6 est une validation manuelle/CI documentée, pas un test de build. | 6-6
 | D-ACADEMY-6-9 | Chaque US produit des tests à son niveau : unitaire pur + extension ; functional TestKit pour l'exécution réelle ; Cucumber pour le contenu (idempotence, agrégation, absence de secret). Baby-step DDD/TDD/BDD strict, English only. | 6-1..7
+| D-ACADEMY-6-10 | **Révision pilote (2026-09-21) — hôte = Docker UNIQUEMENT, le reste est de l'image** : l'installeur ne provisionne **rien d'autre sur le système hôte que Docker** (zéro Temurin hôte, zéro Gradle hôte — D-ACADEMY-6-2/6-3/6-4 DEViennent CADUQUES pour le provisioning hôte). Tout le toolchain (Java Temurin, Gradle) vit **dans l'image workspace** `cccp-education/academy-workspace:latest` du scaffold compose. `composeEnabled=true` par défaut sur toutes les plateformes. | 6-1..7
+| D-ACADEMY-6-11 | **Révision pilote (2026-09-21) — Ollama embarqué** : le scaffold compose gagne le service `ollama` (image `ollama/ollama`, volume dédié modèles `ollama-models:/root/.ollama`, port `11434` exposé, healthcheck `ollama list`) — description pilote « il installe aussi l'image docker de ollama ». | 6-4
+| D-ACADEMY-6-12 | **Révision pilote (2026-09-22) — Portainer remplace Docker Desktop** : la surface GUI de management Docker est le service `portainer/portainer` (web `9000`, mount `/var/run/docker.sock`, healthcheck) à la place de Docker Desktop — décision pilote « installer portainer plutot que docker desktop ». Transverse, **vaut Windows aussi** (Docker Desktop est la GUI Windows/macOS). | 6-4
+| D-ACADEMY-6-13 | **Révision pilote (2026-09-22) — PostgreSQL remplace MariaDB** : la base Moodle du scaffold compose est **PostgreSQL** (`postgres` + `POSTGRES_PASSWORD`/`POSTGRES_DB`, volumes persistants, `depends_on` moodle→postgres) — décision pilote « je prefere postgres a mariadb ». Supporté officiellement par Moodle 4.x. | 6-4
 |===
 
 == Découpage des US

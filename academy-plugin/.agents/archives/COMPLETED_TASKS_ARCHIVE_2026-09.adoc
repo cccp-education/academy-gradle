@@ -21,3 +21,7 @@ _Session 003 (2026-09-20) — Socle générateur d'installateurs (ACADEMY-1) + c
 - ACADEMY-1-1 : Domaine pur `education.cccp.academy.installer` (TargetOs, InstallerPlatform+invariants, InstallerFile, InstallerScriptGenerator) (3 pts)
 - ACADEMY-1-2 : Tests — 10 unit + 2 functional TestKit + 5 scénarios cucumber (3 pts)
 - ACADEMY-6-0 : Cadrage `CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` (5 constats, 9 décisions, articulation 1→6→5→7) (8 pts)
+
+_Session 004 (2026-09-22) — Révisions pilote du scaffold compose (Ollama, Portainer, PostgreSQL)_
+
+- ACADEMY-6-4 (volet compose scaffold) : gouvernance actée (D-6-10→13) + swap `mariadb:11`→`postgres:16` sur Linux/macOS et Windows + parité Windows `ollama`/`portainer` — RED prouvé (3 failed) → GREEN (12/12, check VERT) (5 pts)
