@@ -67,7 +67,7 @@ class InstallerScriptGeneratorTest {
         assertTrue(withCompose.contains("ollama/ollama"), "ollama service must use the official ollama image")
         assertTrue(withCompose.contains("11434"), "ollama service must expose the model port 11434")
         assertTrue(withCompose.contains("portainer"), "compose scaffold must embed the portainer service replacing the Docker Desktop GUI (pilot decision)")
-        assertTrue(withCompose.contains("portainer/portainer"), "portainer must use the official portainer image")
+        assertTrue(withCompose.contains("portainer/portainer-ce"), "portainer must use the maintained portainer-ce image")
         assertTrue(withCompose.contains("9000"), "portainer must expose its web UI on port 9000")
         assertTrue(withCompose.contains("/var/run/docker.sock"), "portainer must mount the host docker socket")
         assertFalse(withoutCompose.contains("docker-compose.yml"))
@@ -86,7 +86,7 @@ class InstallerScriptGeneratorTest {
         assertTrue(script.contains("pg_isready"), "postgres service must ship a healthcheck")
         assertTrue(script.contains(".env"), "compose must document the .env file")
         assertTrue(script.contains("POSTGRES_PASSWORD="), ".env must document POSTGRES_PASSWORD without a value")
-        assertTrue(script.contains("MOODLE_DATABASE_TYPE"), "moodle service must be wired to postgres")
+        assertTrue(script.contains("DB_TYPE"), "moodle service must be wired to postgres")
         assertTrue(script.contains("pgsql"), "moodle database type must be pgsql")
     }
 
@@ -102,7 +102,7 @@ class InstallerScriptGeneratorTest {
         assertTrue(script.contains("pg_isready"), "windows postgres service must ship a healthcheck (parity)")
         assertTrue(script.contains(".env"), "windows compose must document the .env file (parity)")
         assertTrue(script.contains("POSTGRES_PASSWORD="), "windows .env must document POSTGRES_PASSWORD without a value (parity)")
-        assertTrue(script.contains("MOODLE_DATABASE_TYPE"), "windows moodle service must be wired to postgres (parity)")
+        assertTrue(script.contains("DB_TYPE"), "windows moodle service must be wired to postgres (parity)")
         assertTrue(script.contains("pgsql"), "windows moodle database type must be pgsql (parity)")
     }
 
@@ -157,6 +157,68 @@ class InstallerScriptGeneratorTest {
     }
 
     @Test
+    fun `moodle service uses the real latest image with the actual environment contract`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
+
+        assertTrue(
+            script.contains("erseco/alpine-moodle:v5.2.3"),
+            "moodle must use a real, maintained image (the placeholder moodle:4.5 does not exist)",
+        )
+        assertFalse(script.contains("moodle:4.5"), "the non-existent placeholder image must be gone")
+        listOf("DB_TYPE", "DB_HOST", "DB_NAME", "DB_USER", "DB_PASS").forEach { variable ->
+            assertTrue(script.contains(variable), "moodle must wire PostgreSQL via $variable")
+        }
+        listOf("MOODLE_USERNAME", "MOODLE_PASSWORD", "MOODLE_SITENAME").forEach { variable ->
+            assertTrue(script.contains(variable), "moodle auto-install requires $variable")
+        }
+        assertFalse(
+            script.contains("MOODLE_DATABASE_TYPE"),
+            "the fake MOODLE_DATABASE_* contract must be replaced by the real DB_* contract",
+        )
+    }
+
+    @Test
+    fun `portainer service uses the maintained community edition image`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
+
+        assertTrue(script.contains("portainer/portainer-ce"), "portainer must use the maintained portainer-ce image")
+        assertFalse(
+            script.contains("image: portainer/portainer\n"),
+            "the obsolete portainer/portainer image must be gone",
+        )
+    }
+
+    @Test
+    fun `portainer ships no healthcheck because its distroless image has no shell`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
+
+        assertFalse(
+            script.contains("wget"),
+            "portainer-ce is distroless (no wget/sh) - a wget healthcheck is always unhealthy",
+        )
+    }
+
+    @Test
+    fun `workspace service stays deferred until the academy image is published`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
+
+        assertFalse(
+            script.contains("cccp-education/academy-workspace"),
+            "the unpublished workspace image must not be an active service (it would break compose up)",
+        )
+        assertTrue(script.contains("TODO ACADEMY-5"), "the deferred workspace service must be marked as a TODO")
+    }
+
+    @Test
+    fun `env documents the moodle runtime variables without values`() {
+        val script = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
+
+        listOf("POSTGRES_USER=", "MOODLE_USERNAME=", "MOODLE_PASSWORD=", "MOODLE_SITENAME=").forEach { variable ->
+            assertTrue(script.contains(variable), ".env must document $variable without a value")
+        }
+    }
+
+    @Test
     fun `credentials never hold values - only the env prefix convention`() {
         val script = InstallerScriptGenerator.render(
             platform(credentialsPrefixShallBe = "MY_ACADEMY_"),
@@ -182,7 +244,7 @@ class InstallerScriptGeneratorTest {
         assertTrue(script.contains("ollama/ollama"), "windows ollama service must use the official ollama image")
         assertTrue(script.contains("11434"), "windows ollama service must expose the model port 11434")
         assertTrue(script.contains("portainer"), "windows compose scaffold must embed the portainer service replacing Docker Desktop")
-        assertTrue(script.contains("portainer/portainer"), "windows portainer must use the official portainer image")
+        assertTrue(script.contains("portainer/portainer-ce"), "windows portainer must use the maintained portainer-ce image (parity)")
         assertTrue(script.contains("9000"), "windows portainer must expose its web UI on port 9000")
         assertTrue(script.contains("/var/run/docker.sock"), "windows portainer must mount the host docker socket")
         assertTrue(script.contains("postgres"), "windows compose scaffold must embed postgres as the Moodle database (parity)")

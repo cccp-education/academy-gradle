@@ -13,8 +13,9 @@ package education.cccp.academy.installer
  *  - credentials are NEVER embedded: only the [InstallerPlatform.credentialsEnvPrefix]
  *    convention is documented, values flow through environment variables
  *  - the `docker-compose.yml` scaffold (Moodle + PostgreSQL + Ollama +
- *    Portainer + opencode workspace) is embedded as a heredoc only when
- *    [InstallerPlatform.composeEnabled]
+ *    Portainer) is embedded as a heredoc only when
+ *    [InstallerPlatform.composeEnabled]; the opencode workspace service is
+ *    deferred (TODO ACADEMY-5 — its image is not published yet)
  */
 object InstallerScriptGenerator {
 
@@ -175,26 +176,34 @@ object InstallerScriptGenerator {
      *
      * It is complete and directly executable: dedicated network, named
      * persistent volumes, port mappings (Moodle 8080, Ollama 11434, Portainer
-     * 9000), healthchecks (PostgreSQL `pg_isready`, Ollama, Portainer), Moodle
-     * wired to PostgreSQL (`pgsql`) and values sourced from `.env` — never
-     * embedded.
+     * 9000), healthchecks (PostgreSQL `pg_isready`, Ollama — Portainer is
+     * distroless and carries no healthcheck, D-ACADEMY-6-17), Moodle
+     * wired to PostgreSQL via the real image contract (D-ACADEMY-6-14/15 —
+     * `DB_TYPE`/`DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASS` +
+     * `MOODLE_USERNAME`/`MOODLE_PASSWORD`/`MOODLE_SITENAME`) and values sourced
+     * from `.env` — never embedded.
      */
     private fun composeBody(): List<String> = listOf(
         "services:",
         "  moodle:",
-        "    image: moodle:4.5",
+        "    image: erseco/alpine-moodle:v5.2.3",
         "    ports:",
         "      - \"8080:8080\"",
         "    environment:",
-        "      MOODLE_DATABASE_TYPE: pgsql",
-        "      MOODLE_DATABASE_HOST: postgres",
-        "      MOODLE_DATABASE_NAME: \${POSTGRES_DB}",
-        "      MOODLE_DATABASE_PASSWORD: \${POSTGRES_PASSWORD}",
+        "      DB_TYPE: pgsql",
+        "      DB_HOST: postgres",
+        "      DB_NAME: \${POSTGRES_DB}",
+        "      DB_USER: postgres",
+        "      DB_PASS: \${POSTGRES_PASSWORD}",
+        "      MOODLE_USERNAME: \${MOODLE_USERNAME}",
+        "      MOODLE_PASSWORD: \${MOODLE_PASSWORD}",
+        "      MOODLE_SITENAME: \${MOODLE_SITENAME}",
         "    depends_on:",
         "      postgres:",
         "        condition: service_healthy",
         "    networks:",
         "      - academy-net",
+        "  # TODO ACADEMY-5: add the opencode workspace service once its image is published",
         "  postgres:",
         "    image: postgres:16",
         "    environment:",
@@ -223,23 +232,12 @@ object InstallerScriptGenerator {
         "    networks:",
         "      - academy-net",
         "  portainer:",
-        "    image: portainer/portainer",
+        "    image: portainer/portainer-ce",
         "    ports:",
         "      - \"9000:9000\"",
         "    volumes:",
         "      - portainer-data:/data",
         "      - \"/var/run/docker.sock:/var/run/docker.sock\"",
-        "    healthcheck:",
-        "      test: [\"CMD\", \"wget\", \"-q\", \"--spider\", \"http://localhost:9000\"]",
-        "      interval: 30s",
-        "      timeout: 10s",
-        "      retries: 3",
-        "    networks:",
-        "      - academy-net",
-        "  workspace:",
-        "    image: cccp-education/academy-workspace:latest",
-        "    volumes:",
-        "      - \"./workspace:/home/opencode/workspace\"",
         "    networks:",
         "      - academy-net",
         "  moodle-seed:",
@@ -277,8 +275,11 @@ object InstallerScriptGenerator {
     private fun envBody(): List<String> = listOf(
         "# Academy runtime configuration - names only, values are provided at runtime (never committed)",
         "POSTGRES_DB=moodle",
+        "POSTGRES_USER=postgres",
         "POSTGRES_PASSWORD=",
-        "MOODLE_DATABASE_TYPE=pgsql",
+        "MOODLE_USERNAME=admin",
+        "MOODLE_PASSWORD=",
+        "MOODLE_SITENAME=Academy",
         "OLLAMA_HOST=http://ollama:11434",
     )
 

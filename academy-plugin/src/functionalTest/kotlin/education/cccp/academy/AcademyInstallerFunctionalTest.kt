@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -88,6 +89,40 @@ class AcademyInstallerFunctionalTest {
         assertTrue(windows.contains("> \"%APP_DIR%\\.env\" ("), "windows script must write the .env file")
         assertTrue(windows.contains("academy-net"), "windows compose must declare the network (parity)")
         assertTrue(windows.contains("pg_isready"), "windows postgres must ship a healthcheck (parity)")
+    }
+
+    @Test
+    fun `generated compose references real images and is directly executable`() {
+        writeBuild(
+            """
+            plugins {
+                id("education.cccp.academy")
+            }
+            """.trimIndent(),
+        )
+
+        val result = runner("buildAllInstallers").build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":buildAllInstallers")?.outcome)
+
+        val scripts = listOf(
+            File(projectDir, "build/academy/installers/linux/install.sh").readText(),
+            File(projectDir, "build/academy/installers/windows/install.bat").readText(),
+        )
+        scripts.forEach { script ->
+            assertTrue(
+                script.contains("erseco/alpine-moodle:v5.2.3"),
+                "compose must reference the real latest Moodle image",
+            )
+            assertFalse(script.contains("moodle:4.5"), "the non-existent placeholder image must be gone")
+            assertTrue(script.contains("portainer/portainer-ce"), "portainer must use the maintained CE image")
+            assertFalse(
+                script.contains("cccp-education/academy-workspace"),
+                "the unpublished workspace image must not block compose up",
+            )
+            assertTrue(script.contains("DB_TYPE"), "moodle must wire PostgreSQL via the real contract")
+            assertTrue(script.contains("MOODLE_USERNAME"), "moodle auto-install requires the admin variables")
+        }
     }
 
     @Test

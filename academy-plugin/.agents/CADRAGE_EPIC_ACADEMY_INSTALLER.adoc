@@ -73,6 +73,40 @@ l'articulation avec les Épics voisins.
    *distribue* une machine locale ; KINSHASA (N0) reste le provisionnement
    dev cross-borough. Aucune dépendance compile à ajouter.
 
+== Constats du dogfooding (S-007, ACADEMY-6-6)
+
+Le dogfooding réel (build de l'installeur Linux, extraction des heredocs,
+`docker compose up` sur conteneur éphémère) a **prouvé l'enchaînement**
+Docker → PostgreSQL healthy → seed one-shot (`INSERT 0 1`, puis `INSERT 0 0`
+en re-run) → Moodle up (`/login/index.php` HTTP 200) — **et révélé que le
+scaffold tel que livré était inexécutable** :
+
+. *`moodle:4.5` n'existe pas* : `docker compose pull moodle` échoue
+   (`pull access denied for moodle, repository does not exist`). C'était un
+   placeholder jamais vérifié ; aucune image Docker officielle ne porte
+   l'organisation `moodle`. Le scaffold était **non exécutable**.
+. *Contrat d'environnement faux* : le scaffold émettait
+   `MOODLE_DATABASE_TYPE`/`MOODLE_DATABASE_HOST`/`MOODLE_DATABASE_NAME`/
+   `MOODLE_DATABASE_PASSWORD` — aucune image réelle n'expose ce contrat.
+   L'image retenue attend `DB_TYPE`/`DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASS`
+   + `MOODLE_USERNAME`/`MOODLE_PASSWORD`/`MOODLE_SITENAME` (auto-install).
+. *Version périmée* : le scaffold visait 4.5 ; la dernière release Moodle
+   est **5.2.3** (`download.moodle.org/releases/latest`) — PHP 8.3 +
+   PostgreSQL 16.
+. *`portainer/portainer` obsolète* : l'image maintenue est
+   `portainer/portainer-ce`.
+. *Healthcheck Portainer invalide* : `portainer-ce` est *distroless* (ni
+   `sh`, ni `wget`) — le `test: ["CMD", "wget", ...]` échoue en boucle
+   (`unhealthy`) alors que Portainer sert HTTP 200. Sonde à retirer
+   (D-ACADEMY-6-17).
+. *`cccp-education/academy-workspace:latest` inexistante* : le service
+   `workspace` (D-ACADEMY-6-10) ferait échouer `compose up` ; différé.
+
+Preuve du run réel (stack reconstruit sur images réelles) :
+`docker compose config` VALIDE ; PostgreSQL healthy ; seed `INSERT 0 1` puis
+`INSERT 0 0` (count = 1) ; Moodle **5.2.3 (Build: 20260914)** `healthy` ;
+`curl /login/index.php` = **200**.
+
 == Décisions
 
 |===
@@ -90,6 +124,10 @@ l'articulation avec les Épics voisins.
 | D-ACADEMY-6-11 | **Révision pilote (2026-09-21) — Ollama embarqué** : le scaffold compose gagne le service `ollama` (image `ollama/ollama`, volume dédié modèles `ollama-models:/root/.ollama`, port `11434` exposé, healthcheck `ollama list`) — description pilote « il installe aussi l'image docker de ollama ». | 6-4
 | D-ACADEMY-6-12 | **Révision pilote (2026-09-22) — Portainer remplace Docker Desktop** : la surface GUI de management Docker est le service `portainer/portainer` (web `9000`, mount `/var/run/docker.sock`, healthcheck) à la place de Docker Desktop — décision pilote « installer portainer plutot que docker desktop ». Transverse, **vaut Windows aussi** (Docker Desktop est la GUI Windows/macOS). | 6-4
 | D-ACADEMY-6-13 | **Révision pilote (2026-09-22) — PostgreSQL remplace MariaDB** : la base Moodle du scaffold compose est **PostgreSQL** (`postgres` + `POSTGRES_PASSWORD`/`POSTGRES_DB`, volumes persistants, `depends_on` moodle→postgres) — décision pilote « je prefere postgres a mariadb ». Supporté officiellement par Moodle 4.x. | 6-4
+| D-ACADEMY-6-14 | **Révision pilote (2026-09-21) — image Moodle réelle + latest** : le service `moodle` utilise `erseco/alpine-moodle:v5.2.3` (image communautaire activement maintenue, auto-install au premier boot, support PostgreSQL natif, Apache+PHP 8.3 embarqués). `moodle:4.5` était un **placeholder inexistant** (découvert par le dogfooding ACADEMY-6-6 : `pull access denied`) — décision pilote « je choisis erseco/alpine-moodle:v5.2.3 » + « suivre le latest ». La version cible est **Moodle 5.2.3** (dernière release, `download.moodle.org/releases/latest`), jamais une LTS figée. | 6-4
+| D-ACADEMY-6-15 | **Révision pilote (2026-09-21) — contrat d'environnement Moodle réel** : le scaffold du service `moodle` **ne peut pas** utiliser le contrat `MOODLE_DATABASE_*` (faux : aucune image ne l'expose). Le contrat effectif est `DB_TYPE=pgsql` + `DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASS` (wiring PostgreSQL) + `MOODLE_USERNAME`/`MOODLE_PASSWORD`/`MOODLE_SITENAME` (auto-install). Les valeurs restent des `${...}` depuis `.env` — **jamais de secret**. `.env` documente `MOODLE_USERNAME`/`MOODLE_PASSWORD` (valeurs vides). Découvert par le dogfooding ACADEMY-6-6 (le scaffold était inexécutable). | 6-4
+| D-ACADEMY-6-16 | **Révision pilote (2026-09-21) — Portainer CE + workspace différé** : (1) l'image Portainer est `portainer/portainer-ce` (`portainer/portainer` est obsolète) ; (2) le service `workspace` (`cccp-education/academy-workspace:latest`, D-ACADEMY-6-10) est **retiré du compose actif** tant que l'image n'est pas publiée — décision pilote « marqué en TODO » : le compose généré reste **directement exécutable** (`docker compose up`), et le TODO `ACADEMY-5` documente le point d'insertion. | 6-4/6-5
+| D-ACADEMY-6-17 | **Révision pilote (2026-09-21) — pas de healthcheck Portainer** : l'image `portainer/portainer-ce` est *distroless* (ni `sh`, ni `wget`, ni `curl`) ; le healthcheck `wget -q --spider` du scaffold échoue systématiquement (`exec: "wget": executable file not found`) et marque le service `unhealthy` alors qu'il sert réellement HTTP 200. Décision : **retirer le healthcheck Portainer** (aucun outil exécutable dans l'image), Portainer reste un service up sans sonde — découvert par le dogfooding ACADEMY-6-6. | 6-4
 |===
 
 == Découpage des US

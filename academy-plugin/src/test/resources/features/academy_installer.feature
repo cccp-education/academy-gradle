@@ -50,7 +50,7 @@ Feature: Academy installer generation (ACADEMY-1)
     And the script contains "pg_isready"
     And the script contains ".env"
     And the script contains "POSTGRES_PASSWORD="
-    And the script contains "MOODLE_DATABASE_TYPE"
+    And the script contains "DB_TYPE"
     And the script contains "pgsql"
 
   Scenario: windows compose scaffold mirrors the complete linux contract
@@ -65,8 +65,41 @@ Feature: Academy installer generation (ACADEMY-1)
     And the script contains "pg_isready"
     And the script contains ".env"
     And the script contains "POSTGRES_PASSWORD="
-    And the script contains "MOODLE_DATABASE_TYPE"
+    And the script contains "DB_TYPE"
     And the script contains "pgsql"
+
+  Scenario: moodle service uses the real latest image with its actual environment contract
+    Given a platform targeting "linux"
+    And compose embedding enabled
+    When the installer generator renders the platform
+    Then the script contains "erseco/alpine-moodle:v5.2.3"
+    And the script does not contain "moodle:4.5"
+    And the script contains "DB_HOST"
+    And the script contains "MOODLE_USERNAME"
+    And the script contains "MOODLE_SITENAME"
+    And the script does not contain "MOODLE_DATABASE_TYPE"
+
+  Scenario: portainer uses the maintained community edition image
+    Given a platform targeting "linux"
+    And compose embedding enabled
+    When the installer generator renders the platform
+    Then the script contains "portainer/portainer-ce"
+
+  Scenario: the unpublished workspace image is deferred with a TODO
+    Given a platform targeting "linux"
+    And compose embedding enabled
+    When the installer generator renders the platform
+    Then the script does not contain "cccp-education/academy-workspace"
+    And the script contains "TODO ACADEMY-5"
+
+  Scenario: env documents the moodle runtime variables without values
+    Given a platform targeting "linux"
+    And compose embedding enabled
+    When the installer generator renders the platform
+    Then the script contains "POSTGRES_USER="
+    And the script contains "MOODLE_USERNAME="
+    And the script contains "MOODLE_PASSWORD="
+    And the script contains "MOODLE_SITENAME="
 
   Scenario: compose declares a one-shot seed service applying the course sql
     Given a platform targeting "linux"

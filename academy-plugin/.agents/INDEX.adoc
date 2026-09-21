@@ -6,10 +6,10 @@ _Regles absolues_ : voir `AGENT.adoc`
 _DAG_ : N2 — Plugin Gradle de consommation (Regle 4bis)
 _Projet_ : academy-gradle (education.cccp.academy)
 
-_Derniere mise a jour_ : 2026-09-22 (session 006)
-_Session terminee_ : 006 — ACADEMY-6-5 TERMINÉ : seed DB data-only (service one-shot `moodle-seed`, entrypoint idempotent, SQL `WHERE NOT EXISTS`) + parité structurelle Linux/Windows
-_Sessions precedent_ : 005 — ACADEMY-6-4 TERMINÉ (compose complet, network, volumes, healthcheck, `.env`) ; 004 — Révisions pilote du scaffold compose (Ollama, Portainer, PostgreSQL) ; 003 — Socle générateur d'installateurs (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation Academy (installeur hybride) ; 001 — Alignement article 0124 + gouvernance + repo Git ; 000 — Bootstrap
-_Prochaine session_ : ACADEMY-6-6 (dogfooding conteneur éphémère, installeur Linux réel, étapes 1→7) puis ACADEMY-6-7 — ordre acté 1 → 6 → 5 → 7.
+_Derniere mise a jour_ : 2026-09-21 (session 007)
+_Session terminee_ : 007 — ACADEMY-6-6 TERMINÉ : dogfooding bout-en-bout (5 écarts découverts + corrigés — image Moodle réelle `erseco/alpine-moodle:v5.2.3`, contrat env `DB_*`/`MOODLE_*`, portainer-ce sans healthcheck, workspace différé)
+_Sessions precedent_ : 006 — ACADEMY-6-5 TERMINÉ (seed DB data-only, service one-shot `moodle-seed`, idempotence prouvée) ; 005 — ACADEMY-6-4 TERMINÉ (compose complet) ; 004 — Révisions pilote du scaffold compose (Ollama, Portainer, PostgreSQL) ; 003 — Socle générateur d'installateurs (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation Academy (installeur hybride) ; 001 — Alignement article 0124 + gouvernance + repo Git ; 000 — Bootstrap
+_Prochaine session_ : ACADEMY-6-7 (Cucumber BDD étendu : contenu OS, compose, idempotence, erreurs) puis ACADEMY-5 (opencode.json + session zsh, contient le TODO workspace) — ordre acté 1 → 6 → 5 → 7.
 
 '''
 == REGLES ABSOLUES
@@ -152,16 +152,16 @@ Desktop, transverse Windows), D-ACADEMY-6-13 (PostgreSQL remplace MariaDB).
 | ACADEMY-6-6
 | *Dogfooding* conteneur éphémère, installeur Linux réel, étapes 1→7 (validation manuelle).
 | —
-| 🟡 À FAIRE
+| ✅ TERMINÉ (S-007)
 | ACADEMY-6-7
 | *Cucumber étendu* — contenu OS, compose, idempotence, erreurs.
 | —
 | 🟡 À FAIRE
 |===
 
-_Statut_ : ACADEMY-6-0 ✅ + **ACADEMY-6-4 ✅ TERMINÉ S-005** (compose complet) + **ACADEMY-6-5 ✅ TERMINÉ S-006** (seed DB data-only : service one-shot `moodle-seed`, entrypoint idempotent, SQL `WHERE NOT EXISTS`, parité structurelle Linux/Windows ; dogfooding `docker compose config` + `sh -n` VALIDES, idempotence prouvée sur PostgreSQL 16 réel).
+_Statut_ : ACADEMY-6-0 ✅ + **ACADEMY-6-4 ✅ TERMINÉ S-005** (compose complet, **corrigé S-007** — images réelles) + **ACADEMY-6-5 ✅ TERMINÉ S-006** (seed DB data-only, idempotence prouvée sur PostgreSQL 16 réel) + **ACADEMY-6-6 ✅ TERMINÉ S-007** (dogfooding bout-en-bout : le run réel a prouvé l'enchaînement Docker → PostgreSQL → seed → Moodle up ET révélé 5 écarts de scaffold inexécutable — corrigés D-ACADEMY-6-14..17).
 
-_Gates S-006_ : `clean check validatePlugins` VERT (16 unit + 4 functional + 11 scénarios Cucumber ×2 runners), `publishToMavenLocal` VERT, zéro secret, zéro `mariadb` en prod.
+_Gates S-007_ : `clean check validatePlugins` VERT (21 unit + 5 functional + 15 scénarios Cucumber ×2 runners), `publishToMavenLocal` VERT, dogfooding réel complet (Moodle 5.2.3 healthy HTTP 200, seed `INSERT 0 1` puis `INSERT 0 0`, Ollama/Portainer healthy/HTTP 200), zéro secret, zéro `mariadb` en prod.
 
 '''
 == Sessions
@@ -175,6 +175,7 @@ _Gates S-006_ : `clean check validatePlugins` VERT (16 unit + 4 functional + 11 
 | 004 | 2026-09-22 | développement | Révisions pilote du scaffold compose (Ollama + Portainer + PostgreSQL, parité Linux/Windows) | 5/5
 | 005 | 2026-09-22 | développement | ACADEMY-6-4 TERMINÉ — compose complet (network, volumes nommés, healthcheck PostgreSQL, `.env`) + parité structurelle Linux/Windows + dogfooding `docker compose config` | 5/5
 | 006 | 2026-09-22 | développement | ACADEMY-6-5 TERMINÉ — seed DB data-only (service one-shot `moodle-seed`, entrypoint idempotent, SQL `WHERE NOT EXISTS`) + parité structurelle Linux/Windows + idempotence prouvée PostgreSQL 16 réel | 5/5
+| 007 | 2026-09-21 | développement | ACADEMY-6-6 TERMINÉ — dogfooding bout-en-bout : 5 écarts découverts + corrigés (Moodle réel 5.2.3, contrat env `DB_*`/`MOODLE_*`, portainer-ce, workspace différé) ; run réel complet prouvé | 5/5
 |===
 
 '''

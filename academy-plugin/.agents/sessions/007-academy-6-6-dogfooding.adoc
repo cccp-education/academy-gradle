@@ -1,0 +1,145 @@
+= Session 007 — ACADEMY-6-6 : dogfooding bout-en-bout (conteneur éphémère)
+
+:date: 2026-09-21
+:session: 007
+:epic: ACADEMY-6
+:us: ACADEMY-6-6 (TERMINÉ) + correction des écarts découverts (ACADEMY-6-4)
+:methode: Baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR) — gouvernance d'abord (pattern S-057)
+
+== Mission
+
+Suite de l'EPIC ACADEMY-6 (installeur hybride), ordre acté **1 → 6 → 5 → 7**.
+US : **ACADEMY-6-6** — dogfooding : build réel de l'installeur Linux,
+validation de l'enchaînement des étapes 1→7 sur un conteneur éphémère.
+
+Mission tenue : le dogfooding a **prouvé l'enchaînement réel** et, ce faisant,
+**révélé que le scaffold livré était inexécutable**. Les écarts ont été
+gouvernés puis corrigés en baby-step.
+
+== Constats (dogfooding)
+
+Le run réel (build `buildAllInstallers` → extraction des heredocs →
+`docker compose up`) a prouvé la chaîne **et** découvert 5 écarts :
+
+. *`moodle:4.5` n'existe pas* : `docker compose pull moodle` →
+   `pull access denied for moodle, repository does not exist`. Placeholder
+   jamais vérifié : le scaffold était inexécutable.
+. *Contrat d'environnement faux* : `MOODLE_DATABASE_TYPE/HOST/NAME/PASSWORD`
+   n'est exposé par aucune image réelle. Contrat effectif :
+   `DB_TYPE/DB_HOST/DB_NAME/DB_USER/DB_PASS` + `MOODLE_USERNAME/PASSWORD/SITENAME`.
+. *Version périmée* : le scaffold visait 4.5 ; dernière release **5.2.3**
+   (`download.moodle.org/releases/latest`, PHP 8.3, PostgreSQL 16).
+. *`portainer/portainer` obsolète* : l'image maintenue est
+   `portainer/portainer-ce`.
+. *Healthcheck Portainer invalide* : `portainer-ce` est *distroless* (ni `sh`,
+   ni `wget`) → `unhealthy` permanent alors que Portainer sert HTTP 200.
+. *`cccp-education/academy-workspace:latest` inexistante* : le service
+   `workspace` (D-ACADEMY-6-10) ferait échouer `compose up`.
+
+== Gouvernance (pattern S-057, zéro code)
+
+Décisions actées dans `CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` :
+
+* *D-ACADEMY-6-14* — image `erseco/alpine-moodle:v5.2.3` (dernière release,
+  auto-install, PostgreSQL natif) ; suivi du latest, jamais une LTS figée.
+* *D-ACADEMY-6-15* — contrat d'environnement réel `DB_*` + `MOODLE_*` ;
+  valeurs `${...}` depuis `.env`, jamais de secret.
+* *D-ACADEMY-6-16* — `portainer/portainer-ce` ; service `workspace` **retiré
+  du compose actif** tant que l'image n'est publiée (TODO ACADEMY-5) — le
+  compose généré reste directement exécutable.
+* *D-ACADEMY-6-17* — pas de healthcheck Portainer (image distroless).
+
+== RED (prouvé)
+
+Tests étendus avant le code :
+* `InstallerScriptGeneratorTest` — 5 nouveaux tests (image réelle + contrat
+  env, portainer-ce, workspace différé, variables `.env`, healthcheck
+  Portainer absent) ;
+* `academy_installer.feature` — 4 nouveaux scénarios `@installer` ;
+* `AcademyInstallerFunctionalTest` — 1 TestKit (images réelles + exécutabilité).
+
+RED prouvé (prod au HEAD) :
+* `./gradlew test --tests "...InstallerScriptGeneratorTest"` → **47 tests,
+  20 failed** (dont les 2 assertions existantes migrées
+  `MOODLE_DATABASE_TYPE`→`DB_TYPE`) ;
+* puis RED ciblé healthcheck Portainer → **48 tests, 1 failed**.
+
+== GREEN (prouvé)
+
+`InstallerScriptGenerator.kt` :
+* service `moodle` : image `erseco/alpine-moodle:v5.2.3`, contrat réel
+  `DB_TYPE=pgsql`/`DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASS` +
+  `MOODLE_USERNAME`/`MOODLE_PASSWORD`/`MOODLE_SITENAME` (tous `${...}`) ;
+* service `portainer` : image `portainer/portainer-ce`, **healthcheck retiré** ;
+* service `workspace` retiré (TODO `ACADEMY-5` en commentaire de compose) ;
+* `envBody()` : `POSTGRES_DB`/`POSTGRES_USER`/`POSTGRES_PASSWORD=` +
+  `MOODLE_USERNAME=`/`MOODLE_PASSWORD=`/`MOODLE_SITENAME=` + `OLLAMA_HOST`
+  (noms seulement, valeurs vides).
+
+== REFACTOR
+
+La parité **structurelle** est conservée : `composeBody()`/`envBody()` restent
+la **source unique** rendue par le heredoc bash et le writer batch (leçon
+S-005). Aucun doublon introduit ; les KDoc sont alignés sur les décisions.
+
+== Dogfooding réel (validation externe, étapes 1→7)
+
+`./gradlew publishToMavenLocal` puis `buildAllInstallers` sur le consommateur
+racine → installeurs régénérés. Extraction des heredocs réels :
+
+* `docker compose config` → **VALIDE** ;
+* PostgreSQL → **healthy** ; Ollama → **healthy** ; Portainer → **no-healthcheck**
+  (plus d'`unhealthy`, HTTP 200) ;
+* **Moodle 5.2.3 (Build: 20260914)** → **healthy**, `/login/index.php` = **200** ;
+* seed one-shot → `INSERT 0 1` ; cours `id=2, shortname=academy-seed` en base ;
+* **idempotence rejouée** → `INSERT 0 0`, `count = 1` ; Ollama API répond.
+
+Le stack complet (Moodle + PostgreSQL + Ollama + Portainer) démarre,
+se seed et sert, depuis le compose **généré** (override de ports hôte
+seulement, le dev local occupant déjà 11434/9000).
+
+== Gates
+
+* `./gradlew clean check validatePlugins` → **BUILD SUCCESSFUL** —
+  **21 unit + 5 functional + 15 scénarios Cucumber ×2 runners**, 0 FAIL.
+* `./gradlew publishToMavenLocal` → **BUILD SUCCESSFUL**.
+* grep secrets `src/main` → **ZÉRO**. grep `mariadb` `src/main` → **ZÉRO**.
+
+== Décisions de session
+
+. **Le dogfooding a payé** : il a transformé un scaffold « vert en tests »
+   mais inexécutable en une machine réellement fonctionnelle (c'est
+   exactement la raison d'être d'ACADEMY-6-6).
+. **Une image réelle plutôt qu'un placeholder** : `erseco/alpine-moodle`
+   embarque Apache+PHP 8.3 et auto-installe au premier boot — indispensable
+   pour un `compose up` mono-clic.
+. **Suivre le latest** (5.2.3) plutôt qu'une LTS figée — décision pilote.
+. **Retirer plutôt que mentir** : le healthcheck Portainer (distroless) et le
+   service workspace (image non publiée) sont retirés pour garantir
+   l'exécutabilité ; le TODO ACADEMY-5 trace l'insertion future.
+
+== Fichiers modifiés
+
+|===
+| Fichier | Nature
+| `src/main/kotlin/.../installer/InstallerScriptGenerator.kt` | prod — image Moodle réelle + contrat `DB_*`/`MOODLE_*`, portainer-ce, workspace différé, healthcheck Portainer retiré, `envBody()` étendu
+| `src/test/kotlin/.../installer/InstallerScriptGeneratorTest.kt` | tests — 5 unit ajoutés + 3 assertions migrées
+| `src/test/resources/features/academy_installer.feature` | BDD — 4 scénarios ajoutés + 2 migrés
+| `src/functionalTest/kotlin/.../AcademyInstallerFunctionalTest.kt` | functional — 1 TestKit images réelles
+| `.agents/CADRAGE_EPIC_ACADEMY_INSTALLER.adoc` | gouvernance — constats dogfooding + D-ACADEMY-6-14..17
+|===
+
+== Reste à faire (ACADEMY-6)
+
+`ACADEMY-6-7` (Cucumber BDD étendu) **prochaine session**. `ACADEMY-6-1/2/3`
+restent **partiellement caducs** pour le provisioning hôte Java/Gradle
+(D-ACADEMY-6-10). TODO ACADEMY-5 : publier `cccp-education/academy-workspace`
+puis réinsérer le service `workspace` dans le compose.
+
+== Note de clôture — méthode
+
+La session applique la règle du **delta source** : à l'ouverture, sources
+inchangées depuis S-006 (git clean) → compilation seule, aucun test rejoué
+« pour confirmer ». Les tests n'ont été lancés qu'après codage (RED prouvé),
+puis à la clôture sur le code modifié (GREEN). Le dogfooding est le seul
+élément exécuté « en plus », parce qu'il est la mission même de l'US.
