@@ -2,14 +2,34 @@
 
 == Mission de la prochaine session
 
-**ACADEMY-12 est en cours 3/4 US** (S-015). Les writers provisionnent désormais
-l'engine par OS (Linux apt / macOS Colima / Windows WSL2+Desktop), un seul
-`install.sh` porte une queue commune, et la sonde `EnvironmentProbe` (adapter)
-alimente le task `checkContainerEngine`.
+**Ordre du jour pilote (S-015) : ACADEMY-11-4** — câbler le service compose
+one-shot `moodle-material` (applique `ingest.sh` après le schéma Moodle, pattern
+`moodle-seed`) + 2 scénarios BDD + dogfooding `compose up`. **Ne pas livrer sans
+preuve d'exécution réelle** (leçon S-007/S-013).
 
-Mission : **ACADEMY-12-3** — dogfooding environnement **Windows réel** :
-exécuter `install.bat`, `docker compose config`, vérifier la parité et tirer les
-images. **Jamais livré sans preuve d'exécution réelle.**
+C'est le dernier item du backlog **coddable localement sans prérequis externe** :
+ACADEMY-12-3 exige une machine Windows réelle, ACADEMY-9/10 exigent une décision
+pilote/cadrage, BUREAU-3 appartient à un autre borough.
+
+=== Rappel ACADEMY-11 (contexte 11-4)
+
+* **Statut** : ACADEMY-11 3/4 US (S-013) — 11-0/11-1/11-2/11-3 ✅.
+* **Décisions** : `CADRAGE_EPIC_ACADEMY_11_MOODLE.adoc` (D-ACADEMY-11-1..10).
+  L'applicateur **pilote les outils natifs** de l'image `erseco/alpine-moodle`
+  (`moosh`, `moodle-blueprint`) — zéro PHP maison, zéro SQL/DDL. Matériel
+  **path-only** (jamais le corps `.adoc`), type inconnu **ignoré jamais deviné**,
+  **dégradé par défaut** (`moodleImportEnabled` défaut `false`).
+* **Déjà livré** : domaine pur `academy.moodle` (6 fichiers, 20 unit) + tâche
+  `generateMoodleImport` (plan `plan.json` + `ingest.sh`) + extension +4
+  properties + BDD `academy_moodle.feature` 10 scénarios + dogfooding réel
+  (Moodle 5.2.3 + PostgreSQL 16, 3 bugs réels attrapés).
+* **Reste (11-4)** : le service compose one-shot `moodle-material` qui **applique**
+  `ingest.sh` après le schéma Moodle — sur le modèle exact du service
+  `moodle-seed` (ACADEMY-6-5 : `restart: "no"`, `entrypoint`, `depends_on:
+  postgres: service_healthy`, `./seed:/seed`). Vérifier la source
+  (`composeBody()`) avant de nommer toute image/commande.
+* **Preuve exigée** : `docker compose config` VALIDE + dogfooding réel
+  `compose up` du service one-shot (matériel injecté dans Moodle).
 
 == Décisions actées S-014/S-015 (ne pas les rediscuter)
 
@@ -34,7 +54,7 @@ images. **Jamais livré sans preuve d'exécution réelle.**
 == État de l'architecture (session 015)
 
 - **ACADEMY-1/4/5/6/7/8 TERMINÉS** (S-003→S-012).
-- **ACADEMY-11 3/4 US** (S-013) : **11-4 (service compose `moodle-material`) reste**.
+- **ACADEMY-11 3/4 US** (S-013) : **11-4 (service compose `moodle-material`) reste — PROCHAINE MISSION**.
 - **ACADEMY-12 3/4 US** (S-014/S-015) :
   - Domaine pur `academy.env` (`HostOs`+`fromOsName`, `EnvironmentFacts`,
     `DockerStrategy` sealed, `DockerStrategyDecider`).
@@ -44,15 +64,28 @@ images. **Jamais livré sans preuve d'exécution réelle.**
     (WSL2/Desktop resumable).
   - `academy_env.feature` 7 `@env` + `academy_installer.feature` 24 `@installer`.
 
+== Autres items ouverts du backlog (pour mémoire)
+
+* **ACADEMY-12-3** : dogfooding Windows réel — exige une machine Windows
+  réelle (les runners CI ne fournissent que des conteneurs Windows). À
+  ordonnancer dès qu'un hôte Windows est disponible.
+* **ACADEMY-9** (Qualiopi) et **ACADEMY-10** (Spring Boot WebFlux) : cadrage /
+  décision pilote requis (ACADEMY-10 implique un bump BOM vers Boot 4.1.1).
+* **BUREAU-3** (autre borough) : transport git du matériel — academy lit
+  l'exigence, ne l'exécute jamais.
+
 == Ordre de travail suggéré
 
-1. **ACADEMY-12-3** : dogfooding Windows réel.
-   - Sur une machine Windows : `sh`-équivalent = exécuter `install.bat`.
-   - Vérifier : sonde admin/WSL2, `Docker Desktop Installer.exe` téléchargé,
-     `--backend=wsl-2`, `docker compose config` VALIDE, images tirées.
-   - Documenter l'état de l'hôte (WSL2 présent/absent, admin, reboot).
-2. Alternatives : ACADEMY-11-4 (service compose `moodle-material`), ACADEMY-9
-   (Qualiopi), ACADEMY-10 (Spring Boot WebFlux).
+1. **ACADEMY-11-4** : service compose one-shot `moodle-material`.
+   - Ajouter le service à `composeBody()` (source unique bash/batch → parité
+     structurelle) sur le modèle `moodle-seed`.
+   - L'applicateur (`ingest.sh`) est **générique** et **Moodle-side** : il lit
+     le matériel, ne l'embarque pas.
+   - Dégradé : matériel vide → le service ne fait rien (D-ACADEMY-11-6).
+   - Tests : unit (rendu compose) + functional TestKit + BDD `@moodle` (+2).
+   - **Dogfooding** : `docker compose config` VALIDE + `compose up` réel du
+     service one-shot (preuve d'injection).
+2. Alternatives : ACADEMY-12-3 (si hôte Windows dispo), ACADEMY-9/10 (cadrage).
 
 == Rappels des ordres de mission
 
