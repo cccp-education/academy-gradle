@@ -257,12 +257,13 @@ class InstallerScriptGeneratorTest {
     }
 
     @Test
-    fun `macos installer uses homebrew docker desktop without sudo`() {
+    fun `macos installer provisions colima without sudo`() {
         val script = InstallerScriptGenerator.render(platform(TargetOs.MACOS)).single().content
 
         assertEquals("install.sh", InstallerScriptGenerator.render(platform(TargetOs.MACOS)).single().relativePath)
         assertTrue(script.startsWith("#!/usr/bin/env bash"))
-        assertTrue(script.contains("brew install --cask docker"))
+        assertTrue(script.contains("brew install colima docker"), "macos must provision Colima (D-ACADEMY-12-1)")
+        assertTrue(script.contains("colima start"), "macos must start the Colima runtime")
         assertTrue(script.contains("uname -m"), "macos installer must detect the architecture")
         assertFalse(script.contains("sudo"), "macos installer must not require sudo")
     }
@@ -294,26 +295,31 @@ class InstallerScriptGeneratorTest {
     }
 
     @Test
-    fun `macos host bootstrap provisions docker only via homebrew without sudo`() {
+    fun `macos host bootstrap provisions colima only without sudo`() {
         val script = InstallerScriptGenerator.render(platform(TargetOs.MACOS)).single().content
 
-        assertTrue(script.contains("brew install --cask docker"), "macos installer must bootstrap Docker Desktop via Homebrew")
+        assertTrue(script.contains("brew install colima docker"), "macos installer must bootstrap Colima")
+        assertTrue(script.contains("colima start"), "macos installer must start Colima")
         assertFalse(script.contains("brew install openjdk"), "macos must not provision Java (D-ACADEMY-6-10)")
         assertFalse(script.contains("brew install gradle"), "macos must not provision Gradle (D-ACADEMY-6-10)")
         assertFalse(script.contains("sudo"), "macos installer must not require sudo")
     }
 
     @Test
-    fun `installers abort with an actionable message when docker is missing`() {
+    fun `installers provision the engine or abort with an actionable message`() {
         val linux = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
         val windows = InstallerScriptGenerator.render(platform(TargetOs.WINDOWS)).single().content
         val macos = InstallerScriptGenerator.render(platform(TargetOs.MACOS)).single().content
 
-        assertTrue(linux.contains("Docker is required"), "linux must explain Docker is required")
-        assertTrue(linux.contains("exit 1"), "linux must abort non-zero when Docker is missing")
-        assertTrue(windows.contains("Docker"), "windows must explain Docker is required")
-        assertTrue(windows.contains("exit /b 1"), "windows must abort non-zero when Docker is missing")
-        assertTrue(macos.contains("Docker"), "macos must explain Docker is required")
+        assertTrue(linux.contains("provisioning the Docker Engine"), "linux must provision the engine (D-ACADEMY-12-1)")
+        assertTrue(linux.contains("download.docker.com"), "linux must use Docker's official repository")
+        assertTrue(macos.contains("Homebrew is required"), "macos must explain Homebrew is required for Colima")
+        assertTrue(macos.contains("exit 1"), "macos must abort non-zero when Homebrew is missing")
+        assertTrue(
+            windows.contains("needs administrator rights"),
+            "windows without WSL2 and without admin must explain the WSL2 requirement (D-ACADEMY-12-4)",
+        )
+        assertTrue(windows.contains("exit /b 1"), "windows must abort non-zero when it cannot provision")
     }
 
     @Test

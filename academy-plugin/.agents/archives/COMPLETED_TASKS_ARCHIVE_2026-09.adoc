@@ -88,3 +88,12 @@ _Session 014 (2026-09-25) — ACADEMY-12 cadré + ACADEMY-12-1 TERMINÉ : provis
 - ACADEMY-12-1 : Domaine pur `education.cccp.academy.env` (4 fichiers — `HostOs`, `EnvironmentFacts`, `DockerStrategy` sealed `AlreadyReady`/`InstallDockerEngine`/`InstallColima`/`InstallDockerDesktop`/`BootstrapWsl2First`/`Unsupported`, `DockerStrategyDecider` pur). Tests : +10 unit (5 pts)
 - BDD `academy_env.feature` `@env` 7 scénarios + runner dédié `cucumberTestEnv` (S-082) + glue préfixée `AcademyEnvSteps` (S-088). RED prouvé (30 `Unresolved reference` + 7 `UndefinedStepException`)
 - **Reste** : ACADEMY-12-2 (writers + sonde adapter) et ACADEMY-12-3 (dogfooding Windows réel)
+
+_Session 015 (2026-09-25) — ACADEMY-12-2 TERMINÉ : writers portables + sonde adapter + dogfooding Linux_
+
+- ACADEMY-12-2 : `InstallerScriptGenerator` refondu — **`unixScript` unique** (en-tête Linux apt officiel / macOS Colima, queue commune verbatim : D-ACADEMY-12-5 appliquée par construction) + `windowsScript` (sonde admin+WSL2, `:bootstrap_wsl2` resumable / `:install_docker_desktop`). Tests : +5 unit `InstallerScriptEngineTest` (5 pts)
+- Port `EnvironmentProbe` (fun interface) + adapter `HostEnvironmentProbe` (seul `ProcessBuilder` prod, timeout, échecs→fait) + `HostOs.fromOsName` pur + tâche `checkContainerEngine` (adapter injectable, câblée à `check`, **verdict rapporté jamais jeté**). Tests : +3 unit mapping (3 pts)
+- Functional TestKit : scripts réellement écrits avec provisionnement, `checkContainerEngine` SUCCESS sur hôte nu, **`bash -n` réel** Unix. Tests : +1 functional (2 pts)
+- BDD `academy_installer.feature` étendue à 24 scénarios (+3 : WSL2 resumable, apt officiel, non-duplication queue) ; contrat macOS migré Docker Desktop→Colima (supersede assumé). Tests : +3 scénarios (2 pts)
+- **Dogfooding Linux réel** : consommateur /tmp, sonde `docker info` réelle, `bash -n`/`sh -n` OK, exécution HOME isolé → compose/`.env`/seed/project écrits, `docker compose config` **exit 0** (5 services), idempotence marqueur versionné (3 pts)
+- **Reste** : ACADEMY-12-3 (dogfooding Windows réel) — les runners CI ne fournissent que des conteneurs Windows, la preuve exige une machine réelle

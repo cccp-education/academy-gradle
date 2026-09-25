@@ -2,6 +2,7 @@ package education.cccp.academy
 
 import contracts.runtime.LlmProviderKind
 import education.cccp.academy.bridge.ByokBridgeSupport
+import education.cccp.academy.installer.HostEnvironmentProbe
 import education.cccp.academy.installer.TargetOs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -24,9 +25,24 @@ class AcademyPlugin : Plugin<Project> {
         )
         wireDefaults(project, extension)
         registerInstallerTasks(project, extension)
+        registerContainerEngineTask(project)
         registerBridgeTask(project, extension)
         registerMaterialTask(project, extension)
         registerMoodleImportTask(project, extension)
+    }
+
+    /**
+     * Registers the container engine check task (ACADEMY-12-2) — the build-time
+     * adapter of the pure `academy.env` decider. The real host probe is the
+     * default; a test overrides the property with a fake (D-ACADEMY-12-6).
+     */
+    private fun registerContainerEngineTask(project: Project) {
+        project.tasks.register("checkContainerEngine", CheckContainerEngineTask::class.java) { task ->
+            task.environmentProbe.convention(HostEnvironmentProbe())
+        }
+        project.pluginManager.withPlugin("base") {
+            project.tasks.named("check") { it.dependsOn("checkContainerEngine") }
+        }
     }
 
     /**

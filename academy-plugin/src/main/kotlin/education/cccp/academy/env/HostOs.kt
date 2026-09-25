@@ -12,5 +12,22 @@ enum class HostOs {
     LINUX,
     WINDOWS,
     MACOS,
-    UNKNOWN,
+    UNKNOWN;
+
+    companion object {
+        /**
+         * Maps a JVM `os.name` system property to a [HostOs] (ACADEMY-12-2). Purely
+         * textual (no I/O), so the mapping itself is unit-testable; an unrecognized
+         * name is [UNKNOWN], never a crash.
+         */
+        fun fromOsName(osName: String?): HostOs {
+            val name = osName?.lowercase() ?: return UNKNOWN
+            return when {
+                name.contains("win") -> WINDOWS
+                name.contains("mac") || name.contains("darwin") -> MACOS
+                name.contains("nux") || name.contains("nix") || name.contains("aix") -> LINUX
+                else -> UNKNOWN
+            }
+        }
+    }
 }

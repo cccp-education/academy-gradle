@@ -1,0 +1,143 @@
+= Session 015 — ACADEMY-12-2 (writers portables + sonde adapter + dogfooding Linux)
+
+:date: 2026-09-25
+:session: 015
+:epic: ACADEMY-12
+:us: ACADEMY-12-2
+:methode: Baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR) — unit, functional TestKit, BDD, dogfooding réel
+
+== Mission
+
+Reprise de la mission S-014 : **ACADEMY-12-2** — refonte des writers
+(`install.sh` portable, `install.bat` WSL2/Desktop), sonde I/O en adapter,
+wiring, tests unit + functional TestKit + dogfooding Linux.
+
+Le domaine pur (`academy.env`, `DockerStrategyDecider`) et la matrice d'engine
+avaient été livrés en S-014 ; cette session **exécute** la matrice dans les
+scripts générés et câble la sonde côté build.
+
+== Constats (audit S-015 — faits vérifiés, jamais supposés)
+
+. *L'installeur ne provisionnait rien* — `linuxScript`/`macosScript` se
+   contentaient de *vérifier* `command -v docker` puis d'abandonner
+   (`exit 1`) ; `windowsScript` vérifiait Docker Desktop via PowerShell sans
+   jamais l'installer. Aucun OS n'était réellement provisionné.
+. *Les deux scripts Unix étaient des quasi-doublons* — `linuxScript` et
+   `macosScript` dupliquaient l'intégralité de la queue (compose + `.env` +
+   seed + opencode + material), seule la 5-ligne de bootstrap différait. Seul
+   `composeBody()` était partagé. La règle D-ACADEMY-12-5 (« un seul
+   `install.sh` ») n'était **pas** appliquée.
+. *La procédure Docker officielle est le dépôt apt, pas le script de
+   convenance* — `docs.docker.com/engine/install/{ubuntu,debian}/` (vérifié
+   S-015) : clé GPG `download.docker.com/linux/<distro>/gpg`, dépôt signé, puis
+   les 5 paquets `docker-ce`, `docker-ce-cli`, `containerd.io`,
+   `docker-buildx-plugin`, `docker-compose-plugin`. Le script `get.docker.com`
+   n'est « not recommended for production ».
+. *Docker Desktop Windows est scriptable et per-user* —
+   `docs.docker.com/desktop/setup/install/windows-install/` : l'installeur
+   supporte `install --user --quiet --accept-license --backend=wsl-2` ; le mode
+   per-user **ne requiert pas** les droits admin. `wsl --version` / `wsl
+   --status` sonde WSL2 ; `wsl --install` l'active (admin + reboot possible).
+. *Colima est l'équivalent libre sur macOS* — `brew install colima docker` puis
+   `colima start` ; jamais Docker Desktop (matrice S-014).
+
+== Décisions respectées (S-014, non rediscutées)
+
+Matrice d'engine par OS (Linux natif / Windows Docker Desktop / macOS Colima),
+Portainer partout, décision pure vs sonde adapter, verdict sealed jamais jeté,
+contrainte reboot assumée (installateur idempotent/resumable), un seul
+`install.sh` (en-tête par OS, queue commune), frontière de test explicite.
+
+**Ajustement D-ACADEMY-12-3 appliqué** : le task `checkContainerEngine`
+**rapporte** le verdict sans jamais jeter. Un hôte non provisionnable est un
+**verdict**, pas une exception — sinon un `check` échouerait sur un hôte nu
+(contredisant le P0 S-014 et la KDoc du domaine). La tâche *constate*
+(adapter), le script *provisionne* à l'installation.
+
+== RED (prouvé)
+
+* Unit writer : `InstallerScriptEngineTest` (5 tests) → **4 échecs** prouvés
+  (`download.docker.com`, `brew install colima docker`, `wsl --status`,
+  `IS_ADMIN` absents des scripts).
+* Unit task : `CheckContainerEngineTaskTest` (5 tests) → **`compileTestKotlin`
+  FAILED** (`EnvironmentProbe`, `CheckContainerEngineTask` inexistants).
+* BDD : 4 scénarios `academy_installer.feature` étendus (provisionnement apt,
+  WSL2 resumable, queue Unix non dupliquée, Colima) — validés après GREEN.
+
+== GREEN
+
+* **`install.sh` unique et portable** (`unixScript`) : en-tête par OS
+  (Linux = dépôt apt officiel ; macOS = Colima via Homebrew), **queue commune
+  verbatim** (`appendComposeScaffold`). D-ACADEMY-12-5 appliquée par
+  construction — un test asserte l'égalité de queue.
+* **`install.bat` refondu** : sonde admin (`net session`) + WSL2
+  (`wsl --status`) en **faits** (`IS_ADMIN`), puis `:bootstrap_wsl2`
+  (`wsl --install`, resumable) ou `:install_docker_desktop`
+  (`--user --quiet --accept-license --backend=wsl-2`), ou message
+  `needs administrator rights`. Le contrat « vérifie seulement » est mort.
+* **Port `EnvironmentProbe`** (fun interface) + **adapter `HostEnvironmentProbe`**
+  (seul `ProcessBuilder` de la prod, timeout, échecs → fait `false`) +
+  **`HostOs.fromOsName`** (mapping pur) + **task `checkContainerEngine`**
+  (adapter injectable, défaut sonde réelle) câblée à `check`.
+* **Functional TestKit** : scripts réellement écrits sur disque avec le
+  provisionnement, `checkContainerEngine` **SUCCESS** sur hôte nu, `bash -n`
+  réel sur les scripts Unix.
+* **BDD** : `academy_installer.feature` 24 scénarios (+4), `AcademyEnvSteps`
+  inchangé (7 scénarios `@env`).
+
+== Dogfooding Linux réel (preuve, pas promesse)
+
+Consommateur `/tmp` (includeBuild via mavenLocal, Règle 2) :
+
+* `buildAllInstallers` + `checkContainerEngine` → VERT ; le task a **réellement
+  sondé** l'hôte : `[academy] a Docker engine is ready on linux`.
+* `bash -n` / `sh -n` sur `install.sh` → **SYNTAX OK**.
+* Exécution réelle dans un `HOME` isolé : écrit `docker-compose.yml`, `.env`,
+  `seed/`, `project/` (Dockerfile, opencode.json, AGENTS.md).
+* `docker compose config` → **exit 0**, 5 services + réseau + 3 volumes
+  reconnus (compose valide).
+* **Idempotence** : second run → `already installed`, marqueur versionné,
+  compose byte-identique (hash stable).
+
+== Gates
+
+* `./gradlew clean check validatePlugins` → **BUILD SUCCESSFUL** 1m48s
+  — **207 unit** (+14 vs 193) + **16 functional** (+3) + **69 scénarios
+  Cucumber** (24 installer + 6 opencode + 8 byok + 6 bridge + 8 material +
+  10 moodle + 7 env), **0 FAIL**.
+* `./gradlew publishToMavenLocal` → **BUILD SUCCESSFUL** (Règle 2).
+* `./gradlew help -Duser.home=<vide>` → **BUILD SUCCESSFUL** (P0 S-014 non
+  régressé).
+* Zéro secret (grep = 0) ; zéro `ProcessBuilder` dans le domaine `env`
+  (grep = 0 — le seul `ProcessBuilder` est l'adapter `HostEnvironmentProbe`).
+
+== Fichiers modifiés
+
+[cols="2,3", options="header"]
+|===
+| Fichier | Nature
+| `installer/InstallerScriptGenerator.kt` | prod — `unixScript` unique + bootstraps Linux/macOS + `windowsScript` WSL2/Desktop (MODIFIÉ)
+| `env/EnvironmentProbe.kt` | prod — port (NOUVEAU)
+| `env/HostOs.kt` | prod — `fromOsName` pur (MODIFIÉ)
+| `installer/HostEnvironmentProbe.kt` | prod — adapter sonde (NOUVEAU)
+| `CheckContainerEngineTask.kt` | prod — tâche adapter (NOUVEAU)
+| `AcademyPlugin.kt` | prod — wiring `checkContainerEngine` (MODIFIÉ)
+| `src/test/.../installer/InstallerScriptEngineTest.kt` | tests — 5 unit (NOUVEAU)
+| `src/test/.../CheckContainerEngineTaskTest.kt` | tests — 5 unit (NOUVEAU)
+| `src/test/.../env/HostOsTest.kt` | tests — 3 unit (NOUVEAU)
+| `src/test/.../installer/InstallerScriptGeneratorTest.kt` | tests — contrat macOS Colima (MODIFIÉ)
+| `src/test/resources/features/academy_installer.feature` | BDD — 24 scénarios (MODIFIÉ)
+| `src/functionalTest/.../AcademyInstallerFunctionalTest.kt` | functional — +3 (MODIFIÉ)
+|===
+
+== Note de clôture — méthode
+
+Le RED a été prouvé par la compilation (task inexistant) et par l'échec des
+assertions de provisionnement avant refonte, conformément au baby-step strict.
+La règle du **delta source** a été appliquée à l'ouverture (compilation seule).
+L'adapter sonde est le **seul** point d'I/O : le domaine reste testable sans
+machine (D-ACADEMY-12-2/12-6), et le dogfooding Linux prouve l'exécution réelle
+là où les runners CI ne prouveraient que la syntaxe.
+
+_Reste ouvert_ : **ACADEMY-12-3** (dogfooding Windows réel — `install.bat`,
+`docker compose config`, parité, images tirées), jamais livré sans preuve réelle.

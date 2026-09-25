@@ -337,6 +337,85 @@ class AcademyInstallerFunctionalTest {
     }
 
     @Test
+    fun `the generated scripts provision the container engine per OS (ACADEMY-12)`() {
+        writeBuild(
+            """
+            plugins {
+                id("education.cccp.academy")
+            }
+            """.trimIndent(),
+        )
+
+        val result = runner("buildAllInstallers").build()
+        assertEquals(TaskOutcome.SUCCESS, result.task(":buildAllInstallers")?.outcome)
+
+        val linux = File(projectDir, "build/academy/installers/linux/install.sh").readText()
+        assertTrue(linux.contains("provisioning the Docker Engine"), "linux must provision the engine")
+        assertTrue(linux.contains("download.docker.com"), "linux must use Docker's official repository")
+        assertTrue(linux.contains("docker-ce"), "linux must install docker-ce")
+
+        val macos = File(projectDir, "build/academy/installers/macos/install.sh").readText()
+        assertTrue(macos.contains("brew install colima docker"), "macos must provision Colima")
+        assertTrue(macos.contains("colima start"), "macos must start Colima")
+
+        val windows = File(projectDir, "build/academy/installers/windows/install.bat").readText()
+        assertTrue(windows.contains("wsl --status"), "windows must probe WSL2")
+        assertTrue(windows.contains("--backend=wsl-2"), "windows must install Docker Desktop on WSL2")
+        assertTrue(windows.contains("wsl --install"), "windows without WSL2 must bootstrap it")
+    }
+
+    @Test
+    fun `checkContainerEngine never fails a bare host - it reports a verdict (ACADEMY-12)`() {
+        writeBuild(
+            """
+            plugins {
+                id("education.cccp.academy")
+            }
+            """.trimIndent(),
+        )
+
+        val result = runner("checkContainerEngine").build()
+
+        assertEquals(
+            TaskOutcome.SUCCESS,
+            result.task(":checkContainerEngine")?.outcome,
+            "an unprovisionable host is a verdict, never a throw (D-ACADEMY-12-3, P0 S-014)",
+        )
+        assertTrue(
+            result.output.contains("[academy]"),
+            "the task must state the provisioning strategy",
+        )
+    }
+
+    @Test
+    fun `the generated unix scripts pass a real bash syntax check (ACADEMY-12)`() {
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+            File("/bin/bash").canExecute() || File("/usr/bin/bash").canExecute(),
+            "bash is required to syntax-check the generated installer",
+        )
+        writeBuild(
+            """
+            plugins {
+                id("education.cccp.academy")
+            }
+            """.trimIndent(),
+        )
+
+        val result = runner("buildAllInstallers").build()
+        assertEquals(TaskOutcome.SUCCESS, result.task(":buildAllInstallers")?.outcome)
+
+        listOf("linux", "macos").forEach { os ->
+            val script = File(projectDir, "build/academy/installers/$os/install.sh")
+            val syntax = ProcessBuilder("bash", "-n", script.absolutePath)
+                .redirectErrorStream(true)
+                .start()
+            val output = syntax.inputStream.bufferedReader().readText()
+            val exit = syntax.waitFor()
+            assertEquals(0, exit, "the $os installer must be valid bash, got:\n$output")
+        }
+    }
+
+    @Test
     fun `inspectTrainingMaterial reports empty on absent material without failing the build (ACADEMY-4)`() {
         writeBuild(
             """

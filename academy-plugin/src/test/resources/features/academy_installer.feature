@@ -155,28 +155,31 @@ Feature: Academy installer generation (ACADEMY-1)
     And the script does not contain "temurin"
     And the script does not contain "services.gradle.org"
 
-  Scenario: windows host bootstrap provisions Docker only with the admin guard
+  Scenario: windows host bootstrap probes admin and WSL2 then provisions Docker Desktop
     Given a platform targeting "windows"
     When the installer generator renders the platform
     Then the script contains "net session"
-    And the script contains "Get-Command docker"
+    And the script contains "wsl --status"
+    And the script contains "--backend=wsl-2"
+    And the script contains "desktop.docker.com"
     And the script does not contain "adoptium"
     And the script does not contain "services.gradle.org"
     And the script does not contain "setx JAVA_HOME"
 
-  Scenario: macos host bootstrap provisions Docker only without sudo
+  Scenario: macos host bootstrap provisions Colima without sudo
     Given a platform targeting "macos"
     When the installer generator renders the platform
-    Then the script contains "brew install --cask docker"
+    Then the script contains "brew install colima docker"
+    And the script contains "colima start"
     And the script does not contain "brew install openjdk"
     And the script does not contain "brew install gradle"
     And the script does not contain "sudo"
 
-  Scenario: installers abort with an actionable message when Docker is missing
+  Scenario: installers provision the engine or abort with an actionable message
     Given a platform targeting "linux"
     When the installer generator renders the platform
-    Then the script contains "Docker is required"
-    And the script contains "exit 1"
+    Then the script contains "provisioning the Docker Engine"
+    And the script contains "download.docker.com"
 
   Scenario: compose scaffold is staged under the application directory
     Given a platform targeting "linux"
@@ -212,10 +215,34 @@ Feature: Academy installer generation (ACADEMY-1)
     And the script contains "Get-Command docker"
     And the script uses PowerShell
 
-  Scenario: macos installer uses Homebrew Docker Desktop without sudo
+  Scenario: windows without WSL2 bootstraps it and stays resumable across a reboot
+    Given a platform targeting "windows"
+    When the installer generator renders the platform
+    Then the script contains "wsl --install"
+    And the script contains "resumable"
+    And the script contains "IS_ADMIN"
+    And the script contains "needs administrator rights"
+
+  Scenario: the unix installers share the compose queue, never duplicate it
+    Given a platform targeting "linux"
+    When the installer generator renders the platform
+    Then the script contains "provisioning the Docker Engine"
+    And the script contains "mkdir -p \"$APP_DIR\""
+    And the script contains "$APP_DIR/docker-compose.yml"
+
+  Scenario: linux engine provisioning uses the official apt repository packages
+    Given a platform targeting "linux"
+    When the installer generator renders the platform
+    Then the script contains "download.docker.com"
+    And the script contains "docker-ce-cli"
+    And the script contains "containerd.io"
+    And the script contains "docker-compose-plugin"
+
+  Scenario: macos installer provisions Colima without sudo
     Given a platform targeting "macos"
     When the installer generator renders the platform
     Then exactly one file "install.sh" is produced
-    And the script contains "brew install --cask docker"
+    And the script contains "brew install colima docker"
+    And the script contains "colima start"
     And the script contains "uname -m"
     And the script does not contain "sudo"

@@ -2,63 +2,57 @@
 
 == Mission de la prochaine session
 
-**ACADEMY-12 est en cours 2/4 US** (S-014). La demande pilote — provisionner
-l'engine conteneurs et tester sur un environnement Windows réel — a été
-**recadrée par les faits** et la **matrice d'engine est actée**.
+**ACADEMY-12 est en cours 3/4 US** (S-015). Les writers provisionnent désormais
+l'engine par OS (Linux apt / macOS Colima / Windows WSL2+Desktop), un seul
+`install.sh` porte une queue commune, et la sonde `EnvironmentProbe` (adapter)
+alimente le task `checkContainerEngine`.
 
-Mission : **ACADEMY-12-2** — refonte des writers (bootstrap de l'engine par OS)
-+ sonde adapter + wiring. Puis **ACADEMY-12-3** — dogfooding Windows réel.
+Mission : **ACADEMY-12-3** — dogfooding environnement **Windows réel** :
+exécuter `install.bat`, `docker compose config`, vérifier la parité et tirer les
+images. **Jamais livré sans preuve d'exécution réelle.**
 
-== Décisions actées S-014 (ne pas les rediscuter)
+== Décisions actées S-014/S-015 (ne pas les rediscuter)
 
-* **Matrice d'engine** (D-ACADEMY-12-1) : Linux = Docker Engine natif ;
-  Windows = **Docker Desktop** (`install --user --quiet --accept-license
-  --backend=wsl-2`, WSL2 **requis et géré par Desktop**) ; macOS = **Colima**
-  (MIT). **Portainer partout** (uniformité apprenant, même URL `:9000`).
-  **Supersede D-ACADEMY-6-12** (« Portainer remplace Docker Desktop » = erreur
-  de catégorie : Portainer est une GUI, pas un moteur).
-* **Le runner GitHub Windows est écarté** : les runners ne fournissent que des
-  conteneurs **Windows** (Moodle/PostgreSQL/Ollama/Portainer sont Linux).
-* **Contrainte reboot assumée** (D-ACADEMY-12-4) : l'activation WSL2 exige admin
-  + reboot possible → installateur **idempotent/resumable**. Ne JAMAIS promettre
-  « un run sans reboot ».
-* **Portabilité** (D-ACADEMY-12-5) : un seul `install.sh` (en-tête par OS, queue
-  commune `compose up` + `.env` + seed via `composeBody()`), un `install.bat`.
+* **Matrice d'engine** (D-ACADEMY-12-1) : Linux = Docker Engine natif (dépôt
+  apt officiel) ; Windows = **Docker Desktop** (`install --user --quiet
+  --accept-license --backend=wsl-2`, WSL2 **requis et géré par Desktop**) ;
+  macOS = **Colima** (`brew install colima docker` + `colima start`).
+  **Portainer partout.**
+* **Portabilité** (D-ACADEMY-12-5, appliquée S-015) : un `unixScript` unique
+  (en-tête par OS, **queue commune verbatim**), un `install.bat`. Un test
+  asserte l'égalité de queue Linux/macOS.
+* **Décision pure, exécution adapter** (D-ACADEMY-12-2) : domaine `academy.env`
+  sans I/O ; `EnvironmentProbe` (fun interface) + `HostEnvironmentProbe`
+  adapter = **seul** `ProcessBuilder` de la prod.
+* **Verdict, jamais un throw** (D-ACADEMY-12-3, ajusté S-015) :
+  `checkContainerEngine` **rapporte** la stratégie, ne fait jamais échouer le
+  build — un hôte nu doit configurer/tester (P0 S-014).
+* **Reboot assumé** (D-ACADEMY-12-4) : l'activation WSL2 exige admin + reboot
+  possible → `.bat` idempotent/resumable (`:bootstrap_wsl2`), jamais promis
+  « sans reboot ».
 
-== État de l'architecture (session 014)
+== État de l'architecture (session 015)
 
 - **ACADEMY-1/4/5/6/7/8 TERMINÉS** (S-003→S-012).
-- **ACADEMY-11 3/4 US** (S-013) : injection matériel Moodle (outils natifs
-  `moosh`/`moodle-blueprint`). **11-4 (service compose) reste**.
-- **ACADEMY-12 2/4 US** (S-014) :
-  - **Domaine pur `academy.env`** (4 fichiers) : `HostOs`
-    (LINUX/WINDOWS/MACOS/UNKNOWN), `EnvironmentFacts` (immuable), `DockerStrategy`
-    sealed (`AlreadyReady`/`InstallDockerEngine`/`InstallColima`/
-    `InstallDockerDesktop`/`BootstrapWsl2First`/`Unsupported`),
-    `DockerStrategyDecider.decide(facts)` pur.
-  - `academy_env.feature` 7 scénarios `@env` + `AcademyEnvSteps` (S-088) +
-    `AcademyEnvCucumberRunner` (S-082) + `cucumberTestEnv` câblé à `check`.
-  - **P0** : `settings.gradle.kts` applique nmcp seulement si les 2 credentials
-    sont présents — un hôte nu configure désormais (prouvé).
-- Gates S-014 : `clean check validatePlugins` VERT **193 unit + 13 functional +
-  68 scénarios Cucumber**, `publishToMavenLocal` VERT, zéro secret.
+- **ACADEMY-11 3/4 US** (S-013) : **11-4 (service compose `moodle-material`) reste**.
+- **ACADEMY-12 3/4 US** (S-014/S-015) :
+  - Domaine pur `academy.env` (`HostOs`+`fromOsName`, `EnvironmentFacts`,
+    `DockerStrategy` sealed, `DockerStrategyDecider`).
+  - `EnvironmentProbe` (port) + `HostEnvironmentProbe` (adapter) +
+    `CheckContainerEngineTask` (`checkContainerEngine`, câblé à `check`).
+  - Writers : `install.sh` portable (apt Linux / Colima macOS), `install.bat`
+    (WSL2/Desktop resumable).
+  - `academy_env.feature` 7 `@env` + `academy_installer.feature` 24 `@installer`.
 
 == Ordre de travail suggéré
 
-1. **ACADEMY-12-2** : refonte des writers.
-   - `install.sh` : en-tête par OS (Linux `apt` / macOS `brew install colima
-     docker && colima start`), **queue commune** (compose + `.env` + seed +
-     Portainer).
-   - `install.bat` : probe admin + WSL2 ; WSL2 présent → `Docker Desktop
-     Installer.exe install --user --quiet --accept-license --backend=wsl-2` ;
-     sinon admin → `wsl --install` (resumable) ; sinon → message `Unsupported`.
-   - Sonde I/O (OS, admin, WSL2, daemon) = **adapter** de la tâche, jamais le
-     domaine. Le verdict vient de `DockerStrategyDecider`.
-   - Tests : unit (rendu), functional TestKit, dogfooding Linux `sh -n` +
-     `docker compose config`.
-2. **ACADEMY-12-3** : dogfooding Windows réel (preuve d'exécution, jamais
-   livré sans).
-3. Alternatives : ACADEMY-11-4, ACADEMY-9 (Qualiopi), ACADEMY-10 (Spring Boot).
+1. **ACADEMY-12-3** : dogfooding Windows réel.
+   - Sur une machine Windows : `sh`-équivalent = exécuter `install.bat`.
+   - Vérifier : sonde admin/WSL2, `Docker Desktop Installer.exe` téléchargé,
+     `--backend=wsl-2`, `docker compose config` VALIDE, images tirées.
+   - Documenter l'état de l'hôte (WSL2 présent/absent, admin, reboot).
+2. Alternatives : ACADEMY-11-4 (service compose `moodle-material`), ACADEMY-9
+   (Qualiopi), ACADEMY-10 (Spring Boot WebFlux).
 
 == Rappels des ordres de mission
 
@@ -69,6 +63,8 @@ Mission : **ACADEMY-12-2** — refonte des writers (bootstrap de l'engine par OS
 - DAG N2 : academy importable par N3, jamais N3 → academy.
 - Zéro secret. `publishToMavenLocal` obligatoire après modification de source.
 - Code anglais only (OSS cccp-education), docs gouvernance en français.
-- **Dogfooding = preuve réelle** ; ne pas livrer une branche OS non prouvée.
+- **Dogfooding = preuve réelle** ; ne pas livrer une branche OS non prouvée
+  (macOS reste vérifié structurellement — pas de Mac à disposition, assumé).
 - Sur un hôte nu, `./gradlew` doit configurer (P0 S-014 — ne pas régresser).
-</content>
+- Le dogfooding Linux S-015 est prouvé : `bash -n` OK, `docker compose config`
+  exit 0, idempotence vérifiée. Ne pas le rejouer sans delta source.

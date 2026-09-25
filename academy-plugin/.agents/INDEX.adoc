@@ -6,10 +6,10 @@ _Regles absolues_ : voir `AGENT.adoc`
 _DAG_ : N2 — Plugin Gradle de consommation (Regle 4bis)
 _Projet_ : academy-gradle (education.cccp.academy)
 
-_Derniere mise a jour_ : 2026-09-25 (session 014)
-_Session terminee_ : 014 — **ACADEMY-12 cadré + ACADEMY-12-1 TERMINÉ** (provisionnement de l'engine conteneurs par OS) : demande pilote (tester l'installation Windows) recadrée par les faits — **Docker Engine natif Windows ne fait pas tourner les images Linux** et « sans WSL » est impossible (Docker Desktop *gère* WSL2) ; **matrice d'engine actée** (Linux = Docker Engine natif, Windows = Docker Desktop `install --user --quiet --accept-license --backend=wsl-2`, macOS = **Colima** MIT), **Portainer partout** (uniformité apprenant) — **supersede D-ACADEMY-6-12** (erreur de catégorie : engine ≠ GUI) ; **domaine pur `academy.env`** (`HostOs`/`EnvironmentFacts`/`DockerStrategy` sealed/`DockerStrategyDecider`) + BDD `academy_env.feature` 7 scénarios `@env` + runner `cucumberTestEnv` (S-082) ; **préalable P0** : `settings.gradle.kts` tolérant à l'absence de creds (un hôte nu configure désormais) ; **runner GitHub Windows écarté** (conteneurs Windows only)
-_Sessions precedent_ : 013 — ACADEMY-11 3/4 US (injection matériel Moodle, outils natifs `moosh`/`moodle-blueprint`, dogfooding réel) + ToolExposure N0 + frontière runtime actée ; 012 — ACADEMY-4 TERMINÉ + publication Maven Central 0.0.1 ; 011 — ACADEMY-8 TERMINÉ (bridge Ktor) ; 010 — ACADEMY-7 TERMINÉ (BYOK multi-provider) ; 009 — ACADEMY-5 TERMINÉ (exposition agent) ; 008 — ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ ; 007 — ACADEMY-6-6 TERMINÉ (dogfooding bout-en-bout) ; 006 — ACADEMY-6-5 TERMINÉ (seed DB data-only) ; 005 — ACADEMY-6-4 TERMINÉ (compose complet) ; 004 — Révisions pilote du scaffold compose ; 003 — Socle générateur (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation ; 001 — Alignement article 0124 ; 000 — Bootstrap
-_Prochaine session_ : ACADEMY-12-2 (writers `install.sh` portable / `install.bat` WSL2+Desktop + sonde adapter + wiring) puis ACADEMY-12-3 (dogfooding Windows réel). Alternatives ordonnancées : ACADEMY-11-4 (service compose `moodle-material`), ACADEMY-9 (Qualiopi), ACADEMY-10 (Spring Boot WebFlux).
+_Derniere mise a jour_ : 2026-09-25 (session 015)
+_Session terminee_ : 015 — **ACADEMY-12-2 TERMINÉ** (writers portables + sonde adapter + dogfooding Linux) : l'installeur **provisionne** désormais l'engine par OS au lieu de le vérifier — **un `install.sh` unique** (en-tête Linux apt officiel / macOS Colima, **queue commune verbatim** — D-ACADEMY-12-5 appliquée par construction) + `install.bat` refondu (**sonde admin `net session` + WSL2 `wsl --status` en faits `IS_ADMIN`**, puis `:bootstrap_wsl2` resumable ou `:install_docker_desktop` `--user --quiet --accept-license --backend=wsl-2`) ; **port `EnvironmentProbe`** (fun interface) + **adapter `HostEnvironmentProbe`** (seul `ProcessBuilder` de la prod) + **`HostOs.fromOsName`** pur + **task `checkContainerEngine`** câblé à `check` (verdict **rapporté**, jamais un throw — D-ACADEMY-12-3) ; **dogfooding Linux réel** prouvé (`bash -n` OK, `docker compose config` exit 0, 5 services reconnus, idempotence marqueur versionné) ; gates **207 unit + 16 functional + 69 scénarios Cucumber** 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT, `help -Duser.home=<vide>` VERT (P0), zéro secret, zéro `ProcessBuilder` dans le domaine
+_Sessions precedent_ : 014 — ACADEMY-12 cadré + ACADEMY-12-1 TERMINÉ (domaine pur `academy.env` + préalable P0) ; 013 — ACADEMY-11 3/4 US (injection matériel Moodle, outils natifs `moosh`/`moodle-blueprint`, dogfooding réel) + ToolExposure N0 + frontière runtime actée ; 012 — ACADEMY-4 TERMINÉ + publication Maven Central 0.0.1 ; 011 — ACADEMY-8 TERMINÉ (bridge Ktor) ; 010 — ACADEMY-7 TERMINÉ (BYOK multi-provider) ; 009 — ACADEMY-5 TERMINÉ (exposition agent) ; 008 — ACADEMY-6-7 TERMINÉ + EPIC ACADEMY-6 TERMINÉ ; 007 — ACADEMY-6-6 TERMINÉ (dogfooding bout-en-bout) ; 006 — ACADEMY-6-5 TERMINÉ (seed DB data-only) ; 005 — ACADEMY-6-4 TERMINÉ (compose complet) ; 004 — Révisions pilote du scaffold compose ; 003 — Socle générateur (ACADEMY-1) + cadrage ACADEMY-6-0 ; 002 — Recadrage de l'orientation ; 001 — Alignement article 0124 ; 000 — Bootstrap
+_Prochaine session_ : ACADEMY-12-3 (dogfooding environnement **Windows réel** : `install.bat`, `docker compose config`, parité, images tirées — jamais livré sans preuve). Alternatives ordonnancées : ACADEMY-11-4 (service compose `moodle-material`), ACADEMY-9 (Qualiopi), ACADEMY-10 (Spring Boot WebFlux).
 
 '''
 == REGLES ABSOLUES
@@ -428,9 +428,9 @@ _Dependances_ : ACADEMY-6 (installeur + compose) ✅.
 | 5
 | ✅ TERMINÉ (S-014)
 | ACADEMY-12-2
-| *Writers + sonde adapter* — `install.sh` portable (en-tête par OS, queue commune) + `install.bat` (WSL2/Desktop) + sonde I/O + wiring + functional TestKit.
+| *Writers + sonde adapter* — `install.sh` portable (`unixScript` : en-tête Linux apt officiel / macOS Colima, **queue commune verbatim**) + `install.bat` (sonde admin+WSL2, WSL2/Desktop resumable) + port `EnvironmentProbe` + adapter `HostEnvironmentProbe` + `HostOs.fromOsName` + task `checkContainerEngine` (verdict rapporté) + functional TestKit + dogfooding Linux (`bash -n`, `docker compose config`, idempotence).
 | 5
-| 🟡 À FAIRE
+| ✅ TERMINÉ (S-015)
 | ACADEMY-12-3
 | *Dogfooding environnement Windows réel* — `install.bat`, `docker compose config`, parité, images tirées ; **jamais livré sans preuve**.
 | 3
@@ -439,9 +439,9 @@ _Dependances_ : ACADEMY-6 (installeur + compose) ✅.
 
 _Total_ : 4 US, ~16 pts. _Methode_ : baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR).
 
-_Statut_ : 🟡 EN COURS 2/4 US — 12-0 ✅ S-014 + 12-1 ✅ S-014 ; **12-2/12-3 à faire**.
+_Statut_ : 🟡 EN COURS 3/4 US — 12-0 ✅ S-014 + 12-1 ✅ S-014 + 12-2 ✅ S-015 ; **12-3 à faire**.
 
-_Gates S-014_ : `clean check validatePlugins` VERT **193 unit + 13 functional + 68 scénarios Cucumber** (21 installer + 6 opencode + 8 byok + 6 bridge + 8 material + 10 moodle + 7 env), `publishToMavenLocal` VERT, `help -Duser.home=<vide>` VERT (P0), zéro secret, zéro `ProcessBuilder` dans le domaine.
+_Gates S-015_ : `clean check validatePlugins` VERT **207 unit + 16 functional + 69 scénarios Cucumber** (24 installer + 6 opencode + 8 byok + 6 bridge + 8 material + 10 moodle + 7 env), `publishToMavenLocal` VERT, `help -Duser.home=<vide>` VERT (P0), dogfooding Linux réel (`bash -n` OK, `docker compose config` exit 0, idempotence), zéro secret, zéro `ProcessBuilder` dans le domaine.
 
 '''
 
@@ -484,6 +484,7 @@ _Statut_ : ✅ CLOS côté academy (la boucle est un EPIC privé workspace-gradl
 | 012 | 2026-09-21 | développement + publication | ACADEMY-4 TERMINÉ — consommation du matériel versionné : domaine `academy.material` (lecture N0 + pivot EPIC K, verdict pur sealed), tâche `inspectTrainingMaterial` (n'échoue que si exigence déclarée), extension +4 properties, scaffold `MATERIAL.md` conditionnel ; frontière des verbes corrigée (transport git = bureau, academy lit — zéro git) ; dogfooding réel pivots EPIC K ; **publication Maven Central 0.0.1** (bundle `5c54af3f`, propagation HTTP 200) ; EPIC ACADEMY-10 cadré (Spring Boot WebFlux) | 19/19
 | 013 | 2026-09-21 | développement + cadrage | ACADEMY-11 3/4 US + ToolExposure (N0) + frontière runtime actée — injection du matériel dans Moodle : domaine `academy.moodle` (vocabulaire Moodle réel, plan pur, applicateur), tâche `generateMoodleImport` (opt-in, dégradée), extension +4 properties ; **outils natifs de l'image découverts** (`moosh`, `moodle-blueprint`) — l'applicateur les pilote (zéro PHP maison, zéro SQL/DDL) ; dogfooding réel Moodle 5.2.3 + PostgreSQL 16 (3 bugs réels attrapés) ; frontière actée (academy ne porte pas `FormationRuntimePort`, D-ACADEMY-11-1) ; `OpenCodeCatalog.exposure()` (ToolExposure N0) | 19/19 |
 | 014 | 2026-09-25 | cadrage + développement | **ACADEMY-12 cadré + ACADEMY-12-1 TERMINÉ** — provisionnement engine conteneurs par OS : matrice actée (Linux natif / Windows Docker Desktop WSL2 / macOS Colima), Portainer partout, supersede D-ACADEMY-6-12 ; domaine pur `academy.env` (`DockerStrategyDecider` sealed) + BDD 7 scénarios `@env` ; préalable P0 `settings.gradle.kts` tolérant (hôte nu configure) ; runner GitHub Windows écarté (faits) | 8/8 |
+| 015 | 2026-09-25 | développement | **ACADEMY-12-2 TERMINÉ** — writers portables + sonde adapter + dogfooding Linux : l'installeur **provisionne** (un `install.sh` unique Linux apt / macOS Colima, queue commune verbatim ; `install.bat` sonde admin+WSL2 en faits puis WSL2/Desktop resumable) ; port `EnvironmentProbe` + adapter `HostEnvironmentProbe` + `HostOs.fromOsName` + task `checkContainerEngine` (verdict rapporté, jamais un throw) ; dogfooding Linux réel (`bash -n` OK, `docker compose config` exit 0, idempotence marquée) ; 207 unit + 16 functional + 69 Cucumber 0 FAIL | 8/8 |
 |===
 
 '''
