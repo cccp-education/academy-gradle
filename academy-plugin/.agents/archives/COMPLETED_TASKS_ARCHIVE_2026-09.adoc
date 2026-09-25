@@ -80,3 +80,11 @@ _Session 013 (2026-09-21) — ACADEMY-11 3/4 US : injection du matériel dans Mo
 - ACADEMY-11-3 : BDD `academy_moodle.feature` `@moodle` 10 scénarios + runner dédié `cucumberTestMoodle` (S-082) + glue préfixée `AcademyMoodleSteps` (S-088) ; dogfooding réel Moodle 5.2.3 + PostgreSQL 16 (cours/sections/activités injectés via `moosh`) — **3 bugs réels attrapés** (double-quote shortname, champ `awk` du CSV `course-list`, `--intro` vs `--content`) + 3 tests de régression. **Pivot de design** : applicateur PHP maison abandonné au profit des outils natifs (3 pts)
 - ToolExposure (N0, ex-TODO S-012) : `OpenCodeCatalog.PUBLIC_BOROUGHS_ROOT` + `exposure()` lit `contracts.runtime.ToolExposure` ; `LearnerGuideGenerator` dérive le guardrail du contrat (fin du triple énoncé). Tests : +4 unit + 1 scénario BDD (2 pts)
 - Frontière runtime actée (D-ACADEMY-11-1) : ACADEMY-2/3 **CLOS côté academy** — la boucle `FormationRuntimePort` appartient à l'étage privé (workspace-gradle/edster)
+
+_Session 014 (2026-09-25) — ACADEMY-12 cadré + ACADEMY-12-1 TERMINÉ : provisionnement engine conteneurs par OS_
+
+- ACADEMY-12-0 : Cadrage `CADRAGE_EPIC_ACADEMY_12_WINDOWS.adoc` (8 constats, D-ACADEMY-12-1..8, options écartées, matrice d'engine, arbre de décision). Recadre la demande pilote par les faits : Docker Engine natif Windows ne fait pas tourner les images Linux, « sans WSL » impossible, « Engine sans Desktop » macOS impossible (Colima) ; runner GitHub Windows écarté (3 pts)
+- **Préalable P0** : `settings.gradle.kts` applique nmcp **seulement si** les 2 credentials sont présents — un hôte nu configure désormais (`help -Duser.home=<vide>` VERT ; avant : `ossrhUsername not found`). Les 25 boroughs partageaient ce blocage (dette transverse signalée)
+- ACADEMY-12-1 : Domaine pur `education.cccp.academy.env` (4 fichiers — `HostOs`, `EnvironmentFacts`, `DockerStrategy` sealed `AlreadyReady`/`InstallDockerEngine`/`InstallColima`/`InstallDockerDesktop`/`BootstrapWsl2First`/`Unsupported`, `DockerStrategyDecider` pur). Tests : +10 unit (5 pts)
+- BDD `academy_env.feature` `@env` 7 scénarios + runner dédié `cucumberTestEnv` (S-082) + glue préfixée `AcademyEnvSteps` (S-088). RED prouvé (30 `Unresolved reference` + 7 `UndefinedStepException`)
+- **Reste** : ACADEMY-12-2 (writers + sonde adapter) et ACADEMY-12-3 (dogfooding Windows réel)

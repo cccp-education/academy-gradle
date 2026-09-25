@@ -1,0 +1,194 @@
+= Cadrage EPIC ACADEMY-12 — Bootstrap de l'environnement conteneurs multiplateforme
+:date: 2026-09-25
+:session: 014
+:epic: ACADEMY-12
+:origine: Demande pilote 2026-09-25 (installer Docker Engine sans Desktop, tester sur environnement Windows) + PROMPT_REPRISE S-013
+:methode: Cadrage (gouvernance pure) — pattern S-057/S-063
+:statut: CADRÉ — arbitrage pilote 2026-09-25 (matrice d'engine par OS actée)
+
+== Contexte
+
+Les EPICs ACADEMY-6/5/7/8/4/11 ont livré la machine d'expérimentation et
+l'injection du matériel. L'installeur généré suppose toutefois que Docker est
+**déjà présent** sur l'hôte : `InstallerScriptGenerator.windowsScript` se
+contente de *vérifier* Docker Desktop (`InstallerScriptGenerator.kt:143`) et
+`linuxScript` de *vérifier* `docker` (`:61`). Aucun OS n'est réellement
+**provisionné**.
+
+Deux constats déclenchent ce cadrage :
+
+. Le pilote veut **installer l'engine**, pas seulement le vérifier, et le
+   tester sur un **environnement Windows réel** (pas un runner CI).
+. Le dogfooding S-007 n'a prouvé que **Linux**. La branche Windows — écriture
+   batch (`> file (`, `escapeCmd`) — **n'a jamais été exécutée** : c'est la
+   classe « scaffold inexécutable » de S-007, en attente sur la seule
+   plateforme non prouvée.
+
+La proposition initiale (« runner GitHub Windows ») a été **écartée** : les
+runners `windows-latest` ne fournissent que des **conteneurs Windows**
+(WSL1, images `windowsservercore`/`nanoserver` en cache) — les images
+Linux (Moodle, PostgreSQL, Ollama, Portainer) n'y démarrent pas. Le test
+se fera donc sur un **environnement Windows réel**, sensible à son état.
+
+== Constats (audit S-014 — faits vérifiés, jamais supposés)
+
+. *Docker Engine natif Windows ne fait pas tourner les images Linux.*
+   `docs.docker.com/engine/install/` : « This section describes how to install
+   Docker Engine on **Linux**. Docker Engine is also available for Windows,
+   macOS, and Linux, **through Docker Desktop**. » Le moteur natif Windows
+   (`moby`) ne voit que le noyau Windows → images `windowsservercore` /
+   `nanoserver`. Or Moodle (`erseco/alpine-moodle`), `postgres:16`,
+   `ollama/ollama`, `portainer/portainer-ce` sont des images **Linux**.
+. *« Sans WSL » sur Windows est impossible.* Docker Desktop **exige** WSL2 (ou
+   Hyper-V) et **gère sa propre distro** (`docker-desktop`) ; il *cache* WSL,
+   il ne le *supprime* pas. `docs.docker.com/desktop/setup/install/windows-install/` :
+   « Enabling WSL 2 for the first time also requires administrator privileges,
+   but this is a one-time, per-machine operation. » Le reboot éventuel n'est
+   donc **pas** éliminé par Desktop.
+. *L'installeur Docker Desktop est scriptable.* Mêmes docs :
+   `"Docker Desktop Installer.exe" install --user --quiet --accept-license --backend=wsl-2`.
+   `--user` = sans droits admin (mode per-user recommandé) ; `--accept-license`
+   supprime l'acceptation interactive ; `--backend=wsl-2` fixe le backend Linux.
+   Licence gratuite pour l'éducation / OSS non-commercial / <250 employés ET
+   <$10M (cccP-education éligible — à documenter).
+. *Docker Engine « sans Desktop » n'existe pas sur macOS.* Docker Engine dépend
+   du noyau Linux ; sur macOS il faut **toujours une VM**. L'équivalent libre de
+   l'intention « sans Desktop » est **Colima** (MIT) : `brew install colima docker`
+   puis `colima start`, expose le CLI `docker` standard. Alternatives : Rancher
+   Desktop (Apache 2.0), Podman Desktop (Apache 2.0), Docker Desktop.
+5. *La portabilité vit dans le CLI, pas dans le bootstrap.* Une fois un engine
+   démarré, Linux et macOS parlent le **même** `docker` + `docker compose`. Seul
+   le *démarrage* de l'engine diffère (5 lignes). Un seul `install.sh` peut donc
+   porter un en-tête par OS et une **queue commune** — exactement le pattern de
+   source unique déjà en place (`composeBody()`).
+6. *Colima tourne aussi sur Linux* (README + CI `linux-integration.yml`) : un
+   bootstrap unique `colima start` serait possible, mais imposerait une VM sur
+   un OS où Docker natif existe — surcoût inutile. Écarté (voir Options).
+7. *D-ACADEMY-6-12 était une erreur de catégorie.* La décision actée dit
+   « Portainer remplace Docker Desktop (GUI Docker) ». Or **Portainer est une
+   GUI, pas un moteur** : il exige un engine en dessous. Les deux ne sont donc
+   **pas** substituables — c'est l'**engine** qui se choisit, la GUI en découle.
+8. *Le préalable de build est cassé sur une machine nue.*
+   `settings.gradle.kts:23` fait `error("ossrhUsername not found")` : sur un
+   hôte sans `~/.gradle/gradle.properties`, **tout `./gradlew` échoue à la
+   configuration** (prouvé : `./gradlew help -Duser.home=/tmp/faux` →
+   `BUILD FAILED … ossrhUsername not found`). Or c'est précisément l'état d'un
+   environnement Windows neuf. Vérifié : **les 25 boroughs** partagent ce
+   pattern — zéro n'a de garde.
+
+== Décisions
+
+|===
+| ID | Décision | US rattachée
+| D-ACADEMY-12-1 | **Matrice d'engine par OS actée.** Linux = Docker Engine natif (apt/dnf) ; Windows = Docker Desktop (`--user --quiet --accept-license --backend=wsl-2`, WSL2 requis et **géré par Desktop**) ; macOS = **Colima** (MIT, CLI docker standard). **Portainer partout** : l'expérience apprenant est identique (même URL `:9000`), ce qui justifie la GUI sur les trois OS. **Supersede D-ACADEMY-6-12** (« Portainer remplace Docker Desktop » = erreur de catégorie : engine ≠ GUI). | 12-1
+| D-ACADEMY-12-2 | **La décision est pure, l'exécution est un adapter.** Domaine pur `education.cccp.academy.env` : `HostOs`, `EnvironmentFacts` (faits constatés, immuables), `DockerStrategy` (sealed), `DockerStrategyDecider` (objet pur `decide(facts)`). La **sonde** (I/O : lire l'OS, l'admin, WSL2, l'état du daemon) est l'affaire de l'adapter de la tâche (US-2), jamais du domaine. Testable sans machine. | 12-1
+| D-ACADEMY-12-3 | **Stratégies sealed** : `AlreadyReady` (engine joignable), `InstallDockerEngine` (Linux), `InstallDockerDesktop` (Windows, WSL2 présent), `InstallColima` (macOS), `BootstrapWsl2First` (Windows, WSL2 absent **et** admin), `Unsupported(reason)` (Windows sans admin pour activer WSL2 ; OS inconnu). Le verdict **ne lève jamais** — un état non provisionnable est un verdict, pas une exception (pattern `MaterialReadiness`). | 12-1
+| D-ACADEMY-12-4 | **La contrainte reboot est assumée, pas contournée.** L'activation WSL2 (Windows) exige admin **et** un redémarrage possible : l'installateur sera **idempotent et resumable** — un second run après reboot reprend là où il s'est arrêté (le marqueur versionné existe déjà). On ne promet **jamais** « un run sans reboot ». | 12-2
+| D-ACADEMY-12-5 | **Un seul `install.sh` portable, un `install.bat`.** L'en-tête diffère par OS (5 lignes : `apt` / `colima start`), la **queue est commune** (`compose up` + `.env` + seed via la source partagée `composeBody()`). Zéro duplication du compose. | 12-2
+| D-ACADEMY-12-6 | **Le test est sensible à l'environnement, et sa frontière est explicite.** Testable sans machine : décision (unit + BDD), syntaxe (`sh -n`, `shellcheck`), présence des bonnes commandes (assert structurel). Testable seulement sur l'OS réel : l'exécution du bootstrap. Windows : exécution du `.bat` + `docker compose config` + parité. macOS : adapter `colima start` **vérifié structurellement**, dogfooding reporté au premier Mac réel (pas de Mac à disposition — assumé). | 12-1/12-2
+| D-ACADEMY-12-7 | **Préalable P0 : `settings.gradle.kts` tolérant.** La configuration nmcp n'est appliquée que si `ossrhUsername`/`ossrhPassword` sont présents ; sinon le build configure normalement (publication impossible, mais build/test OK). Indispensable pour qu'un `./gradlew` tourne sur un Windows nu — et débloque au passage les CI des 25 boroughs (dette transverse signalée, corrigée ici pour academy seulement). | 12-0
+| D-ACADEMY-12-8 | **`TargetOs` est réutilisé comme `HostOs`.** Le vocabulaire de plateforme existe (`installer.TargetOs`) ; le domaine `env` en dérive un `HostOs` dédié pour ne pas coupler le domaine à l'installer (frontières DDD : deux contextes, deux enums). | 12-1
+|===
+
+== Matrice d'engine (D-ACADEMY-12-1)
+
+[cols="1,2,2,2", options="header"]
+|===
+| OS | Engine | GUI | Préalable
+
+| Linux
+| Docker Engine natif (`apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin`)
+| Portainer
+| —
+
+| Windows
+| Docker Desktop (`install --user --quiet --accept-license --backend=wsl-2`)
+| Portainer
+| WSL2 **requis** (géré par Desktop) — activation admin unique + reboot possible
+
+| macOS
+| **Colima** (`brew install colima docker` puis `colima start`)
+| Portainer
+| macOS 13+
+|===
+
+== Arbre de décision (D-ACADEMY-12-2/3)
+
+```
+decide(facts)
+  ├── facts.dockerEngineReady                -> AlreadyReady
+  ├── os == LINUX                            -> InstallDockerEngine
+  ├── os == MACOS                            -> InstallColima
+  └── os == WINDOWS
+        ├── wsl2Present                      -> InstallDockerDesktop   (--user, sans admin)
+        ├── !wsl2Present && windowsAdmin     -> BootstrapWsl2First     (admin + reboot)
+        └── !wsl2Present && !windowsAdmin    -> Unsupported(reason)
+```
+
+== Découpage des US
+
+[cols="1,3,2", options="header"]
+|===
+| US | Livrable | Tests
+
+| ACADEMY-12-0
+| Ce cadrage + correction de `settings.gradle.kts` (D-ACADEMY-12-7, préalable P0)
+| zéro code domaine
+
+| ACADEMY-12-1
+| Domaine pur `academy.env` (`HostOs`, `EnvironmentFacts`, `DockerStrategy`, `DockerStrategyDecider`)
+| unit + BDD `academy_env.feature` `@env`
+
+| ACADEMY-12-2
+| Refonte des writers (`install.sh` portable, `install.bat` WSL2/Desktop) + sonde adapter + wiring
+| unit + functional TestKit + dogfooding Linux
+
+| ACADEMY-12-3
+| Dogfooding environnement Windows réel (`install.bat`, `docker compose config`, parité, images tirées)
+| dogfooding (preuve réelle, non livrable sans)
+|===
+
+== Options écartées
+
+- **Runner GitHub `windows-latest`** : ne fournit que des conteneurs **Windows**
+  (WSL1, images Windows en cache) — Moodle/PostgreSQL/Ollama/Portainer (Linux)
+  ne démarrent pas. Aucune valeur de preuve pour l'installation réelle. Écartée.
+- **Docker Engine natif Windows « sans WSL »** : impossible pour les images
+  Linux (noyau Windows). Contredit la matrice. Écartée (constat 1).
+- **« Docker Engine sans Desktop » sur macOS** : impossible (Engine = noyau
+  Linux, VM obligatoire). Remplacé par Colima. Écartée (constat 4).
+- **Colima partout (Linux inclus)** : possible techniquement, mais impose une VM
+  sur un OS où Docker natif existe — surcoût, redondance. Écartée (constat 6).
+- **Retirer Portainer** (Desktop a déjà une GUI) : perd l'uniformité
+  multiplateforme de l'expérience apprenant (même URL `:9000`, même doc).
+  Gardé partout (D-ACADEMY-12-1).
+- **Promettre un run Windows sans reboot** : l'activation WSL2 exige un reboot
+  possible. Promettre l'inverse reproduirait la classe « scaffold inexécutable »
+  (S-007). Assumé idempotent/resumable (D-ACADEMY-12-4).
+
+== Gates
+
+- `./gradlew clean check validatePlugins` VERT (unit + functional + cucumber
+  dédiés ; les suites ACADEMY-4/5/6/7/8/11 restent vertes).
+- `./gradlew publishToMavenLocal` VERT après modification (Regle 2).
+- `./gradlew help -Duser.home=<vide>` **configure et réussit** (D-ACADEMY-12-7)
+  — prouvé avant/après.
+- Zéro secret (grep `TOKEN|SECRET|PASSWORD|API_KEY|sk-|gho_|ghp_` = 0).
+- Dogfooding Linux réel : `sh -n` + `docker compose config` VALIDES.
+- Windows : dogfooding réel sur environnement Windows (US-3), jamais promis
+  sans preuve.
+- Zéro `ProcessBuilder` dans le domaine (grep = 0) : la sonde est un adapter.
+
+== Articulation
+
+```
+ACADEMY-6 (installeur + compose + seed) ✅ S-008
+        │  (vérifie Docker sur l'hôte)
+        ▼
+ACADEMY-12 (provisionne l'engine par OS + Portainer)  ← CETTE SESSION (cadrage + 12-1)
+        │
+        ├─▶ ACADEMY-11-4 (service compose moodle-material, reste)
+        ├─▶ ACADEMY-9 (Qualiopi)
+        └─▶ ACADEMY-10 (Spring Boot WebFlux)
+```
+</content>

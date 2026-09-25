@@ -2,7 +2,7 @@
 :toc:
 :toclevels: 2
 
-_Dernière mise à jour_ : 2026-09-21 — **EPIC ACADEMY-11 3/4 US (S-013)** + **ToolExposure (N0) branché** + **frontière runtime actée**. Injection du matériel pédagogique dans Moodle : domaine pur `academy.moodle` (vocabulaire Moodle réel, plan pur, applicateur pilotant les **outils natifs de l'image**), tâche `generateMoodleImport` (opt-in, dégradée). Découverte décisive : l'image `erseco/alpine-moodle:v5.2.3` embarque `moosh` et `moodle-blueprint` → **zéro PHP maison, zéro SQL/DDL, zéro stack**. Dogfooding réel Moodle 5.2.3 + PostgreSQL 16 (3 bugs réels attrapés). **ACADEMY-2/3 CLOS côté academy** (D-ACADEMY-11-1 : la boucle runtime appartient à l'étage privé). Prochaines US : ACADEMY-11-4 (service compose `moodle-material`), ACADEMY-9 (Qualiopi), ACADEMY-10 (Spring Boot WebFlux).
+_Dernière mise à jour_ : 2026-09-25 — **EPIC ACADEMY-12 cadré + ACADEMY-12-1 TERMINÉ (S-014)**. Provisionnement de l'engine conteneurs par OS : la demande pilote (tester l'installation Windows) a été **recadrée par les faits** — Docker Engine natif Windows ne fait pas tourner les images Linux, « sans WSL » est impossible (Docker Desktop *gère* WSL2), et « Engine sans Desktop » sur macOS est impossible (Colima). **Matrice d'engine actée** : Linux = Docker Engine natif, Windows = Docker Desktop, macOS = Colima ; **Portainer partout** (supersede D-ACADEMY-6-12). Domaine pur `academy.env` (`DockerStrategyDecider` sealed) + BDD 7 scénarios `@env`. **Préalable P0** : `settings.gradle.kts` tolérant à l'absence de creds (un hôte nu configure désormais ; les 25 boroughs partageaient le blocage). Prochaines US : ACADEMY-12-2 (writers + sonde), ACADEMY-12-3 (dogfooding Windows réel), ACADEMY-11-4, ACADEMY-9, ACADEMY-10.
 
 '''
 == Vision actée (S-002, arbitrage pilote)
@@ -47,6 +47,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-9 | Support Qualiopi (bilan de session, traces, conformité aux critères) | 🟡 À FAIRE
 | ACADEMY-10 | Migration du bridge Ktor → Spring Boot WebFlux + coroutines Kotlin + R2DBC + PostgreSQL (Docker) + Jackson 3 | 🟡 À FAIRE (cadré S-012)
 | ACADEMY-11 | Injection du matériel pédagogique dans Moodle (data structurée AsciiDoc → plan + applicateur natif) | 🟡 EN COURS 3/4 US (S-013) — 11-0/11-1/11-2/11-3 ✅ ; 11-4 🟡 À FAIRE
+| ACADEMY-12 | Provisionnement de l'engine conteneurs par OS (Linux natif / Windows Docker Desktop WSL2 / macOS Colima) + Portainer partout | 🟡 EN COURS 2/4 US (S-014) — 12-0/12-1 ✅ ; 12-2/12-3 🟡 À FAIRE
 |===
 
 '''
@@ -247,6 +248,36 @@ extension +4 properties opt-in ; plan = contrat stable, applicateur générique.
 *Note* : l'US « alimenter le seed Moodle » (ancienne ACADEMY-4-2*, différée
 D-ACADEMY-4-12) **est absorbée ici** : c'est précisément l'objet d'ACADEMY-11.
 
+=== ACADEMY-12 : Provisionnement de l'engine conteneurs par OS
+
+*Statut* : 🟡 EN COURS 2/4 US (S-014) — 12-0 ✅ S-014 + 12-1 ✅ S-014 ; **12-2/12-3 à faire**.
+
+*Source* : Session 014 (**arbitrage pilote 2026-09-25**). L'installeur suppose
+Docker déjà présent ; ACADEMY-12 le **provisionne** par OS, Portainer partout.
+Cadrage : `CADRAGE_EPIC_ACADEMY_12_WINDOWS.adoc`.
+
+*Découverte décisive* : Docker Engine natif Windows ne fait pas tourner les
+images Linux (`docs.docker.com/engine/install/`), « sans WSL » est impossible
+(Docker Desktop **gère** WSL2, activation admin unique + reboot possible), et
+« Engine sans Desktop » sur macOS est impossible (VM obligatoire → Colima).
+Le **runner GitHub Windows a été écarté** (conteneurs Windows only).
+
+*Décisions* : `CADRAGE_EPIC_ACADEMY_12_WINDOWS.adoc` (D-ACADEMY-12-1..8).
+Structurantes : matrice d'engine par OS ; Portainer partout (**supersede
+D-ACADEMY-6-12** — erreur de catégorie engine ≠ GUI) ; décision **pure** vs
+sonde adapter ; verdict sealed jamais jeté ; contrainte reboot assumée
+(installateur idempotent/resumable) ; un `install.sh` portable + queue commune ;
+frontière de test explicite ; **P0 `settings.gradle.kts` tolérant** ; `HostOs` dédié.
+
+[cols="2,3", options="header"]
+|===
+| US | Description
+| ACADEMY-12-0 | ✅ Cadrage `CADRAGE_EPIC_ACADEMY_12_WINDOWS.adoc` + préalable P0 `settings.gradle.kts` tolérant à l'absence de creds (S-014)
+| ACADEMY-12-1 | ✅ Domaine pur `academy.env` (`HostOs`/`EnvironmentFacts`/`DockerStrategy` sealed/`DockerStrategyDecider`) + BDD 7 scénarios `@env` (S-014)
+| ACADEMY-12-2 | 🟡 Writers `install.sh` portable (en-tête par OS, queue commune) + `install.bat` (WSL2/Desktop) + sonde adapter + wiring + functional TestKit
+| ACADEMY-12-3 | 🟡 Dogfooding environnement Windows réel (`install.bat`, `docker compose config`, parité, images tirées) — jamais livré sans preuve
+|===
+
 === ACADEMY-10 : Migration du bridge Ktor → Spring Boot WebFlux (cadré S-012)
 
 *Statut* : 🟡 CADRÉ (S-012) — **décision pilote 2026-09-21** : le bridge
@@ -406,6 +437,21 @@ décision pilote.
 |===
 
 '''
+== Décisions ACADEMY-12 — Provisionnement de l'engine par OS (S-014)
+
+|===
+| ID | Décision | Session
+| D-ACADEMY-12-1 | **Matrice d'engine par OS** : Linux = Docker Engine natif ; Windows = Docker Desktop (`install --user --quiet --accept-license --backend=wsl-2`, WSL2 requis et géré) ; macOS = **Colima** (MIT). **Portainer partout** (uniformité apprenant, même URL `:9000`). **Supersede D-ACADEMY-6-12** (« Portainer remplace Docker Desktop » = erreur de catégorie : engine ≠ GUI). | S-014
+| D-ACADEMY-12-2 | **Décision pure, exécution adapter** : domaine `academy.env` sans I/O ; la sonde (OS/admin/WSL2/daemon) appartient à l'adapter de la tâche. Testable sans machine. | S-014
+| D-ACADEMY-12-3 | **`DockerStrategy` sealed** : `AlreadyReady`/`InstallDockerEngine`/`InstallColima`/`InstallDockerDesktop`/`BootstrapWsl2First`/`Unsupported`. Le verdict ne lève jamais (pattern `MaterialReadiness`). | S-014
+| D-ACADEMY-12-4 | **Contrainte reboot assumée** : l'activation WSL2 exige admin + reboot possible → installateur **idempotent/resumable**. Ne jamais promettre « un run sans reboot ». | S-014
+| D-ACADEMY-12-5 | **Un `install.sh` portable** (en-tête par OS, queue commune `compose up` + `.env` + seed via `composeBody()`) + un `install.bat`. Zéro duplication du compose. | S-014
+| D-ACADEMY-12-6 | **Frontière de test explicite** : décision testable sans machine (unit + BDD), syntaxe (`sh -n`), dogfooding OS réel. macOS vérifié structurellement (pas de Mac à disposition). | S-014
+| D-ACADEMY-12-7 | **P0 `settings.gradle.kts` tolérant** : nmcp appliqué seulement si les 2 credentials présents (un hôte nu configure). Les 25 boroughs partageaient le blocage. | S-014
+| D-ACADEMY-12-8 | **`TargetOs` non réutilisé** : `HostOs` dédié au contexte `env` (deux contextes bornés, deux enums). | S-014
+|===
+
+'''
 == Historique des mises à jour
 
 |===
@@ -424,6 +470,7 @@ décision pilote.
 | 2026-09-21 | S-011 : **EPIC ACADEMY-8 TERMINÉ** — webhooks Moodle + bridge Ktor (décision pilote : Ktor acté). Constats vérifiés : le bridge codebase (`SessionProtocolDaemonTask`) est **stdin/stdout, pas HTTP** (justification D4 inexacte → transport additionnel, D-ACADEMY-8-1), **Moodle n'a pas de webhook natif** → schéma academy (D-ACADEMY-8-5), Ktor 3.2.0 sur Central, `opencode-session-contracts` non transitif, contrats N0 **non `@Serializable`** (RED de comportement → anti-corruption `BridgeWire`, D-ACADEMY-8-11). Domaine pur `academy.bridge` (`MoodleEvent`/`BridgeEventTranslator` session stable/`BridgeRoutes`/`BridgeServerConfig`/`BridgeWire`/`ByokBridgeSupport`) + serveur `WebhookBridgeServer` Ktor Netty + tâche `serveWebhookBridge` **opt-in** (SKIPPED par défaut, TestKit) + extension +3 properties + `AGENTS.md` conditionnel ; D-ACADEMY-8-1..11. Dogfooding réel serveur + curl (`/health` 200, ack, 400/404, arrêt propre). Gates : 311 unit + 10 functional + 21 installer + 5 opencode + 8 byok + 6 bridge scénarios 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT, zéro secret. |
 | 2026-09-21 | S-012 : **EPIC ACADEMY-4 TERMINÉ** + **publication Maven Central 0.0.1**. Correction du BACKLOG (faits vérifiés) : `MaterialUpdateContract` est une **data class** (pas une interface), le **transport git appartient au bureau** (vision § 3.2), et `pullMaterial` **n'existe pas** (`bureau-gradle` = 3 fichiers, zéro `tasks.register` — mention KDoc seulement). Domaine pur `academy.material` (`MaterialArtifactType` 6 livrables, `MaterialRequirement`, `MaterialManifest` = pivot EPIC K tolérant, `MaterialReadiness` sealed, `MaterialInspector`, `MaterialGuideGenerator`) + tâche `inspectTrainingMaterial` (n'échoue que si exigence déclarée) + extension +4 properties + scaffold `MATERIAL.md` conditionnel (parité Linux/Windows) ; D-ACADEMY-4-1..12. Dogfooding réel pivots EPIC K (READY/outdated/missing/Empty) + `sh -n` + `grep pullMaterial`=0 ; **découverte** : exigence par types seuls silencieusement ignorée → correctif TDD `hasRequirement()`. **Publication Central** : nmcp 1.5.0, bundle `5c54af3f-1bfc-405f-950a-1172fff86b7a` AUTOMATIC, propagation HTTP 200 (academy-plugin + marker). **EPIC ACADEMY-10 cadré** (migration Ktor → Spring Boot WebFlux + coroutines + R2DBC + PostgreSQL + Jackson 3 ; Boot 4.1.1 = Jackson 3.1.5, Boot 3.4.2 = Jackson 2.18.2 → bump BOM probable). Gates : 152 unit + 13 functional + 21 installer + 5 opencode + 8 byok + 6 bridge + 8 material scénarios 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT, nmcpCheckAggregationFiles VERT, zéro secret. |
 | 2026-09-21 | S-013 : **EPIC ACADEMY-11 3/4 US** + **ToolExposure (N0) branché** + **frontière runtime actée**. Arbitrage pilote : academy **consomme** la formation (training) et **injecte de la data structurée** AsciiDoc dans Moodle — **pas** de boucle runtime ; puis « on s'appuie sur l'**image préconstruite** et ses **outils natifs** ». **Découverte décisive** : l'image `erseco/alpine-moodle:v5.2.3` embarque `moodle-blueprint` (format Moodle Playground, appliqué auto au boot via `MOODLE_BLUEPRINT`) et **`moosh`** (Moodle Shell : `course-create -r` idempotent, `activity-add`, `section-config-set`) → l'applicateur les **pilote** (zéro PHP maison, zéro SQL/DDL, zéro stack). Domaine pur `academy.moodle` (`MoodleActivityType`/`MoodleActivityMapping` vocabulaire Moodle réel, `MoodleMaterial` path-only, `MoodleActivity`/`MoodleSection`, `MoodleImportPlan`, `MoodlePlanBuilder`, `MoodleIngestionScriptGenerator`) + tâche `generateMoodleImport` (opt-in `moodleImportEnabled` défaut `false`, **dégradée** : matériel vide → rien écrit) + extension +4 properties + BDD `academy_moodle.feature` 10 scénarios + runner `cucumberTestMoodle` (S-082) ; D-ACADEMY-11-1..10. **ToolExposure** : `OpenCodeCatalog.exposure()` lit le contrat N0, le guide dérive le guardrail. **Frontière runtime actée** (D-ACADEMY-11-1) : `FormationRuntimePort` appartient à l'étage privé → ACADEMY-2/3 **CLOS côté academy** ; le TODO `SessionMemoryContract` « zéro implémenteur » est **périmé** (`PgVectorSessionMemory` codex S-094). **Dogfooding réel** Moodle 5.2.3 + PostgreSQL 16 (cours/sections/activités injectés via `moosh`) — **3 bugs réels attrapés** (double-quote shortname, champ `awk` du CSV `course-list`, `--intro` vs `--content`) + 3 tests de régression. Gates : 183 unit + 13 functional + 21 installer + 6 opencode + 8 byok + 6 bridge + 8 material + 10 moodle scénarios 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT, zéro secret. Reste ACADEMY-11-4 (service compose `moodle-material`, non livré faute de preuve `compose up`). |
+| 2026-09-25 | S-014 : **EPIC ACADEMY-12 cadré + ACADEMY-12-1 TERMINÉ** — provisionnement de l'engine conteneurs par OS. Demande pilote (tester l'installation Windows) **recadrée par les faits** : Docker Engine natif Windows ne fait pas tourner les images Linux (`docs.docker.com/engine/install/`), « sans WSL » est impossible (Docker Desktop *gère* WSL2, activation admin + reboot possible), « Engine sans Desktop » sur macOS est impossible (VM → Colima) ; **runner GitHub Windows écarté** (conteneurs Windows only). **Matrice d'engine actée** : Linux natif / Windows Desktop / macOS Colima, **Portainer partout** — **supersede D-ACADEMY-6-12** (erreur de catégorie engine ≠ GUI ; D-ACADEMY-12-1..8). **P0** : `settings.gradle.kts` nmcp conditionnel (un hôte nu configure ; les 25 boroughs partageaient le blocage). Domaine pur `academy.env` (`HostOs`/`EnvironmentFacts`/`DockerStrategy` sealed/`DockerStrategyDecider`) + BDD `academy_env.feature` 7 scénarios `@env` + runner `cucumberTestEnv` (S-082). RED prouvé (30 `Unresolved reference` + 7 `UndefinedStepException`). Gates : 193 unit + 13 functional + 68 scénarios Cucumber 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT, `help -Duser.home=<vide>` VERT, zéro secret. Reste ACADEMY-12-2 (writers + sonde) et ACADEMY-12-3 (dogfooding Windows réel). |
 |===
 
 '''
@@ -446,6 +493,8 @@ décision pilote.
 [x] ACADEMY-2 : brancher `ToolExposure` (N0) sur `OpenCodeCatalog` — **TERMINÉ S-013** (`OpenCodeCatalog.exposure()` + guide dérivé du contrat)
 [x] ACADEMY-2/3 : implémenter les ports N0 — **CLOS côté academy S-013** (D-ACADEMY-11-1 : la boucle `FormationRuntimePort` appartient à l'étage privé ; `SessionMemoryContract` déjà implémenté par codex `PgVectorSessionMemory` S-094)
 [ ] ACADEMY-11-4 : câbler le service compose one-shot `moodle-material` (applique `ingest.sh` après le schéma Moodle, pattern `moodle-seed`) + 2 scénarios BDD + dogfooding `compose up` — ne pas livrer sans preuve
+[ ] ACADEMY-12-2 : writers `install.sh` portable (en-tête par OS, queue commune) + `install.bat` (WSL2/Desktop) + sonde adapter + wiring + functional TestKit
+[ ] ACADEMY-12-3 : dogfooding environnement Windows réel (`install.bat`, `docker compose config`, parité, images tirées) — ne pas livrer sans preuve
 [ ] ACADEMY-10 : migration du bridge Ktor → Spring Boot WebFlux (cadré S-012) — à ordonnancer sur décision pilote ; prérequis probable bump BOM workspace vers Spring Boot 4.1.1 (Jackson 3)
 [ ] ACADEMY-9 : support Qualiopi (bilan de session, traces, conformité) — distinct de l'ingestion (ACADEMY-11)
 [ ] Vérifier la conformité avec les décisions actées dans VISION_PIPELINE_FORMATION.adoc (sections 3.3, 9.2, 8.2) — **corrigée S-013** : § 6 (academy n'implémente pas la boucle)

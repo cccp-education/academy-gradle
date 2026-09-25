@@ -2,77 +2,73 @@
 
 == Mission de la prochaine session
 
-ACADEMY-11 est **en cours 3/4 US** (S-013). La frontière runtime est
-**tranchée** (arbitrage pilote) : academy **consomme** la formation produite
-par training et **installe le runtime Docker** ; il **injecte de la data
-structurée** AsciiDoc dans Moodle — il **n'implémente pas** la boucle
-`FormationRuntimePort`.
+**ACADEMY-12 est en cours 2/4 US** (S-014). La demande pilote — provisionner
+l'engine conteneurs et tester sur un environnement Windows réel — a été
+**recadrée par les faits** et la **matrice d'engine est actée**.
 
-Deux candidats, dans l'ordre suggéré :
+Mission : **ACADEMY-12-2** — refonte des writers (bootstrap de l'engine par OS)
++ sonde adapter + wiring. Puis **ACADEMY-12-3** — dogfooding Windows réel.
 
-1. **ACADEMY-11-4** — le scaffold compose du service one-shot
-   `moodle-material` (applique `ingest.sh` au premier `compose up`, après le
-   schéma Moodle). **C'est le seul reste d'ACADEMY-11** : le domaine, le
-   wiring et l'applicateur sont livrés et dogfoodés, mais le service n'est pas
-   encore câblé dans `composeBody()` faute de preuve d'exécution complète.
-2. **ACADEMY-9** (Qualiopi : bilan de session, traces) — adressable maintenant
-   que l'ingestion existe.
-3. **ACADEMY-10** (migration Ktor → Spring Boot WebFlux) — cadré S-012, non
-   critique MVP0, sur décision pilote.
+== Décisions actées S-014 (ne pas les rediscuter)
 
-== État de l'architecture (session 013)
+* **Matrice d'engine** (D-ACADEMY-12-1) : Linux = Docker Engine natif ;
+  Windows = **Docker Desktop** (`install --user --quiet --accept-license
+  --backend=wsl-2`, WSL2 **requis et géré par Desktop**) ; macOS = **Colima**
+  (MIT). **Portainer partout** (uniformité apprenant, même URL `:9000`).
+  **Supersede D-ACADEMY-6-12** (« Portainer remplace Docker Desktop » = erreur
+  de catégorie : Portainer est une GUI, pas un moteur).
+* **Le runner GitHub Windows est écarté** : les runners ne fournissent que des
+  conteneurs **Windows** (Moodle/PostgreSQL/Ollama/Portainer sont Linux).
+* **Contrainte reboot assumée** (D-ACADEMY-12-4) : l'activation WSL2 exige admin
+  + reboot possible → installateur **idempotent/resumable**. Ne JAMAIS promettre
+  « un run sans reboot ».
+* **Portabilité** (D-ACADEMY-12-5) : un seul `install.sh` (en-tête par OS, queue
+  commune `compose up` + `.env` + seed via `composeBody()`), un `install.bat`.
 
-- **ACADEMY-1/6/5/7/8/4 TERMINÉS** (S-003→S-012) : socle générateur, installeur
-  hybride, exposition agent, BYOK, bridge Ktor, consommation du matériel.
-- **ACADEMY-11 3/4 US (S-013)** : injection du matériel dans Moodle.
-  - Domaine pur `education.cccp.academy.moodle` (6 fichiers) :
-    `MoodleActivityType` + `MoodleActivityMapping` (vocabulaire Moodle **réel**
-    `label`/`page`/`quiz`/`resource`/`url`), `MoodleMaterial` (structure +
-    pivot, **path-only**), `MoodleActivity`/`MoodleSection`, `MoodleImportPlan`,
-    `MoodlePlanBuilder` (pur), `MoodleIngestionScriptGenerator`.
-  - **Découverte décisive** : l'image `erseco/alpine-moodle:v5.2.3` embarque des
-    **outils natifs** — `moodle-blueprint` (format Moodle Playground, appliqué
-    auto au boot via `MOODLE_BLUEPRINT` ; `createSection`/`addModule` =
-    PLANNED) et **`moosh`** (Moodle Shell : `course-create -r` idempotent,
-    `activity-add`, `section-config-set`). L'applicateur **pilote ces outils** :
-    **zéro PHP maison, zéro SQL, zéro DDL**.
-  - **Boundary § 3.3 respecté** : academy ne parse pas le `.adoc` (payload
-    opaque référencé par chemin, lu Moodle-side par `cat`).
-  - Tâche `generateMoodleImport` (opt-in `moodleImportEnabled` défaut `false`,
-    dégradé : matériel vide → rien écrit, installer byte-identique) →
-    `build/academy/moodle/{plan.json,ingest.sh}`.
-  - **Dogfooding réel Moodle 5.2.3 + PostgreSQL 16** : cours `formation-fpa`,
-    sections, activités `label`/`quiz`/`page` réellement injectés ;
-    **3 bugs réels attrapés** (double-quote du shortname, mauvais champ awk du
-    CSV `course-list`, `--intro` vs `--content` selon le type).
-- **ToolExposure (N0) branché** (ex-TODO S-012) : `OpenCodeCatalog.exposure()`
-  lit `contracts.runtime.ToolExposure` ; le guide dérive le guardrail du contrat.
-- Gates S-013 : `clean check validatePlugins` VERT **183 unit + 13 functional +
-  59 scénarios Cucumber** (21 installer + 6 opencode + 8 byok + 6 bridge +
-  8 material + 10 moodle), 0 FAIL ; `publishToMavenLocal` VERT ; zéro secret.
+== État de l'architecture (session 014)
 
-== Points en attente / ordre de travail suggéré
+- **ACADEMY-1/4/5/6/7/8 TERMINÉS** (S-003→S-012).
+- **ACADEMY-11 3/4 US** (S-013) : injection matériel Moodle (outils natifs
+  `moosh`/`moodle-blueprint`). **11-4 (service compose) reste**.
+- **ACADEMY-12 2/4 US** (S-014) :
+  - **Domaine pur `academy.env`** (4 fichiers) : `HostOs`
+    (LINUX/WINDOWS/MACOS/UNKNOWN), `EnvironmentFacts` (immuable), `DockerStrategy`
+    sealed (`AlreadyReady`/`InstallDockerEngine`/`InstallColima`/
+    `InstallDockerDesktop`/`BootstrapWsl2First`/`Unsupported`),
+    `DockerStrategyDecider.decide(facts)` pur.
+  - `academy_env.feature` 7 scénarios `@env` + `AcademyEnvSteps` (S-088) +
+    `AcademyEnvCucumberRunner` (S-082) + `cucumberTestEnv` câblé à `check`.
+  - **P0** : `settings.gradle.kts` applique nmcp seulement si les 2 credentials
+    sont présents — un hôte nu configure désormais (prouvé).
+- Gates S-014 : `clean check validatePlugins` VERT **193 unit + 13 functional +
+  68 scénarios Cucumber**, `publishToMavenLocal` VERT, zéro secret.
 
-1. ACADEMY-11-4 : câbler le service `moodle-material` dans `composeBody()` +
-   2 scénarios BDD + dogfooding `compose up`. Ne pas livrer sans preuve.
-2. **ACADEMY-2/3 : CLOS côté academy** (D-ACADEMY-11-1) — la boucle runtime
-   appartient à l'étage privé (workspace-gradle/edster). Le TODO « zéro
-   implémenteur » est **périmé** pour `SessionMemoryContract`
-   (`PgVectorSessionMemory`, codex S-094).
-3. ACADEMY-9 : Qualiopi (traces de consommation) — distinct de l'ingestion.
-4. ACADEMY-10 : migration Spring Boot WebFlux (cadré S-012).
+== Ordre de travail suggéré
+
+1. **ACADEMY-12-2** : refonte des writers.
+   - `install.sh` : en-tête par OS (Linux `apt` / macOS `brew install colima
+     docker && colima start`), **queue commune** (compose + `.env` + seed +
+     Portainer).
+   - `install.bat` : probe admin + WSL2 ; WSL2 présent → `Docker Desktop
+     Installer.exe install --user --quiet --accept-license --backend=wsl-2` ;
+     sinon admin → `wsl --install` (resumable) ; sinon → message `Unsupported`.
+   - Sonde I/O (OS, admin, WSL2, daemon) = **adapter** de la tâche, jamais le
+     domaine. Le verdict vient de `DockerStrategyDecider`.
+   - Tests : unit (rendu), functional TestKit, dogfooding Linux `sh -n` +
+     `docker compose config`.
+2. **ACADEMY-12-3** : dogfooding Windows réel (preuve d'exécution, jamais
+   livré sans).
+3. Alternatives : ACADEMY-11-4, ACADEMY-9 (Qualiopi), ACADEMY-10 (Spring Boot).
 
 == Rappels des ordres de mission
 
 - BDD/TDD baby-step strict : RED → GREEN → REFACTOR, 1 fichier de test avant le code.
 - Gouvernance d'abord pour toute décision pilote (pattern S-057).
-- **L'image est préconstruite avec ses outils natifs** : ne jamais construire
-  une stack (ni PHP maison, ni SQL direct) — vérifier l'image avant de coder.
+- **Vérifier la source avant de nommer** toute image/commande/outil (S-007/S-011/S-013).
 - Parité cross-plateforme : source unique partagée > doublon asserté.
 - DAG N2 : academy importable par N3, jamais N3 → academy.
 - Zéro secret. `publishToMavenLocal` obligatoire après modification de source.
 - Code anglais only (OSS cccp-education), docs gouvernance en français.
-- **Dogfooding = preuve réelle** (leçon récurrente S-007/S-012/S-013).
-- **Ne jamais inventer** un nom d'image, de tâche, de provider, de fonction ou
-  de champ CSV : vérifier la source (S-007 `moodle:4.5`, S-013 le CSV de
-  `moosh course-list`).
+- **Dogfooding = preuve réelle** ; ne pas livrer une branche OS non prouvée.
+- Sur un hôte nu, `./gradlew` doit configurer (P0 S-014 — ne pas régresser).
+</content>

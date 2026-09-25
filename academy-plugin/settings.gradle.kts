@@ -18,11 +18,20 @@ val globalProps = java.util.Properties().also {
     if (globalFile.exists()) it.load(globalFile.inputStream())
 }
 
-nmcpSettings {
-    centralPortal {
-        username = globalProps.getProperty("ossrhUsername") ?: error("ossrhUsername not found")
-        password = globalProps.getProperty("ossrhPassword") ?: error("ossrhPassword not found")
-        publishingType = "AUTOMATIC"
+// Publishing credentials are required only to publish (ACADEMY-12-0, D-ACADEMY-12-7):
+// a bare host (fresh Windows environment, CI) must be able to configure and test
+// the build without ~/.gradle/gradle.properties. When absent, nmcp is left
+// unconfigured - publishing fails later with a clear message, never at configuration.
+val ossrhUsername = globalProps.getProperty("ossrhUsername")
+val ossrhPassword = globalProps.getProperty("ossrhPassword")
+
+if (ossrhUsername != null && ossrhPassword != null) {
+    nmcpSettings {
+        centralPortal {
+            username = ossrhUsername
+            password = ossrhPassword
+            publishingType = "AUTOMATIC"
+        }
     }
 }
 

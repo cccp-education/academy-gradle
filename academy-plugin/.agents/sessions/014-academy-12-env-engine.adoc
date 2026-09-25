@@ -1,0 +1,117 @@
+= Session 014 — ACADEMY-12 (provisionnement de l'engine conteneurs par OS) : cadrage + domaine pur + déblocage build
+
+:date: 2026-09-25
+:session: 014
+:epic: ACADEMY-12
+:us: ACADEMY-12-0 (cadrage + préalable P0) + ACADEMY-12-1 (domaine pur + BDD)
+:methode: Baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR) — 2 niveaux (unit + cucumber BDD)
+
+== Mission
+
+Demande pilote : créer un EPIC pour tester l'installation sur Windows via le
+runner GitHub, puis — après audit — réaliser le test sur un **environnement
+Windows réel** et chercher à installer **Docker Engine sans Docker Desktop**.
+
+Le cadrage a recadré la demande : Docker Engine natif Windows ne fait pas
+tourner les images Linux, et « sans WSL » est impossible. La matrice d'engine
+par OS a été actée avec le pilote (Linux natif / Windows Docker Desktop /
+macOS Colima), Portainer partout.
+
+== Constats (audit S-014 — faits vérifiés, jamais supposés)
+
+. *Docker Engine natif Windows ne fait pas tourner les images Linux* —
+   `docs.docker.com/engine/install/` : « Docker Engine is also available for
+   Windows... through Docker Desktop ». Le moteur natif ne voit que le noyau
+   Windows. Or Moodle/PostgreSQL/Ollama/Portainer sont des images Linux.
+. *« Sans WSL » sur Windows est impossible* — Docker Desktop exige WSL2 (ou
+   Hyper-V) ; il *cache* WSL, ne le supprime pas. Activation admin unique +
+   reboot possible.
+. *L'installeur Docker Desktop est scriptable* —
+   `install --user --quiet --accept-license --backend=wsl-2`. Licence gratuite
+   pour l'éducation / OSS non-commercial (éligibilité cccP-education).
+. *Docker Engine « sans Desktop » n'existe pas sur macOS* — Engine dépend du
+   noyau Linux, VM obligatoire. Équivalent libre : **Colima** (MIT).
+5. *La portabilité vit dans le CLI* — une fois l'engine démarré, Linux/macOS
+   partagent `docker` + `docker compose` ; seul le bootstrap diffère (5 lignes).
+6. *Colima tourne aussi sur Linux* — bootstrap unique possible mais impose une
+   VM sur un OS où Docker natif existe. Écarté.
+7. *D-ACADEMY-6-12 était une erreur de catégorie* — « Portainer remplace
+   Docker Desktop » : Portainer est une GUI, pas un moteur. C'est l'engine qui
+   se choisit.
+8. *Le build est cassé sur un hôte nu* — `settings.gradle.kts:23` faisait
+   `error("ossrhUsername not found")` : prouvé `./gradlew help -Duser.home=/tmp/faux`
+   → `BUILD FAILED`. **Les 25 boroughs** partagent ce pattern, aucun n'a de garde.
+
+== Décisions (cadrage `CADRAGE_EPIC_ACADEMY_12_WINDOWS.adoc`, D-ACADEMY-12-1..8)
+
+Structurantes : **matrice d'engine par OS** (Linux natif / Windows Docker
+Desktop / macOS Colima), **Portainer partout** (uniformité apprenant), ce qui
+**supersede D-ACADEMY-6-12** ; décision **pure** (`DockerStrategyDecider`) vs
+sonde (adapter) ; verdict sealed jamais jeté ; **contrainte reboot assumée**
+(installateur idempotent/resumable) ; **un `install.sh` portable** + queue
+commune ; **frontière de test explicite** (décision testable sans machine,
+dogfooding OS réel) ; **P0 : `settings.gradle.kts` tolérant** ; `HostOs` dédié
+(pas de couplage à `installer.TargetOs`).
+
+== RED (prouvé)
+
+* Unit : `DockerStrategyDeciderTest` → **30 `Unresolved reference`**
+  (`HostOs`, `DockerStrategy`, `DockerStrategyDecider`, `EnvironmentFacts`).
+* BDD : `academy_env.feature` sans glue → **7 scénarios `UndefinedStepException`**
+  (runner `cucumberTestEnv` déjà câblé, preuve par retrait temporaire des steps).
+
+== GREEN
+
+* **Domaine pur `education.cccp.academy.env`** (4 fichiers) :
+  `HostOs` (LINUX/WINDOWS/MACOS/UNKNOWN), `EnvironmentFacts` (faits immuables),
+  `DockerStrategy` (sealed : `AlreadyReady`/`InstallDockerEngine`/
+  `InstallColima`/`InstallDockerDesktop`/`BootstrapWsl2First`/`Unsupported`),
+  `DockerStrategyDecider` (objet pur `decide(facts)`).
+* **BDD** `academy_env.feature` 7 scénarios `@env` + `AcademyEnvSteps` (préfixé
+  S-088) + `AcademyEnvCucumberRunner` (S-082) + `cucumberTestEnv` câblé à `check`.
+* **Préalable P0** : `settings.gradle.kts` applique nmcp **seulement si** les
+  deux credentials sont présents ; un hôte nu configure normalement.
+
+== Gates
+
+* `./gradlew clean check validatePlugins` → **BUILD SUCCESSFUL** 2m07s
+  — **193 unit** (+10) + **13 functional** + **68 scénarios Cucumber**
+  (21 installer + 6 opencode + 8 byok + 6 bridge + 8 material + 10 moodle +
+  **7 env**), **0 FAIL**.
+* `./gradlew publishToMavenLocal` → **BUILD SUCCESSFUL** (Règle 2).
+* `./gradlew help -Duser.home=<vide>` → **BUILD SUCCESSFUL** (P0 prouvé
+  avant/après ; avant : `ossrhUsername not found`).
+* Zéro secret (grep = 0) ; zéro `ProcessBuilder`/git dans le domaine `env`
+  (grep = 0, la sonde est un adapter en US-12-2).
+
+== Fichiers modifiés
+
+[cols="2,3", options="header"]
+|===
+| Fichier | Nature
+| `.agents/CADRAGE_EPIC_ACADEMY_12_WINDOWS.adoc` | gouvernance — cadrage (NOUVEAU)
+| `settings.gradle.kts` | build — nmcp conditionnel (P0, D-ACADEMY-12-7)
+| `src/main/kotlin/.../env/{HostOs,EnvironmentFacts,DockerStrategy,DockerStrategyDecider}.kt` | prod — domaine pur `academy.env` (4 fichiers, NOUVEAU)
+| `src/test/kotlin/.../env/DockerStrategyDeciderTest.kt` | tests — 10 unit (NOUVEAU)
+| `src/test/resources/features/academy_env.feature` | BDD — 7 scénarios `@env` (NOUVEAU)
+| `src/test/scenarios/.../bdd/{AcademyEnvSteps,AcademyEnvCucumberRunner}.kt` | BDD — glue + runner (NOUVEAU)
+| `build.gradle.kts` | build — runner `cucumberTestEnv` (pattern S-082)
+|===
+
+== Note de clôture — méthode
+
+La demande initiale (« runner GitHub Windows ») a été **écartée par les faits** :
+les runners ne fournissent que des conteneurs Windows, aucune preuve
+d'installation réelle. Le cadrage a évité de livrer un job CI vert qui ne
+prouverait rien (leçon S-007 appliquée à l'infrastructure).
+
+La règle du **delta source** a été appliquée à l'ouverture (compilation seule).
+Le RED a été prouvé statiquement (compilation) à chaque palier, y compris au
+niveau BDD (retrait temporaire de la glue). Le **P0** transforme un `BUILD
+FAILED` en `BUILD SUCCESSFUL` sur un hôte nu — préalable indispensable au test
+Windows réel (US-12-3).
+
+_Reste ouvert_ : ACADEMY-12-2 (writers + sonde adapter) et ACADEMY-12-3
+(dogfooding Windows réel) — le domaine pur est livré et prouvé, l'exécution par
+OS suit.
+</content>
