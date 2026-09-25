@@ -163,4 +163,25 @@ class MoodleIngestionScriptGeneratorTest {
         assertTrue(script.contains("FULLNAME=\"Academy\""))
         assertTrue(script.contains("FORMAT=\"topics\""))
     }
+
+    @Test
+    fun `the entrypoint guards against replaying an unchanged plan - activities must never duplicate`() {
+        val entrypoint = MoodleIngestionScriptGenerator.renderEntrypoint()
+
+        // Regression (dogfooding S-016): `moosh activity-add` does NOT dedupe,
+        // so re-running the same plan duplicated every page and label. The guard
+        // mirrors the image's own `moodle-blueprint` canonicalHash + `.done`.
+        assertTrue(entrypoint.contains("sha256sum"), "the replay guard must key on the plan content: $entrypoint")
+        assertTrue(entrypoint.contains(".academy-applied-plan"), "the guard marker must be written by the entrypoint")
+        assertTrue(entrypoint.contains("already applied"), "a replay must short-circuit as a no-op")
+        assertTrue(entrypoint.contains("/ingest/ingest.sh"), "the entrypoint must delegate to the staged applicator")
+        assertTrue(
+            entrypoint.contains("no staged material plan - nothing to inject"),
+            "the degraded path must stay explicit (D-ACADEMY-11-6)",
+        )
+        assertTrue(
+            entrypoint.contains("/var/www/html/.academy-applied-plan"),
+            "the marker must live in the writable shared Moodle volume, never the read-only /ingest bind (S-016)",
+        )
+    }
 }

@@ -78,3 +78,24 @@ Feature: Academy material injection into Moodle (ACADEMY-11)
     When the moodle ingestion script is rendered
     Then the moodle script never contains "PASSWORD="
     And the moodle script never contains "TOKEN="
+
+  Scenario: the installer declares the one-shot material service sharing the moodle tree
+    Given a moodle plan for course "formation-fpa" named "Formation FPA"
+    And the material carries an artifact "SPG/spg.adoc" of type "SPG"
+    And a moodle material service installer for "linux"
+    And moodle material injection is enabled
+    When the moodle material installer is rendered
+    Then the moodle material installer contains "moodle-material"
+    And the moodle material installer contains "restart: \"no\""
+    And the moodle material installer contains "moodle-html:/var/www/html"
+    And the moodle material installer contains "condition: service_healthy"
+    And the moodle material installer contains "$APP_DIR/moodle/entrypoint.sh"
+
+  Scenario: without the opt-in the installer carries no material service - degraded by default
+    Given a moodle plan for course "formation-fpa" named "Formation FPA"
+    And the material carries an artifact "SPG/spg.adoc" of type "SPG"
+    And a moodle material service installer for "linux"
+    And moodle material injection is disabled
+    When the moodle material installer is rendered
+    Then the moodle material installer never contains "moodle-material"
+    And the moodle material installer never contains "moodle-html"

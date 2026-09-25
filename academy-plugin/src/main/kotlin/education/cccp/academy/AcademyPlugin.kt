@@ -139,6 +139,9 @@ class AcademyPlugin : Plugin<Project> {
             task.targetOs.set(os)
             task.installerExtension.set(extension)
             task.outputDir.set(extension.outputDir)
+            // ACADEMY-11-4 — the pulled material is a tolerant input so a changed
+            // plan re-renders on a plain re-run (never a stale scaffold).
+            task.moodleMaterialFiles.from(extension.moodleMaterialDir)
         }
     }
 }

@@ -1,16 +1,14 @@
 package education.cccp.academy
 
-import education.cccp.academy.material.MaterialManifest
 import education.cccp.academy.moodle.MoodleImportPlan
 import education.cccp.academy.moodle.MoodleIngestionScriptGenerator
-import education.cccp.academy.moodle.MoodleMaterial
+import education.cccp.academy.moodle.MoodleMaterialReader
 import education.cccp.academy.moodle.MoodlePlanBuilder
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
-import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
@@ -30,7 +28,7 @@ import java.io.File
  *
  *  - `plan.json` — the **data** academy injects, built by
  *    [MoodleIngestionScriptGenerator.renderPlanJson];
- *  - `ingest.php` — the **generic** Moodle CLI applicator, identical for every
+ *  - `ingest.sh` — the **generic** Moodle CLI applicator, identical for every
  *    formation (D-ACADEMY-11-9).
  *
  * Academy never reads the AsciiDoc body (boundary § 3.3): the artifact is
@@ -58,7 +56,7 @@ abstract class GenerateMoodleImportTask : DefaultTask() {
     @get:Input
     abstract val courseFullName: Property<String>
 
-    /** Output directory for `plan.json` and `ingest.php`. */
+    /** Output directory for `plan.json` and `ingest.sh`. */
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
 
@@ -87,37 +85,11 @@ abstract class GenerateMoodleImportTask : DefaultTask() {
      */
     fun buildPlan(): MoodleImportPlan {
         val dir = materialDir.orNull?.asFile
-        val material = if (dir != null && dir.isDirectory) readMaterial(dir) else emptyList()
+        val material = if (dir != null) MoodleMaterialReader.read(dir) else emptyList()
         return MoodlePlanBuilder.build(
             shortName = courseShortName.get(),
             fullName = courseFullName.get(),
             material = material,
         )
-    }
-
-    /**
-     * Reads every `metadata.json` pivot under [root] and pairs it with its
-     * sibling artifact path, relative to [root] (structural read only — the
-     * artifact body is never opened). A pivot that cannot be parsed is skipped:
-     * the parser never decides, the plan does (patron `MaterialInspector`).
-     */
-    private fun readMaterial(root: File): List<MoodleMaterial> =
-        root.walkTopDown()
-            .filter { it.isFile && it.name == PIVOT_FILE_NAME }
-            .mapNotNull { pivotFile ->
-                val manifest = MaterialManifest.fromJson(pivotFile.readText()) ?: return@mapNotNull null
-                val artifactDir = pivotFile.parentFile
-                val artifact = (artifactDir.listFiles() ?: emptyArray())
-                    .filter { it.isFile && it.name != PIVOT_FILE_NAME }
-                    .minByOrNull { it.name }
-                    ?: return@mapNotNull null
-                val relative = artifact.relativeTo(root).invariantSeparatorsPath
-                MoodleMaterial(relativePath = relative, manifest = manifest)
-            }
-            .toList()
-
-    private companion object {
-        /** The EPIC K pivot file every producing borough writes next to its output. */
-        const val PIVOT_FILE_NAME = "metadata.json"
     }
 }

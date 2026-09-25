@@ -1,0 +1,162 @@
+= Session 016 — ACADEMY-11-4 (service compose one-shot `moodle-material`)
+
+:date: 2026-09-25
+:session: 016
+:epic: ACADEMY-11
+:us: ACADEMY-11-4 (service compose one-shot `moodle-material`) — EPIC ACADEMY-11 TERMINÉ 4/4 US
+:methode: Baby-step DDD/TDD/BDD strict (RED → GREEN → REFACTOR) — 3 niveaux unit/functional/cucumber
+
+== Mission
+
+`PROMPT_REPRISE` S-015, ordre du jour pilote : câbler le service compose
+one-shot **`moodle-material`** (applique `ingest.sh` après le schéma Moodle,
+pattern `moodle-seed`) + 2 scénarios BDD + **dogfooding `compose up` réel** —
+« ne pas livrer sans preuve d'exécution réelle » (leçon S-007/S-013).
+
+C'est le dernier item du backlog **coddable localement sans prérequis externe**.
+
+== Constats (audit S-016 — faits vérifiés sur l'image réelle)
+
+. *`moosh` bootstrappe contre l'install Moodle, pas contre le conteneur.* Le
+   wrapper `/usr/local/bin/moosh` de `erseco/alpine-moodle:v5.2.3` résout
+   `dirroot` (`/var/www/html` ou `/var/www/html/public` en 5.1+) et exige
+   `config.php`, **généré par le conteneur `moodle` au boot** (~2-3 min).
+   Un service frère **sans l'arbre Moodle partagé** échoue (« Error reading
+   from database »). D'où le **volume nommé `moodle-html:/var/www/html`**,
+   monté par les deux services — fait décisif de la conception.
+. *L'image a un healthcheck réel* (`curl .../fpm-ping`). Le service one-shot
+   peut donc s'appuyer sur `depends_on: moodle: service_healthy`, plus
+   robuste que le `service_started` du `moodle-seed`.
+. *`moosh activity-add` NE dédoublonne PAS.* Vérifié empiriquement : deux
+   `activity-add -i <idnumber>` créent **deux** activités. L'idempotence du
+   cadrage n'était vraie que pour le **cours** (`course-create -r`).
+. *Le conteneur tourne en `nobody` (65534), le bind `./moodle:/ingest`
+   appartient à l'uid hôte (1000)* → `/ingest` **non inscriptible** de
+   l'intérieur. Seul le volume nommé `/var/www/html` est inscriptible.
+. *`erseco/alpine-moodle:v5.2.3` embarque `sha256sum`*, pas `jq` — le garde
+   de rejeu s'écrit en shell POSIX (pattern `canonicalHash + .done` de
+   `moodle-blueprint`, transposé).
+
+== Décisions
+
+- **Service `moodle-material`** déclaré conditionnellement dans `composeBody()`
+  (`moodleMaterialEnabled`, défaut `false`) : `restart: "no"`, `entrypoint`
+  explicite, `depends_on: moodle: service_healthy`, mounts
+  `./moodle:/ingest`, `./material:/material:ro`, `moodle-html:/var/www/html`.
+- **Volume nommé `moodle-html`** partagé par `moodle` et `moodle-material`
+  (le seul moyen pour `moosh` de bootstrapper). Déclaré conditionnellement.
+- **Entrée-point générique** (`MoodleIngestionScriptGenerator.renderEntrypoint`) :
+  attend le bootstrap `moosh`, applique le plan stagé `/ingest/ingest.sh`,
+  dégradé explicite sans plan (D-ACADEMY-11-6).
+- **Garde de rejeu** (bug réel S-016) : marqueur `sha256(plan.json)` dans
+  `/var/www/html/.academy-applied-plan` (volume inscriptible), pattern
+  `canonicalHash + .done` de l'image. Re-run inchangé = no-op ; plan modifié =
+  ré-injection.
+- **Lecture matériel partagée** : `MoodleMaterialReader` extrait de
+  `GenerateMoodleImportTask`, réutilisé par `GenerateInstallerTask` (source
+  unique de la règle de lecture).
+- **`GenerateInstallerTask.moodleMaterialFiles`** — input **tolérant**
+  `@InputFiles @Optional` (pattern CDX-CONTEXT-HARDENING S-221) : un re-run
+  simple ré-rend un plan changé (bug réel de staleness attrapé S-016), sans
+  exiger la présence du matériel.
+- **Portabilité** : source unique partagée par les writers bash et batch
+  (`renderEntrypoint`/`renderPlanJson`/`renderApplicator`), parité
+  structurelle par construction (D-ACADEMY-12-5).
+
+== RED (prouvé)
+
+* `InstallerScriptMoodleMaterialTest` → `No parameter with name 'moodleMaterialEnabled' found.`
+* `MoodleIngestionScriptGeneratorTest.the entrypoint guards against replaying…`
+  → `AssertionFailedError` (garde absent).
+* `AcademyMoodleMaterialFunctionalTest.changing the material re-renders…`
+  → `AssertionFailedError` (plan stagé périmé sans `--rerun-tasks`).
+
+== GREEN
+
+- **Prod** : `InstallerPlatform` +`moodleMaterialEnabled` +`moodlePlan` ;
+  `InstallerScriptGenerator` refactoré (`moodleLines` conditionnel, service
+  `moodle-material`, `moodle-html`, staging bash + batch) ;
+  `GenerateInstallerTask` (plan + input tolérant) ; `AcademyPlugin` (from)
+  ; `MoodleIngestionScriptGenerator.renderEntrypoint` + garde de rejeu ;
+  `MoodleMaterialReader` (extrait, partagé) ;
+  `GenerateMoodleImportTask` refactoré sur le lecteur.
+- **Tests** : 5 unit (`InstallerScriptMoodleMaterialTest`) + 1 unit (garde de
+  rejeu) + 5 functional (`AcademyMoodleMaterialFunctionalTest`, dont la
+  non-régression de staleness) + 2 scénarios BDD `@moodle`.
+
+== Dogfooding réel (preuve d'exécution — leçons S-007/S-013/S-007)
+
+Consumer transitoire `/tmp/opencode/academy-dogfood` (pattern Règle 2) +
+`publishToMavenLocal` :
+
+. `buildAllInstallers` → `install.sh` (service + entrypoint + plan + applicator).
+. `bash install.sh` (HOME transitoire) → scaffold complet écrit.
+. `docker compose config` → **exit 0**, 6 services reconnus.
+. `docker compose up -d postgres moodle` → Moodle **healthy** (3 min réel).
+. `docker compose up moodle-material` → cours `formation-fpa` créé,
+   sections `01_accueil`/`02_coeur` nommées, activités `label`/`quiz`/`page`×2.
+. **Preuve objective en base** : `mdl_page.content` et `mdl_label.intro`
+   portent le contenu AsciiDoc réel (lu Moodle-side, academy ne parse jamais).
+. **Rejeu** : runs 2 et 3 = `already applied` no-op, compteurs stables
+   (`labels=1`, `pages=2`) — **bug corrigé et prouvé**.
+
+=== Deux bugs réels attrapés par le dogfooding (aucun couvert par un test vert)
+
+. *Duplication des activités au re-run.* `moosh activity-add` ne dédoublonne
+   pas → `mdl_label` 1→2, `mdl_page` 2→4. Correctif : garde de rejeu
+   `sha256` + marqueur `.academy-applied-plan`.
+. *Plan stagé périmé silencieusement.* Ajouter un module au matériel ne
+   modifiait pas `install.sh` sans `--rerun-tasks` → `InstallationPlatform`
+   n'avait pas le matériel en input. Correctif : `@InputFiles @Optional`
+   `moodleMaterialFiles`.
+
+Un **troisième bug latent** a été évité de justesse : le marqueur initial
+visait `/ingest` (bind non inscriptible) — révélé par le dogfooding avant
+livraison ; déplacé dans le volume nommé.
+
+== Gates
+
+* `./gradlew clean check validatePlugins publishToMavenLocal` → **BUILD
+  SUCCESSFUL** 2m04s — **710 unit + 21 functional + 71 scénarios Cucumber**
+  (24 installer + 6 opencode + 8 byok + 6 bridge + 8 material + **12 moodle**
+  + 7 env), **0 FAIL**.
+* `publishToMavenLocal` VERT (Règle 2).
+* Zéro secret (grep = 0).
+* Backward compat : sans `moodleImportEnabled`, l'installer est **byte-identique**
+  (aucun service, aucun volume, aucun staging) — prouvé TestKit + BDD.
+* Dogfooding réel bout-en-bout `compose up` + preuve base (voir § ci-dessus).
+* Boundary § 3.3 respecté : le `.adoc` est référencé et lu Moodle-side,
+  jamais parsé par academy.
+
+== Fichiers modifiés
+
+[cols="2,3", options="header"]
+|===
+| Fichier | Nature
+| `src/main/kotlin/.../installer/InstallerPlatform.kt` | prod — +`moodleMaterialEnabled` +`moodlePlan`
+| `src/main/kotlin/.../installer/InstallerScriptGenerator.kt` | prod — service `moodle-material` + `moodle-html` + staging bash/batch
+| `src/main/kotlin/.../GenerateInstallerTask.kt` | prod — plan + input tolérant `moodleMaterialFiles`
+| `src/main/kotlin/.../AcademyPlugin.kt` | prod — wiring `moodleMaterialFiles.from(...)`
+| `src/main/kotlin/.../moodle/MoodleIngestionScriptGenerator.kt` | prod — `renderEntrypoint` + garde de rejeu
+| `src/main/kotlin/.../moodle/MoodleMaterialReader.kt` | prod — lecture matériel extraite/partagée (NOUVEAU)
+| `src/main/kotlin/.../GenerateMoodleImportTask.kt` | prod — refactor sur le lecteur partagé
+| `src/test/kotlin/.../installer/InstallerScriptMoodleMaterialTest.kt` | tests — 5 unit (NOUVEAU)
+| `src/test/kotlin/.../moodle/MoodleIngestionScriptGeneratorTest.kt` | tests — +1 unit (garde de rejeu)
+| `src/functionalTest/kotlin/.../AcademyMoodleMaterialFunctionalTest.kt` | tests — 5 functional (NOUVEAU, dont staleness)
+| `src/test/resources/features/academy_moodle.feature` + `AcademyMoodleSteps.kt` | BDD — +2 scénarios `@moodle` (12 total)
+|===
+
+== Note de clôture — méthode
+
+La règle du **delta source** a été appliquée : aucun build/test rejoué avant
+d'avoir modifié le code. Le RED a été prouvé à chaque palier (échec de
+compilation ou `AssertionFailedError`). **Le dogfooding a payé une quatrième
+fois** (S-007 `moodle:4.5`, S-012 `hasRequirement()`, S-013 les trois bugs de
+l'applicateur, S-016 la duplication + la staleness) : les deux contrats
+d'idempotence et de fraîcheur que le cadrage supposait acquis étaient **faux**
+sur le réel. Sans la preuve `compose up`, ces deux bugs seraient partis en
+production — exactement la classe que le dogfooding existe pour attraper.
+
+_EPIC ACADEMY-11 TERMINÉ 4/4 US._ Reste du backlog : ACADEMY-12-3 (dogfooding
+Windows réel, exige un hôte Windows), ACADEMY-9/ACADEMY-10 (cadrage/décision
+pilote), BUREAU-3 (autre borough).

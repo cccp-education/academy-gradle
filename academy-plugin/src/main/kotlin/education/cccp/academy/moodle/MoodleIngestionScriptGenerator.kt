@@ -24,6 +24,65 @@ package education.cccp.academy.moodle
  */
 object MoodleIngestionScriptGenerator {
 
+    /**
+     * Renders the **generic** one-shot entrypoint the compose service
+     * `moodle-material` runs (ACADEMY-11-4, D-ACADEMY-11-5).
+     *
+     * It is independent of any formation: it (a) waits until `moosh` can
+     * bootstrap against the shared Moodle install — the `service_healthy`
+     * dependency already gates the start, this is the belt-and-braces check the
+     * real image justified (S-016) — then (b) delegates to the **staged plan**
+     * `/ingest/ingest.sh` when the learner staged one.
+     *
+     * **Replay guard** (dogfooding S-016): `moosh activity-add` does **not**
+     * dedupe — replaying the same plan duplicated every page and label. The
+     * entrypoint therefore keys an `.academy-applied-plan` marker on the plan's
+     * SHA-256, mirroring the image's own `moodle-blueprint` canonicalHash +
+     * `.done` pattern, and short-circuits a re-run with the unchanged plan. The
+     * marker lives in the **shared Moodle volume** `/var/www/html`, the only
+     * writable mount — the `/ingest` bind is owned by the host uid while the
+     * container runs as `nobody` (verified S-016).
+     *
+     * Degraded by construction (D-ACADEMY-11-6): with no staged plan it prints
+     * an explicit message and exits `0` — an installation without material stays
+     * byte-identical, never a failure.
+     */
+    fun renderEntrypoint(): String = buildString {
+        appendLine("#!/bin/sh")
+        appendLine("# Academy Moodle material injection - generic one-shot entrypoint (ACADEMY-11-4).")
+        appendLine("# Waits for the Moodle install (moosh bootstrap), then applies the staged plan.")
+        appendLine("# Degraded: no staged plan -> nothing to inject (D-ACADEMY-11-6).")
+        appendLine("set -eu")
+        appendLine("MATERIAL_DIR=\"\${MATERIAL_DIR:-/material}\"")
+        appendLine("PLAN=/ingest/plan.json")
+        appendLine("# The marker lives in the writable shared Moodle volume: /ingest is a")
+        appendLine("# host-owned bind while the container runs as nobody (verified S-016).")
+        appendLine("MARKER=/var/www/html/.academy-applied-plan")
+        appendLine("echo \"[academy] waiting for the Moodle install (moosh bootstrap)...\"")
+        appendLine("attempt=0")
+        appendLine("until moosh course-list >/dev/null 2>&1; do")
+        appendLine("  attempt=\$((attempt + 1))")
+        appendLine("  if [ \"\$attempt\" -ge 60 ]; then")
+        appendLine("    echo \"[academy] Moodle not ready after 60 attempts - aborting material injection\" >&2")
+        appendLine("    exit 1")
+        appendLine("  fi")
+        appendLine("  sleep 5")
+        appendLine("done")
+        appendLine("if [ ! -f /ingest/ingest.sh ]; then")
+        appendLine("  echo \"[academy] no staged material plan - nothing to inject (D-ACADEMY-11-6)\"")
+        appendLine("  exit 0")
+        appendLine("fi")
+        appendLine("# Replay guard - moosh activity-add never dedupes, so the plan is hashed.")
+        appendLine("PLAN_HASH=\$(sha256sum \"\$PLAN\" 2>/dev/null | awk '{print \$1}')")
+        appendLine("if [ -n \"\$PLAN_HASH\" ] && [ -f \"\$MARKER\" ] && [ \"\$(cat \"\$MARKER\")\" = \"\$PLAN_HASH\" ]; then")
+        appendLine("  echo \"[academy] material plan already applied - skipping (idempotent)\"")
+        appendLine("  exit 0")
+        appendLine("fi")
+        appendLine("echo \"[academy] applying the staged material plan...\"")
+        appendLine("sh /ingest/ingest.sh")
+        appendLine("if [ -n \"\$PLAN_HASH\" ]; then printf '%s' \"\$PLAN_HASH\" > \"\$MARKER\"; fi")
+    }
+
     /** Renders the plan as deterministic, balanced JSON. */
     fun renderPlanJson(plan: MoodleImportPlan): String = buildString {
         appendLine("{")

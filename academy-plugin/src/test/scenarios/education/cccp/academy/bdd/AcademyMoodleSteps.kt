@@ -1,5 +1,8 @@
 package education.cccp.academy.bdd
 
+import education.cccp.academy.installer.InstallerPlatform
+import education.cccp.academy.installer.InstallerScriptGenerator
+import education.cccp.academy.installer.TargetOs
 import education.cccp.academy.material.MaterialManifest
 import education.cccp.academy.moodle.MoodleImportPlan
 import education.cccp.academy.moodle.MoodleIngestionScriptGenerator
@@ -9,7 +12,7 @@ import io.cucumber.java8.En
 import org.assertj.core.api.Assertions.assertThat
 
 /**
- * Steps for `academy_moodle.feature` (ACADEMY-11-3) — pattern S-088
+ * Steps for `academy_moodle.feature` (ACADEMY-11-3/11-4) — pattern S-088
  * (feature-scoped glue). Drives the pure moodle domain directly: zero Gradle
  * task invocation, zero I/O, zero Moodle, zero PHP (D-ACADEMY-11-3).
  *
@@ -25,6 +28,9 @@ class AcademyMoodleSteps : En {
     private var plan: MoodleImportPlan? = null
     private var planJson: String = ""
     private var script: String = ""
+    private var installerOs: TargetOs = TargetOs.LINUX
+    private var injectionEnabled: Boolean = false
+    private var installerScript: String = ""
 
     init {
         Given("a moodle plan for course {string} named {string}") { short: String, full: String ->
@@ -63,6 +69,31 @@ class AcademyMoodleSteps : En {
             script = MoodleIngestionScriptGenerator.renderApplicator(
                 MoodlePlanBuilder.build(shortName, fullName, material),
             )
+        }
+
+        Given("a moodle material service installer for {string}") { target: String ->
+            installerOs = TargetOs.entries.first { it.name.lowercase() == target }
+            injectionEnabled = false
+            installerScript = ""
+        }
+
+        And("moodle material injection is enabled") { injectionEnabled = true }
+        And("moodle material injection is disabled") { injectionEnabled = false }
+
+        When("the moodle material installer is rendered") {
+            val built = MoodlePlanBuilder.build(shortName, fullName, material)
+            val platform = InstallerPlatform(
+                os = installerOs,
+                applicationName = "academy",
+                applicationVersion = "0.0.1",
+                javaVersion = "25",
+                gradleVersion = "9.7.1",
+                composeEnabled = true,
+                credentialsEnvPrefix = "ACADEMY_",
+                moodleMaterialEnabled = injectionEnabled,
+                moodlePlan = built,
+            )
+            installerScript = InstallerScriptGenerator.render(platform).single().content
         }
 
         Then("the moodle plan carries a {string} activity") { moduleName: String ->
@@ -105,6 +136,14 @@ class AcademyMoodleSteps : En {
 
         And("the moodle script never contains {string}") { fragment: String ->
             assertThat(script).doesNotContain(fragment)
+        }
+
+        Then("the moodle material installer contains {string}") { fragment: String ->
+            assertThat(installerScript).contains(fragment)
+        }
+
+        And("the moodle material installer never contains {string}") { fragment: String ->
+            assertThat(installerScript).doesNotContain(fragment)
         }
     }
 }

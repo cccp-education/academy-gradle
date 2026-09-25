@@ -15,7 +15,7 @@ import kotlin.test.assertTrue
  * ACADEMY-11-2 — the `generateMoodleImport` task (D-ACADEMY-11-5/11-6/11-8).
  *
  * It reads the pulled material directory (structure + EPIC K pivots), builds the
- * pure plan and writes `plan.json` + the generic `ingest.php`. Degraded by
+ * pure plan and writes `plan.json` + the generic `ingest.sh`. Degraded by
  * default: an empty material directory writes nothing and succeeds, so an
  * installation without material is byte-identical (D-ACADEMY-11-6).
  *

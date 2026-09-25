@@ -2,6 +2,7 @@ package education.cccp.academy.installer
 
 import contracts.runtime.LlmProviderKind
 import education.cccp.academy.material.MaterialRequirement
+import education.cccp.academy.moodle.MoodleImportPlan
 import education.cccp.academy.opencode.BridgeGuide
 import education.cccp.academy.opencode.OpenCodeConfig
 
@@ -33,6 +34,13 @@ import education.cccp.academy.opencode.OpenCodeConfig
  * @param material declared training material requirement (ACADEMY-4), or null
  *   when the project consumes no versioned material — the material guide is
  *   written only when declared (D-ACADEMY-4-10)
+ * @param moodleMaterialEnabled whether the compose scaffold declares the
+ *   one-shot `moodle-material` service that applies the generated plan after
+ *   Moodle created its schema (ACADEMY-11-4, D-ACADEMY-11-5). Defaults to
+ *   `false`: without injection the scaffold is byte-identical (D-ACADEMY-11-6)
+ * @param moodlePlan the material import plan to stage inside the installer, or
+ *   `null` when no material was read — the installer then stages a degraded,
+ *   empty plan that injects nothing (ACADEMY-11-4)
  */
 data class InstallerPlatform(
     val os: TargetOs,
@@ -51,6 +59,8 @@ data class InstallerPlatform(
     val bridgeHost: String = "127.0.0.1",
     val bridgePort: Int = 8765,
     val material: MaterialRequirement? = null,
+    val moodleMaterialEnabled: Boolean = false,
+    val moodlePlan: MoodleImportPlan? = null,
 ) {
     init {
         require(applicationName.isNotBlank()) { "applicationName must not be blank" }

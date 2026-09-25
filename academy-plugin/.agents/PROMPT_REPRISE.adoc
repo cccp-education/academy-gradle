@@ -2,102 +2,71 @@
 
 == Mission de la prochaine session
 
-**Ordre du jour pilote (S-015) : ACADEMY-11-4** — câbler le service compose
-one-shot `moodle-material` (applique `ingest.sh` après le schéma Moodle, pattern
-`moodle-seed`) + 2 scénarios BDD + dogfooding `compose up`. **Ne pas livrer sans
-preuve d'exécution réelle** (leçon S-007/S-013).
+**Ordre du jour pilote (S-016, à confirmer) — choisir parmi les items restants**
+du backlog, aucun n'étant coddable localement sans prérequis externe :
 
-C'est le dernier item du backlog **coddable localement sans prérequis externe** :
-ACADEMY-12-3 exige une machine Windows réelle, ACADEMY-9/10 exigent une décision
-pilote/cadrage, BUREAU-3 appartient à un autre borough.
+. **ACADEMY-12-3** — dogfooding environnement Windows réel (`install.bat`,
+   `docker compose config`, parité, images tirées). Exige un **hôte Windows
+   réel** (les runners CI ne fournissent que des conteneurs Windows). À
+   ordonnancer dès qu'un hôte Windows est disponible.
+. **ACADEMY-10** — migration du bridge Ktor → Spring Boot WebFlux + coroutines
+   + R2DBC + PostgreSQL + Jackson 3. **Cadrage/décision pilote requis** ; impose
+   un bump BOM vers Boot 4.1.1 (cross-borough MEMPHIS, Boot 3.4.2 ne livre que
+   Jackson 2.18.2).
+. **ACADEMY-9** — Qualiopi (traces de session : bilan, émoluments, assiduité).
+   Cadrage/décision pilote requis.
+. **BUREAU-3** — transport git du matériel : appartient à un **autre borough**
+   (le bureau). Academy **lit** l'exigence, n'exécute jamais git.
 
-=== Rappel ACADEMY-11 (contexte 11-4)
+== Décisions actées S-016 (ne pas les rediscuter)
 
-* **Statut** : ACADEMY-11 3/4 US (S-013) — 11-0/11-1/11-2/11-3 ✅.
-* **Décisions** : `CADRAGE_EPIC_ACADEMY_11_MOODLE.adoc` (D-ACADEMY-11-1..10).
-  L'applicateur **pilote les outils natifs** de l'image `erseco/alpine-moodle`
-  (`moosh`, `moodle-blueprint`) — zéro PHP maison, zéro SQL/DDL. Matériel
-  **path-only** (jamais le corps `.adoc`), type inconnu **ignoré jamais deviné**,
-  **dégradé par défaut** (`moodleImportEnabled` défaut `false`).
-* **Déjà livré** : domaine pur `academy.moodle` (6 fichiers, 20 unit) + tâche
-  `generateMoodleImport` (plan `plan.json` + `ingest.sh`) + extension +4
-  properties + BDD `academy_moodle.feature` 10 scénarios + dogfooding réel
-  (Moodle 5.2.3 + PostgreSQL 16, 3 bugs réels attrapés).
-* **Reste (11-4)** : le service compose one-shot `moodle-material` qui **applique**
-  `ingest.sh` après le schéma Moodle — sur le modèle exact du service
-  `moodle-seed` (ACADEMY-6-5 : `restart: "no"`, `entrypoint`, `depends_on:
-  postgres: service_healthy`, `./seed:/seed`). Vérifier la source
-  (`composeBody()`) avant de nommer toute image/commande.
-* **Preuve exigée** : `docker compose config` VALIDE + dogfooding réel
-  `compose up` du service one-shot (matériel injecté dans Moodle).
+* **Service `moodle-material`** : one-shot conditionnel
+  (`moodleMaterialEnabled`, défaut `false`) dans `composeBody()`, pattern
+  `moodle-seed` : `restart: "no"`, `entrypoint` explicite,
+  `depends_on: moodle: service_healthy`.
+* **Volume nommé `moodle-html:/var/www/html`** partagé par `moodle` et
+  `moodle-material` — **indispensable** : `moosh` bootstrappe contre l'install
+  (config.php généré au boot), un frère sans l'arbre partagé échoue.
+* **Garde de rejeu** : marqueur `sha256(plan.json)` dans
+  `/var/www/html/.academy-applied-plan` — `moosh activity-add` **ne
+  dédoublonne pas** (bug réel S-016). Le marqueur vit dans le **volume nommé
+  inscriptible**, jamais dans le bind `/ingest` (uid hôte ≠ `nobody`).
+* **Input tolérant** `GenerateInstallerTask.moodleMaterialFiles`
+  (`@InputFiles @Optional`, pattern CDX-CONTEXT-HARDENING S-221) : un re-run
+  simple ré-rend un plan changé (bug réel de staleness S-016).
+* **Lecture matériel partagée** : `MoodleMaterialReader` (source unique,
+  utilisée par `generateMoodleImport` **et** `buildAllInstallers`).
+* **Source unique partagée** bash/batch (parité structurelle, D-ACADEMY-12-5).
 
-== Décisions actées S-014/S-015 (ne pas les rediscuter)
+== État de l'architecture (session 016)
 
-* **Matrice d'engine** (D-ACADEMY-12-1) : Linux = Docker Engine natif (dépôt
-  apt officiel) ; Windows = **Docker Desktop** (`install --user --quiet
-  --accept-license --backend=wsl-2`, WSL2 **requis et géré par Desktop**) ;
-  macOS = **Colima** (`brew install colima docker` + `colima start`).
-  **Portainer partout.**
-* **Portabilité** (D-ACADEMY-12-5, appliquée S-015) : un `unixScript` unique
-  (en-tête par OS, **queue commune verbatim**), un `install.bat`. Un test
-  asserte l'égalité de queue Linux/macOS.
-* **Décision pure, exécution adapter** (D-ACADEMY-12-2) : domaine `academy.env`
-  sans I/O ; `EnvironmentProbe` (fun interface) + `HostEnvironmentProbe`
-  adapter = **seul** `ProcessBuilder` de la prod.
-* **Verdict, jamais un throw** (D-ACADEMY-12-3, ajusté S-015) :
-  `checkContainerEngine` **rapporte** la stratégie, ne fait jamais échouer le
-  build — un hôte nu doit configurer/tester (P0 S-014).
-* **Reboot assumé** (D-ACADEMY-12-4) : l'activation WSL2 exige admin + reboot
-  possible → `.bat` idempotent/resumable (`:bootstrap_wsl2`), jamais promis
-  « sans reboot ».
-
-== État de l'architecture (session 015)
-
-- **ACADEMY-1/4/5/6/7/8 TERMINÉS** (S-003→S-012).
-- **ACADEMY-11 3/4 US** (S-013) : **11-4 (service compose `moodle-material`) reste — PROCHAINE MISSION**.
-- **ACADEMY-12 3/4 US** (S-014/S-015) :
-  - Domaine pur `academy.env` (`HostOs`+`fromOsName`, `EnvironmentFacts`,
-    `DockerStrategy` sealed, `DockerStrategyDecider`).
-  - `EnvironmentProbe` (port) + `HostEnvironmentProbe` (adapter) +
-    `CheckContainerEngineTask` (`checkContainerEngine`, câblé à `check`).
-  - Writers : `install.sh` portable (apt Linux / Colima macOS), `install.bat`
+- **ACADEMY-1/4/5/6/7/8/11 TERMINÉS** (S-003→S-013, ACADEMY-11 clos S-016).
+- **ACADEMY-12 3/4 US** (S-014/S-015/S-016 : 12-2 ✅) :
+  - Domaine pur `academy.env` (`HostOs`, `EnvironmentFacts`, `DockerStrategy`
+    sealed, `DockerStrategyDecider`) + port `EnvironmentProbe` + adapter
+    `HostEnvironmentProbe` + task `checkContainerEngine` (verdict rapporté).
+  - Writers `install.sh` (Linux apt / macOS Colima) + `install.bat`
     (WSL2/Desktop resumable).
-  - `academy_env.feature` 7 `@env` + `academy_installer.feature` 24 `@installer`.
+  - **12-3 à faire** (dogfooding Windows réel).
+- **ACADEMY-10/ACADEMY-9** : cadrage/décision pilote requis.
 
 == Autres items ouverts du backlog (pour mémoire)
 
-* **ACADEMY-12-3** : dogfooding Windows réel — exige une machine Windows
-  réelle (les runners CI ne fournissent que des conteneurs Windows). À
-  ordonnancer dès qu'un hôte Windows est disponible.
-* **ACADEMY-9** (Qualiopi) et **ACADEMY-10** (Spring Boot WebFlux) : cadrage /
-  décision pilote requis (ACADEMY-10 implique un bump BOM vers Boot 4.1.1).
-* **BUREAU-3** (autre borough) : transport git du matériel — academy lit
-  l'exigence, ne l'exécute jamais.
-
-== Ordre de travail suggéré
-
-1. **ACADEMY-11-4** : service compose one-shot `moodle-material`.
-   - Ajouter le service à `composeBody()` (source unique bash/batch → parité
-     structurelle) sur le modèle `moodle-seed`.
-   - L'applicateur (`ingest.sh`) est **générique** et **Moodle-side** : il lit
-     le matériel, ne l'embarque pas.
-   - Dégradé : matériel vide → le service ne fait rien (D-ACADEMY-11-6).
-   - Tests : unit (rendu compose) + functional TestKit + BDD `@moodle` (+2).
-   - **Dogfooding** : `docker compose config` VALIDE + `compose up` réel du
-     service one-shot (preuve d'injection).
-2. Alternatives : ACADEMY-12-3 (si hôte Windows dispo), ACADEMY-9/10 (cadrage).
+* ACADEMY-12-3 : exige un hôte Windows réel.
+* ACADEMY-9 (Qualiopi) et ACADEMY-10 (Spring Boot WebFlux) : cadrage.
+* BUREAU-3 (autre borough) : transport git du matériel.
 
 == Rappels des ordres de mission
 
 - BDD/TDD baby-step strict : RED → GREEN → REFACTOR, 1 fichier de test avant le code.
 - Gouvernance d'abord pour toute décision pilote (pattern S-057).
-- **Vérifier la source avant de nommer** toute image/commande/outil (S-007/S-011/S-013).
+- **Vérifier la source avant de nommer** toute image/commande/outil (S-007/S-011/S-013/S-016).
+- **Dogfooding = preuve réelle** ; ne pas livrer une branche OS non prouvée
+  (macOS reste vérifié structurellement — pas de Mac à disposition, assumé).
 - Parité cross-plateforme : source unique partagée > doublon asserté.
 - DAG N2 : academy importable par N3, jamais N3 → academy.
 - Zéro secret. `publishToMavenLocal` obligatoire après modification de source.
 - Code anglais only (OSS cccp-education), docs gouvernance en français.
-- **Dogfooding = preuve réelle** ; ne pas livrer une branche OS non prouvée
-  (macOS reste vérifié structurellement — pas de Mac à disposition, assumé).
 - Sur un hôte nu, `./gradlew` doit configurer (P0 S-014 — ne pas régresser).
-- Le dogfooding Linux S-015 est prouvé : `bash -n` OK, `docker compose config`
-  exit 0, idempotence vérifiée. Ne pas le rejouer sans delta source.
+- Le dogfooding Linux S-016 est prouvé (`compose up` + preuve base + rejeu
+  no-op). Ne pas le rejouer sans delta source.

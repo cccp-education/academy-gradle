@@ -2,7 +2,7 @@
 :toc:
 :toclevels: 2
 
-_Dernière mise à jour_ : 2026-09-25 — **ACADEMY-12-2 TERMINÉ (S-015)** — writers portables + sonde adapter + dogfooding Linux. L'installeur **provisionne** désormais l'engine par OS : **un `install.sh` unique** (en-tête Linux apt officiel / macOS Colima, **queue commune verbatim** — D-ACADEMY-12-5 appliquée par construction) + `install.bat` refondu (sonde admin `net session` + WSL2 `wsl --status` en faits `IS_ADMIN`, `:bootstrap_wsl2` resumable ou `:install_docker_desktop` `--user --quiet --accept-license --backend=wsl-2`). Port `EnvironmentProbe` + adapter `HostEnvironmentProbe` (seul `ProcessBuilder` prod) + `HostOs.fromOsName` + task `checkContainerEngine` (**verdict rapporté, jamais un throw** — D-ACADEMY-12-3). **Dogfooding Linux réel** : `bash -n` OK, `docker compose config` exit 0 (5 services), idempotence marquée. **Ordre du jour pilote (S-015) : ACADEMY-11-4** (service compose one-shot `moodle-material` — dernier item coddable localement sans prérequis externe), puis ACADEMY-12-3 (dogfooding Windows réel, hôte requis), ACADEMY-9/ACADEMY-10 (cadrage/décision pilote).
+_Dernière mise à jour_ : 2026-09-25 — **ACADEMY-11-4 TERMINÉ + EPIC ACADEMY-11 CLOS (S-016)** — service compose one-shot `moodle-material` : il **applique** le plan stagé après le schéma Moodle, en pilotant les outils natifs de l'image (`moosh`). **Volume nommé `moodle-html:/var/www/html`** partagé par `moodle` et `moodle-material` (indispensable : `moosh` bootstrappe contre l'install). **Garde de rejeu** `sha256(plan.json)` → marqueur `.academy-applied-plan` dans le volume inscriptible (`moosh activity-add` **ne dédoublonne pas**). **Input tolérant** `GenerateInstallerTask.moodleMaterialFiles` (`@InputFiles @Optional`) : un re-run simple ré-rend un plan changé (fin de la staleness silencieuse). Lecture matériel partagée (`MoodleMaterialReader`). **Dogfooding réel `compose up`** : cours `formation-fpa` + sections + activités, contenu AsciiDoc en base, rejeu no-op — **3 bugs réels attrapés**. Gates 710 unit + 21 functional + 71 Cucumber 0 FAIL. **Ordre du jour pilote : ACADEMY-12-3** (dogfooding Windows réel, hôte requis), puis ACADEMY-9/ACADEMY-10 (cadrage/décision pilote).
 
 '''
 == Vision actée (S-002, arbitrage pilote)
@@ -46,7 +46,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-8 | Webhooks Moodle + bridge opencode (avec Ktor, conformément à la décision D4 du VISION_PIPELINE_FORMATION.adoc) | ✅ TERMINÉ (S-011) — 8-0 cadrage, 8-1 domaine `academy.bridge` + serveur Ktor, 8-2 tâche opt-in + scaffold, 8-3 BDD + dogfooding
 | ACADEMY-9 | Support Qualiopi (bilan de session, traces, conformité aux critères) | 🟡 À FAIRE
 | ACADEMY-10 | Migration du bridge Ktor → Spring Boot WebFlux + coroutines Kotlin + R2DBC + PostgreSQL (Docker) + Jackson 3 | 🟡 À FAIRE (cadré S-012)
-| ACADEMY-11 | Injection du matériel pédagogique dans Moodle (data structurée AsciiDoc → plan + applicateur natif) | 🟡 EN COURS 3/4 US (S-013) — 11-0/11-1/11-2/11-3 ✅ ; 11-4 🟡 À FAIRE
+| ACADEMY-11 | Injection du matériel pédagogique dans Moodle (data structurée AsciiDoc → plan + applicateur natif) | ✅ TERMINÉ 4/4 US (S-016) — 11-0/11-1/11-2/11-3 ✅ S-013 ; 11-4 ✅ S-016 (service compose one-shot `moodle-material` + dogfooding `compose up`)
 | ACADEMY-12 | Provisionnement de l'engine conteneurs par OS (Linux natif / Windows Docker Desktop WSL2 / macOS Colima) + Portainer partout | 🟡 EN COURS 3/4 US (S-015) — 12-0/12-1/12-2 ✅ ; 12-3 🟡 À FAIRE
 |===
 
@@ -211,7 +211,7 @@ embedding ONNX `AllMiniLmL6V2`, tâche `persistLearnerProfile`. Le VISION § 6
 
 === ACADEMY-11 : Injection du matériel pédagogique dans Moodle
 
-*Statut* : 🟡 EN COURS 3/4 US (S-013) — **arbitrage pilote 2026-09-21** : academy
+*Statut* : ✅ **TERMINÉ 4/4 US (S-016)** — **arbitrage pilote 2026-09-21** : academy
 **consomme** la formation produite par training et **installe le runtime Docker**
 pour l'acheteur ; il **injecte de la data structurée** AsciiDoc dans Moodle — il
 **n'implémente pas** la boucle runtime.
@@ -242,7 +242,7 @@ extension +4 properties opt-in ; plan = contrat stable, applicateur générique.
 | ACADEMY-11-1 | ✅ Domaine pur `academy.moodle` (6 fichiers, 20 unit) — S-013
 | ACADEMY-11-2 | ✅ Tâche `generateMoodleImport` + extension +4 properties (7 unit) — S-013
 | ACADEMY-11-3 | ✅ BDD `academy_moodle.feature` 10 scénarios + dogfooding réel Moodle — S-013
-| ACADEMY-11-4 | 🟡 Service compose one-shot `moodle-material` (applique `ingest.sh` après le schéma Moodle) + 2 scénarios BDD + dogfooding `compose up` — **non livré** (exige une preuve d'exécution complète)
+| ACADEMY-11-4 | ✅ Service compose one-shot `moodle-material` (applique `ingest.sh` après le schéma Moodle) + volume partagé `moodle-html` + garde de rejeu `sha256` + 2 scénarios BDD + dogfooding `compose up` réel — S-016 (3 bugs réels attrapés)
 |===
 
 *Note* : l'US « alimenter le seed Moodle » (ancienne ACADEMY-4-2*, différée
@@ -490,10 +490,9 @@ décision pilote.
 [x] ACADEMY-8 : webhooks Moodle + bridge Ktor — **TERMINÉ S-011** (domaine `academy.bridge`, serveur Ktor opt-in, schéma academy, anti-corruption `BridgeWire`, dogfooding serveur+curl) ; le daemon N1 stdin/stdout n'est pas réutilisé (transport additionnel, D-ACADEMY-8-1)
 [x] ACADEMY-4 : consumption du matériel versionné (exigence N0 lue + verdict + guide) — **TERMINÉ S-012** (frontière des verbes corrigée : le transport git reste au bureau BUREAU-3 ; academy lit le pivot EPIC K)
 [x] Publication Maven Central d'academy — **TERMINÉE S-012** (academy-plugin + marker `education.cccp.academy` 0.0.1, bundle nmcp `5c54af3f-1bfc-405f-950a-1172fff86b7a`, AUTOMATIC)
-[x] ACADEMY-11 : injection du matériel dans Moodle — **S-013 3/4 US** (domaine `academy.moodle`, tâche `generateMoodleImport` opt-in/dégradée, BDD 10 scénarios, dogfooding réel Moodle via les outils natifs `moosh`/`moodle-blueprint`)
+[x] ACADEMY-11 : injection du matériel dans Moodle — **S-013 3/4 US + S-016 4/4 US** (domaine `academy.moodle`, tâche `generateMoodleImport` opt-in/dégradée, service compose one-shot `moodle-material` avec volume partagé + garde de rejeu, BDD 12 scénarios, dogfooding réel `compose up` via les outils natifs `moosh`/`moodle-blueprint`) — **EPIC TERMINÉ**
 [x] ACADEMY-2 : brancher `ToolExposure` (N0) sur `OpenCodeCatalog` — **TERMINÉ S-013** (`OpenCodeCatalog.exposure()` + guide dérivé du contrat)
 [x] ACADEMY-2/3 : implémenter les ports N0 — **CLOS côté academy S-013** (D-ACADEMY-11-1 : la boucle `FormationRuntimePort` appartient à l'étage privé ; `SessionMemoryContract` déjà implémenté par codex `PgVectorSessionMemory` S-094)
-[ ] ACADEMY-11-4 : câbler le service compose one-shot `moodle-material` (applique `ingest.sh` après le schéma Moodle, pattern `moodle-seed`) + 2 scénarios BDD + dogfooding `compose up` — ne pas livrer sans preuve
 [x] ACADEMY-12-2 : writers `install.sh` unique (Linux apt / macOS Colima, queue commune verbatim) + `install.bat` (sonde admin+WSL2, WSL2/Desktop resumable) + port `EnvironmentProbe` + adapter `HostEnvironmentProbe` + `HostOs.fromOsName` + task `checkContainerEngine` (verdict rapporté) + functional TestKit + dogfooding Linux — **TERMINÉ S-015**
 [ ] ACADEMY-12-3 : dogfooding environnement Windows réel (`install.bat`, `docker compose config`, parité, images tirées) — ne pas livrer sans preuve
 [ ] ACADEMY-10 : migration du bridge Ktor → Spring Boot WebFlux (cadré S-012) — à ordonnancer sur décision pilote ; prérequis probable bump BOM workspace vers Spring Boot 4.1.1 (Jackson 3)

@@ -2,6 +2,7 @@ package education.cccp.academy.installer
 
 import education.cccp.academy.byok.ByokProviderCatalog
 import education.cccp.academy.material.MaterialGuideGenerator
+import education.cccp.academy.moodle.MoodleIngestionScriptGenerator
 import education.cccp.academy.opencode.LearnerGuideGenerator
 import education.cccp.academy.opencode.OpenCodeConfigGenerator
 import education.cccp.academy.opencode.WorkspaceDockerfileGenerator
@@ -217,26 +218,37 @@ object InstallerScriptGenerator {
     private fun composeBody(platform: InstallerPlatform): List<String> {
         val workspaceEnv = mutableListOf("      OLLAMA_HOST: \${OLLAMA_HOST}")
         workspaceKeyEnvVar(platform)?.let { workspaceEnv += "      $it: \${$it}" }
+        val moodleLines = mutableListOf(
+            "  moodle:",
+            "    image: erseco/alpine-moodle:v5.2.3",
+            "    ports:",
+            "      - \"8080:8080\"",
+        )
+        if (platform.moodleMaterialEnabled) {
+            moodleLines += listOf(
+                "    volumes:",
+                "      - moodle-html:/var/www/html",
+            )
+        }
+        moodleLines += listOf(
+            "    environment:",
+            "      DB_TYPE: pgsql",
+            "      DB_HOST: postgres",
+            "      DB_NAME: \${POSTGRES_DB}",
+            "      DB_USER: postgres",
+            "      DB_PASS: \${POSTGRES_PASSWORD}",
+            "      MOODLE_USERNAME: \${MOODLE_USERNAME}",
+            "      MOODLE_PASSWORD: \${MOODLE_PASSWORD}",
+            "      MOODLE_SITENAME: \${MOODLE_SITENAME}",
+            "    depends_on:",
+            "      postgres:",
+            "        condition: service_healthy",
+            "    networks:",
+            "      - academy-net",
+        )
         return listOf(
         "services:",
-        "  moodle:",
-        "    image: erseco/alpine-moodle:v5.2.3",
-        "    ports:",
-        "      - \"8080:8080\"",
-        "    environment:",
-        "      DB_TYPE: pgsql",
-        "      DB_HOST: postgres",
-        "      DB_NAME: \${POSTGRES_DB}",
-        "      DB_USER: postgres",
-        "      DB_PASS: \${POSTGRES_PASSWORD}",
-        "      MOODLE_USERNAME: \${MOODLE_USERNAME}",
-        "      MOODLE_PASSWORD: \${MOODLE_PASSWORD}",
-        "      MOODLE_SITENAME: \${MOODLE_SITENAME}",
-        "    depends_on:",
-        "      postgres:",
-        "        condition: service_healthy",
-        "    networks:",
-        "      - academy-net",
+        *moodleLines.toTypedArray(),
         "  workspace:",
         "    build:",
         "      context: ./project",
@@ -306,6 +318,7 @@ object InstallerScriptGenerator {
         "        condition: service_healthy",
         "    networks:",
         "      - academy-net",
+        *moodleMaterialService(platform).toTypedArray(),
         "",
         "networks:",
         "  academy-net:",
@@ -315,8 +328,46 @@ object InstallerScriptGenerator {
         "  postgres-data:",
         "  ollama-models:",
         "  portainer-data:",
+        *moodleHtmlVolume(platform).toTypedArray(),
         )
     }
+
+    /**
+     * The one-shot `moodle-material` service (ACADEMY-11-4, D-ACADEMY-11-5),
+     * declared only when the learner opted into injection — otherwise the
+     * scaffold is byte-identical (D-ACADEMY-11-6).
+     *
+     * It is the exact `moodle-seed` pattern (ACADEMY-6-5): `restart: "no"`,
+     * explicit `entrypoint`, `depends_on: moodle: service_healthy`. It shares
+     * the `moodle-html` volume so `moosh` bootstraps against the very install
+     * the `moodle` service created (verified on the real image, S-016), mounts
+     * the staged plan read-write at `/ingest` and the pulled material read-only
+     * at `/material`.
+     */
+    private fun moodleMaterialService(platform: InstallerPlatform): List<String> {
+        if (!platform.moodleMaterialEnabled) return emptyList()
+        return listOf(
+            "  moodle-material:",
+            "    image: erseco/alpine-moodle:v5.2.3",
+            "    restart: \"no\"",
+            "    entrypoint: [\"sh\", \"/ingest/entrypoint.sh\"]",
+            "    environment:",
+            "      MATERIAL_DIR: /material",
+            "    volumes:",
+            "      - \"./moodle:/ingest\"",
+            "      - \"./material:/material:ro\"",
+            "      - moodle-html:/var/www/html",
+            "    depends_on:",
+            "      moodle:",
+            "        condition: service_healthy",
+            "    networks:",
+            "      - academy-net",
+        )
+    }
+
+    /** The shared Moodle code tree, declared only when injection is enabled. */
+    private fun moodleHtmlVolume(platform: InstallerPlatform): List<String> =
+        if (platform.moodleMaterialEnabled) listOf("  moodle-html:") else emptyList()
 
     /**
      * The API-key **environment variable name** the workspace service receives
@@ -419,6 +470,7 @@ object InstallerScriptGenerator {
         appendLine("EOF")
         appendOpenCodeScaffold(platform)
         appendMaterialScaffold(platform)
+        appendMoodleMaterialScaffold(platform)
         appendLine("echo \"[academy] compose scaffold written - edit \$APP_DIR/.env and \$APP_DIR/docker-compose.yml before running docker compose up\"")
     }
 
@@ -465,6 +517,7 @@ object InstallerScriptGenerator {
         appendLine(")")
         appendWindowsOpenCodeScaffold(platform)
         appendWindowsMaterialScaffold(platform)
+        appendWindowsMoodleMaterialScaffold(platform)
         appendLine("rem Edit %APP_DIR%\\.env and %APP_DIR%\\docker-compose.yml before running docker compose up")
     }
 
@@ -519,6 +572,61 @@ object InstallerScriptGenerator {
         appendLine("if not exist \"%APP_DIR%\\project\" mkdir \"%APP_DIR%\\project\"")
         appendLine("> \"%APP_DIR%\\project\\MATERIAL.md\" (")
         MaterialGuideGenerator.render(material).trimEnd().lines().forEach { appendLine("echo ${escapeCmd(it)}") }
+        appendLine(")")
+    }
+
+    /**
+     * Writes the Moodle material injection staging (ACADEMY-11-4) under
+     * `$APP_DIR/moodle/`, plus the read-only material mount point
+     * `$APP_DIR/material/`, only when injection is enabled (D-ACADEMY-11-6).
+     *
+     * The **generic** entrypoint is always staged; the plan JSON and the
+     * plan-driven applicator are staged only when the material actually read a
+     * non-empty plan — otherwise the entrypoint prints the explicit degraded
+     * message and injects nothing. Content comes from the pure
+     * [education.cccp.academy.moodle.MoodleIngestionScriptGenerator] (single
+     * source shared by every platform, structural parity).
+     */
+    private fun StringBuilder.appendMoodleMaterialScaffold(platform: InstallerPlatform) {
+        if (!platform.moodleMaterialEnabled) return
+        appendLine("mkdir -p \"\$APP_DIR/moodle\"")
+        appendLine("mkdir -p \"\$APP_DIR/material\"")
+        appendLine("echo \"[academy] writing the Moodle material injection staging (entrypoint, plan, applicator)...\"")
+        appendLine("cat > \"\$APP_DIR/moodle/entrypoint.sh\" <<'EOF'")
+        MoodleIngestionScriptGenerator.renderEntrypoint().trimEnd().lines().forEach { appendLine(it) }
+        appendLine("EOF")
+        val plan = platform.moodlePlan?.takeIf { !it.isEmpty } ?: return
+        appendLine("cat > \"\$APP_DIR/moodle/plan.json\" <<'EOF'")
+        MoodleIngestionScriptGenerator.renderPlanJson(plan).trimEnd().lines().forEach { appendLine(it) }
+        appendLine("EOF")
+        appendLine("cat > \"\$APP_DIR/moodle/ingest.sh\" <<'EOF'")
+        MoodleIngestionScriptGenerator.renderApplicator(plan).trimEnd().lines().forEach { appendLine(it) }
+        appendLine("EOF")
+    }
+
+    /**
+     * Windows writer of the Moodle material injection staging (ACADEMY-11-4) —
+     * renders the *same* content as the bash heredoc
+     * ([appendMoodleMaterialScaffold]) through the batch `> file (`
+     * redirection, so Linux/Windows parity is structural.
+     */
+    private fun StringBuilder.appendWindowsMoodleMaterialScaffold(platform: InstallerPlatform) {
+        if (!platform.moodleMaterialEnabled) return
+        appendLine("rem Moodle material injection staging (ACADEMY-11)")
+        appendLine("if not exist \"%APP_DIR%\\moodle\" mkdir \"%APP_DIR%\\moodle\"")
+        appendLine("if not exist \"%APP_DIR%\\material\" mkdir \"%APP_DIR%\\material\"")
+        appendLine("> \"%APP_DIR%\\moodle\\entrypoint.sh\" (")
+        MoodleIngestionScriptGenerator.renderEntrypoint().trimEnd().lines()
+            .forEach { appendLine("echo ${escapeCmd(it)}") }
+        appendLine(")")
+        val plan = platform.moodlePlan?.takeIf { !it.isEmpty } ?: return
+        appendLine("> \"%APP_DIR%\\moodle\\plan.json\" (")
+        MoodleIngestionScriptGenerator.renderPlanJson(plan).trimEnd().lines()
+            .forEach { appendLine("echo ${escapeCmd(it)}") }
+        appendLine(")")
+        appendLine("> \"%APP_DIR%\\moodle\\ingest.sh\" (")
+        MoodleIngestionScriptGenerator.renderApplicator(plan).trimEnd().lines()
+            .forEach { appendLine("echo ${escapeCmd(it)}") }
         appendLine(")")
     }
 
