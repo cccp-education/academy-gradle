@@ -539,8 +539,15 @@ annotation publique par test en échec, puis `publishToMavenLocal`) et job
 `check` : unit, `functionalTest`, le runner Cucumber agrégé et les six runners
 dédiés, plus `validatePlugins`.
 *Preuve locale* : compiles + `validatePlugins` VERTS, YAML parsé, tâche
-`buildOfflineBundle` visible côté consommateur. La preuve d'exécution reste le
-run CI (Local = Build, Tests = CI).
+`buildOfflineBundle` visible côté consommateur.
+*Preuve CI* : run `41351698417` **VERT** — `Build and Test` ✅ (unit +
+functional + Cucumber), `Verify POM generation` ✅, `Publish to Maven Central`
+**skipped** (garde `v*` + `needs: [test]`).
+*Leçon* : `com.gradle.plugin-publish` signe **automatiquement** dès que le
+plugin `signing` est appliqué ; un job CI sans clé ne peut donc pas exécuter
+`publishToMavenLocal` (deux runs rouges avant diagnostic). La vérification
+keyless génère le POM (`generatePomFileForPluginMavenPublication`) et contrôle
+ses coordonnées.
 *Dérive corrigée* : le catalogue du consommateur racine épinglait encore
 `academy-plugin = "0.0.1"` alors que le build est `0.0.2` → bump `0.0.2`.
 
