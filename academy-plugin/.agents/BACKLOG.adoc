@@ -49,7 +49,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-11 | Injection du matériel pédagogique dans Moodle (data structurée AsciiDoc → plan + applicateur natif) | ✅ TERMINÉ 4/4 US (S-016) — 11-0/11-1/11-2/11-3 ✅ S-013 ; 11-4 ✅ S-016 (service compose one-shot `moodle-material` + dogfooding `compose up`)
 | ACADEMY-12 | Provisionnement de l'engine conteneurs par OS (Linux natif / Windows Docker Desktop WSL2 / macOS Colima) + Portainer partout | 🟡 EN COURS 3/4 US (S-015) — 12-0/12-1/12-2 ✅ ; 12-3 🟡 À FAIRE
 | ACADEMY-13 | CI de test obligatoire (unit + functionalTest + suites Cucumber) — l'artefact 0.0.2 est publié Central **sans aucun workflow** : 234 `@Test` et 84 `.feature` ne sont jamais exécutés automatiquement | ✅ TERMINÉ (S-017 / S-224) — `.github/workflows/test.yml` + garde `publish` (tag `v*`, `needs: test`)
-| ACADEMY-14 | Bundle hors-ligne de la boîte (images épinglées par digest + `docker save`/`load`, installation sans réseau, vérification de charge) — le compose référence `erseco/alpine-moodle:v5.2.3` par tag, donc la boîte exige le réseau | 🟡 EN COURS (S-017 / S-224) — manifeste + build image workspace + `docker save` + pinning digest + chargement installateur ✅ ; reste preuve « réseau coupé » + dogfooding |
+| ACADEMY-14 | Bundle hors-ligne de la boîte (images épinglées par digest + `docker save`/`load`, installation sans réseau, vérification de charge) — le compose référence `erseco/alpine-moodle:v5.2.3` par tag, donc la boîte exige le réseau | ✅ TERMINÉ (S-017 / S-224) — bundle + build workspace + `docker save` + pinning digest + installateur + dogfooding CI VERT (run `41362217647`) |
 | ACADEMY-15 | Accessibilité de la boîte : audit Moodle/opencode WCAG 2.1 AA, thème et navigation clavier, matériel accessible vérifié, porte d'acceptation et rapport d'écarts | 🔴 À FAIRE
 |===
 
@@ -551,10 +551,10 @@ ses coordonnées.
 *Dérive corrigée* : le catalogue du consommateur racine épinglait encore
 `academy-plugin = "0.0.1"` alors que le build est `0.0.2` → bump `0.0.2`.
 
-=== ACADEMY-14 — Bundle hors-ligne (~5 pts, en cours)
+=== ACADEMY-14 — Bundle hors-ligne (~5 pts) — ✅ TERMINÉ
 
-*Statut* : 🟡 EN COURS (S-017 / S-224) — socle **complet**, reste la preuve
-« réseau coupé » et le dogfooding réel.
+*Statut* : ✅ TERMINÉ (S-017 / S-224) — bundle, image workspace pré-construite,
+pinning digest et dogfooding CI **prouvés**.
 *Livré* :
 - domaine pur `academy.installer.offline` : `OfflineImage` (tag + digest,
   `pinnedReference`), `OfflineImageCatalog` (Moodle, PostgreSQL, Ollama,
@@ -584,20 +584,28 @@ ses coordonnées.
   `OfflineBundleManifestTest`, `BuildOfflineBundleTaskTest` (runner factice,
   build + save + manifest), `InstallerScriptGeneratorOfflineTest`,
   `InstallerScriptGeneratorDigestTest` (pinning + repli).
-*Reste* :
-. **Dogfooding CI dédié** — `.github/workflows/offline-dogfood.yml`
-  (`workflow_dispatch` + hebdomadaire, **non bloquant**, jamais dans `test.yml`) :
-  `dogfood/` (`includeBuild("../academy-plugin")`) → `buildOfflineBundle` +
-  `generateLinuxInstaller` → installer → `docker load` →
-  `docker compose up --pull never --no-build` → Moodle HTTP 200 → conteneur
-  `workspace` sur l'image chargée → logs sans `Pulling`/`Building`. Le dogfooding
-  pèse plusieurs Go et 20-40 min (disque à libérer, artefact = manifeste + logs,
-  pas l'archive). Cadrage : `.agents/CADRAGE_ACADEMY_14_OFFLINE_DOGFOOD.adoc`.
-. Consommateur `dogfood/` : `pluginManagement { includeBuild("../academy-plugin") }`
-  + `offlineBundleEnabled = true` — résolution source, **pas de
-  `publishToMavenLocal`** (piège signature keyless de `plugin-publish`).
-*Critère de sortie* : workflow dédié **VERT** — `compose up` sans pull ni build,
-  y compris l'image workspace pré-construite, et manifeste téléversé.
+*Preuve dogfooding* — `.github/workflows/offline-dogfood.yml`
+(`workflow_dispatch` + hebdomadaire, **non bloquant**, jamais dans `test.yml`) :
+`dogfood/` (`includeBuild("../academy-plugin")`) → `buildOfflineBundle` +
+`generateLinuxInstaller` → installer → `docker load` →
+`docker compose --profile agent up --pull never --no-build` → Moodle HTTP 200 →
+conteneur `workspace` sur l'image chargée (forme pinnée `…:latest@sha256:…`) →
+logs sans `Pulling`/`Building` → manifeste + logs téléversés. Run `41362217647`
+**VERT** (tous les steps, 6 images chargées). Cadrage :
+`.agents/CADRAGE_ACADEMY_14_OFFLINE_DOGFOOD.adoc`.
+*Bugs réels trouvés par le dogfooding* (corrigés) :
+. `generateLinuxInstaller` consommait l'output de `buildOfflineBundle` sans
+  dépendance déclarée (validation Gradle) → `dependsOn("buildOfflineBundle")` ;
+. `postgres` sortait en erreur 1 car `.env` laisse `POSTGRES_PASSWORD` vide par
+  design → le workflow injecte des valeurs jetables ;
+. le service `workspace` est derrière le profil Compose `agent` → `--profile agent` ;
+. l'assertion d'image était trop stricte : le pinning digest produit
+  `…:latest@sha256:…` → assertion acceptant les deux formes.
+*Suites (optionnelles)* : test en `network namespace` (hors périmètre,
+`--pull never --no-build` est la preuve proportionnée) ; variante consommant
+l'artefact Central publié.
+*Critère de sortie* : ✅ workflow dédié **VERT**, `compose up` sans pull ni build,
+image workspace chargée, manifeste téléversé.
 
 === ACADEMY-15 — Accessibilité de la boîte (~4 pts)
 

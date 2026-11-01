@@ -2,7 +2,7 @@
 :toc: left
 :toclevels: 2
 :date: 2026-11-01
-:statut: CADRÉ — workflow dédié, non bloquant
+:statut: ✅ RÉALISÉ — workflow dédié VERT (run 41362217647), non bloquant
 
 [abstract]
 --
