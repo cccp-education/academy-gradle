@@ -196,6 +196,11 @@ class AcademyPlugin : Plugin<Project> {
             task.moodleMaterialFiles.from(extension.moodleMaterialDir)
             // ACADEMY-14 — optional manifest: absent means no digest pinning.
             task.offlineManifestFiles.from(extension.offlineManifestFile)
+            // The installer consumes the manifest produced by the bundle task.
+            // Declare the dependency explicitly (Gradle validation error found by
+            // the offline dogfooding): the bundle self-skips when disabled, so
+            // this is harmless on the networked path.
+            task.dependsOn("buildOfflineBundle")
         }
     }
 }
