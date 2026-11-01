@@ -65,6 +65,11 @@ jobs:
             workspace:
               command: ["sleep", "infinity"]
           EOF
+          # The generated .env deliberately leaves the secrets blank ("provided at
+          # runtime"). The dogfood supplies throwaway values through the shell,
+          # which Compose interpolates with precedence over .env.
+          export POSTGRES_PASSWORD=dogfood
+          export MOODLE_PASSWORD=dogfood
           docker compose up --pull never --no-build -d 2>&1 | tee /tmp/compose-up.log
           if grep -Eiq 'Pulling|Building' /tmp/compose-up.log; then
             echo "::error::compose attempted a pull or a build"
