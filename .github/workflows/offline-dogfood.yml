@@ -97,7 +97,15 @@ jobs:
           test -n "$cid"
           image="$(docker inspect --format '{{.Config.Image}}' "$cid")"
           echo "workspace image: $image"
-          test "$image" = "cccp-education/academy-workspace:latest"
+          # The manifest pins the image by digest, so Docker reports the pinned
+          # form `...:latest@sha256:...`; accept both forms and prove the tag.
+          case "$image" in
+            cccp-education/academy-workspace:latest*) ;;
+            *)
+              echo "::error::unexpected workspace image: $image"
+              exit 1
+              ;;
+          esac
           grep -q "cccp-education/academy-workspace:latest" offline-images.json
           docker compose ps
 
