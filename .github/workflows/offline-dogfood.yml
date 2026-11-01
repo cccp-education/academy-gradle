@@ -70,7 +70,9 @@ jobs:
           # which Compose interpolates with precedence over .env.
           export POSTGRES_PASSWORD=dogfood
           export MOODLE_PASSWORD=dogfood
-          docker compose up --pull never --no-build -d 2>&1 | tee /tmp/compose-up.log
+          # The workspace service lives behind the `agent` profile by design;
+          # activate it so the image check has a running container.
+          docker compose --profile agent up --pull never --no-build -d 2>&1 | tee /tmp/compose-up.log
           if grep -Eiq 'Pulling|Building' /tmp/compose-up.log; then
             echo "::error::compose attempted a pull or a build"
             exit 1
