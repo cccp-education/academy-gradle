@@ -57,16 +57,16 @@ n'apporte rien de plus que `--pull never --no-build` pour le risque visé.
 | JDK 25 temurin + `gradle/actions/setup-gradle@v4`
 
 | Plugin courant
-| `./gradlew publishToMavenLocal` dans `academy-plugin` (le consommateur résout 0.0.2 depuis mavenLocal)
+| Consommateur `dogfood/` : `pluginManagement { includeBuild("../academy-plugin") }` — résolution **depuis la source**, donc **pas de `publishToMavenLocal`** (qui déclencherait la signature automatique de `plugin-publish` sur un runner sans clé)
 
 | Bundle
-| `./gradlew buildOfflineBundle -PacademyOffline=true` à la racine (le consommateur mappe la propriété sur `offlineBundleEnabled`)
+| `./gradlew -p dogfood buildOfflineBundle generateLinuxInstaller` (l'extension du dogfood fixe `offlineBundleEnabled = true`)
 
 | Scafold
-| `bash build/academy/installers/linux/install.sh` → `$HOME/.academy/academy/` (Docker déjà présent ; le script écrit compose, `.env`, seed, projet)
+| `bash dogfood/build/academy/installers/linux/install.sh` → `$HOME/.academy/academy/` (Docker déjà présent ; le script écrit compose, `.env`, seed, projet)
 
 | Archive
-| copier `build/academy/offline/offline-images.tar` dans `$APP_DIR`, puis `docker load -i`
+| copier `dogfood/build/academy/offline/offline-images.tar` (+ `.json`) dans `$APP_DIR`, puis `docker load -i`
 
 | Démarrage
 | `cd $APP_DIR && docker compose up --pull never --no-build -d` (sortie capturée)
@@ -83,16 +83,10 @@ n'apporte rien de plus que `--pull never --no-build` pour le risque visé.
 
 == 4. Prérequis de code (petits)
 
-. **Consommateur racine** — mapper une propriété CLI sur l'extension :
-+
-[source,kotlin]
-----
-academyInstaller {
-    offlineBundleEnabled.set(
-        providers.gradleProperty("academyOffline").map { it.toBoolean() }.orElse(false),
-    )
-}
-----
+. **Dogfood build** (`dogfood/`) — `settings.gradle.kts` avec
+  `pluginManagement { includeBuild("../academy-plugin") }` ; `build.gradle.kts`
+  applique le plugin et fixe `offlineBundleEnabled = true`. Résolution source,
+  zéro publication, zéro signature.
 . **Installer** — déjà pourvu du bloc `docker load -i` (ACADEMY-14) ; il charge
    l'archive si elle est présente au moment de l'installation. Le workflow peut donc
    soit copier l'archive avant de lancer le script, soit la copier après et charger

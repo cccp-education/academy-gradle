@@ -587,13 +587,15 @@ ses coordonnées.
 *Reste* :
 . **Dogfooding CI dédié** — `.github/workflows/offline-dogfood.yml`
   (`workflow_dispatch` + hebdomadaire, **non bloquant**, jamais dans `test.yml`) :
-  `publishToMavenLocal` → `buildOfflineBundle` → installer → `docker load` →
+  `dogfood/` (`includeBuild("../academy-plugin")`) → `buildOfflineBundle` +
+  `generateLinuxInstaller` → installer → `docker load` →
   `docker compose up --pull never --no-build` → Moodle HTTP 200 → conteneur
   `workspace` sur l'image chargée → logs sans `Pulling`/`Building`. Le dogfooding
   pèse plusieurs Go et 20-40 min (disque à libérer, artefact = manifeste + logs,
   pas l'archive). Cadrage : `.agents/CADRAGE_ACADEMY_14_OFFLINE_DOGFOOD.adoc`.
-. Prérequis code : mapper `-PacademyOffline=true` sur `offlineBundleEnabled` dans
-  le consommateur racine.
+. Consommateur `dogfood/` : `pluginManagement { includeBuild("../academy-plugin") }`
+  + `offlineBundleEnabled = true` — résolution source, **pas de
+  `publishToMavenLocal`** (piège signature keyless de `plugin-publish`).
 *Critère de sortie* : workflow dédié **VERT** — `compose up` sans pull ni build,
   y compris l'image workspace pré-construite, et manifeste téléversé.
 

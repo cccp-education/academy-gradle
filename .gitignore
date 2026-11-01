@@ -1,6 +1,7 @@
 .gradle/
 /build/
 /academy-plugin/build/
+/dogfood/build/
 !gradle/wrapper/gradle-wrapper.jar
 !academy-plugin/gradle/wrapper/gradle-wrapper.jar
 .idea/
