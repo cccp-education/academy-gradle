@@ -19,6 +19,15 @@ object OfflineImageCatalog {
     const val PORTAINER: String = "portainer/portainer-ce:latest"
     const val WORKSPACE_BASE: String = "gradle:9.7.1-jdk25"
 
-    /** Deterministic, duplicate-free default bundle. */
+    /**
+     * ACADEMY-14 — the learner workspace image. It is **built** by the bundle
+     * (not pulled): `WorkspaceDockerfileGenerator` is rendered to a temporary
+     * context, then `docker build` runs on the (online) bundle machine. Shipping
+     * the pre-built image is what makes the box offline: the Dockerfile installs
+     * `opencode` from a network script, which would fail on a fresh offline host.
+     */
+    const val WORKSPACE_IMAGE: String = "cccp-education/academy-workspace:latest"
+
+    /** Deterministic, duplicate-free default pull list (the built image is added by the task). */
     val defaults: List<String> = listOf(MOODLE, POSTGRES, OLLAMA, PORTAINER, WORKSPACE_BASE)
 }

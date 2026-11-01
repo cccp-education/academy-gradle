@@ -75,9 +75,16 @@ class BuildOfflineBundleTaskTest {
         assertTrue(runner.commands.contains(listOf("docker", "pull", "ollama/ollama:latest")))
         assertTrue(
             runner.commands.any {
+                it.getOrNull(1) == "build" &&
+                    it.contains("cccp-education/academy-workspace:latest")
+            },
+        )
+        assertTrue(
+            runner.commands.any {
                 it.getOrNull(1) == "save" &&
                     it.contains("postgres:16") &&
-                    it.contains("ollama/ollama:latest")
+                    it.contains("ollama/ollama:latest") &&
+                    it.contains("cccp-education/academy-workspace:latest")
             },
         )
         assertTrue(
@@ -114,5 +121,6 @@ class BuildOfflineBundleTaskTest {
                 .readText()
         assertTrue(manifest.contains("sha256:" + "a".repeat(64)))
         assertTrue(manifest.contains("postgres:16"))
+        assertTrue(manifest.contains("cccp-education/academy-workspace:latest"))
     }
 }

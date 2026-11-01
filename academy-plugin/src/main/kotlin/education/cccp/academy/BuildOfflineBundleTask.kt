@@ -5,6 +5,7 @@ import education.cccp.academy.installer.offline.DockerImageRunner
 import education.cccp.academy.installer.offline.ImageDigest
 import education.cccp.academy.installer.offline.OfflineBundleManifest
 import education.cccp.academy.installer.offline.OfflineImage
+import education.cccp.academy.opencode.WorkspaceDockerfileGenerator
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.RegularFileProperty
@@ -15,6 +16,7 @@ import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
+import java.io.File
 
 /**
  * ACADEMY-14 — builds the offline image archive of the academy box.
@@ -48,6 +50,15 @@ abstract class BuildOfflineBundleTask : DefaultTask() {
     @get:Internal
     abstract val dockerRunner: Property<DockerImageRunner>
 
+    /**
+     * ACADEMY-14 — the learner workspace image, **built** (not pulled) from the
+     * generated Dockerfile and shipped in the same archive. It is the piece that
+     * makes the box offline: the Dockerfile installs `opencode` from a network
+     * script, which cannot run on a fresh offline host.
+     */
+    @get:Internal
+    abstract val workspaceImage: Property<String>
+
     @TaskAction
     fun buildBundle() {
         val runner = dockerRunner.get()
@@ -64,9 +75,24 @@ abstract class BuildOfflineBundleTask : DefaultTask() {
                 OfflineImage(reference = reference, digest = digest)
             }
 
+        // ACADEMY-14 — the workspace image is built here (online bundle machine)
+        // so the archive ships it pre-built; the offline host never runs the
+        // Dockerfile's `curl | bash` opencode install.
+        val workspaceContext = temporaryDir.apply { mkdirs() }
+        File(workspaceContext, "Dockerfile").writeText(WorkspaceDockerfileGenerator.render())
+        val build = runner.run(DockerImageCommands.build(workspaceImage.get(), workspaceContext.absolutePath))
+        if (build.exitCode != 0) {
+            throw GradleException(
+                "[academy] docker build failed for ${workspaceImage.get()} " +
+                    "(exit ${build.exitCode}): ${build.output.trim()}",
+            )
+        }
+        val workspaceDigest = ImageDigest.parse(runner.run(DockerImageCommands.inspectDigest(workspaceImage.get())).output)
+        val allImages = images + OfflineImage(workspaceImage.get(), workspaceDigest)
+
         val archive = bundleFile.get().asFile
         archive.parentFile.mkdirs()
-        val save = runner.run(DockerImageCommands.save(images.map { it.reference }, archive.absolutePath))
+        val save = runner.run(DockerImageCommands.save(allImages.map { it.reference }, archive.absolutePath))
         if (save.exitCode != 0) {
             throw GradleException(
                 "[academy] docker save failed (exit ${save.exitCode}): ${save.output.trim()}",
@@ -78,7 +104,7 @@ abstract class BuildOfflineBundleTask : DefaultTask() {
             )
         }
 
-        val manifest = OfflineBundleManifest(version = 1, images = images)
+        val manifest = OfflineBundleManifest(version = 1, images = allImages)
         manifestFile
             .get()
             .asFile
@@ -86,7 +112,7 @@ abstract class BuildOfflineBundleTask : DefaultTask() {
             .writeText(OfflineBundleManifest.toJson(manifest))
 
         logger.lifecycle(
-            "[academy] offline bundle: ${images.size} images -> ${archive.absolutePath} " +
+            "[academy] offline bundle: ${allImages.size} images -> ${archive.absolutePath} " +
                 "(manifest ${manifestFile.get().asFile.absolutePath})",
         )
     }

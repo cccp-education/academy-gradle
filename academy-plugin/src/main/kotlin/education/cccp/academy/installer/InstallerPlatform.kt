@@ -62,6 +62,7 @@ data class InstallerPlatform(
     val moodleMaterialEnabled: Boolean = false,
     val moodlePlan: MoodleImportPlan? = null,
     val offlineBundleEnabled: Boolean = false,
+    val imageDigests: Map<String, String> = emptyMap(),
 ) {
     init {
         require(applicationName.isNotBlank()) { "applicationName must not be blank" }
@@ -77,6 +78,20 @@ data class InstallerPlatform(
             "CUSTOM provider requires an openCodeApiKeyEnvVar name (never a value)"
         }
         require(bridgePort in 1..65535) { "bridgePort must be in 1..65535, got: $bridgePort" }
+    }
+
+    /**
+     * ACADEMY-14 — pins a compose image reference to its resolved digest.
+     *
+     * The compose scaffold historically writes `ollama/ollama` and
+     * `portainer/portainer-ce` without a tag; the offline manifest records them
+     * as `:latest`. Both keys are accepted so a pinned digest is never lost to a
+     * tag spelling. Without a digest the reference is returned unchanged, which
+     * keeps the generated scaffold byte-identical (backward compatibility).
+     */
+    fun image(reference: String): String {
+        val digest = imageDigests[reference] ?: imageDigests["$reference:latest"]
+        return if (digest.isNullOrBlank()) reference else "$reference@$digest"
     }
 
     /** Resolved opencode exposure configuration (ACADEMY-5, BYOK ACADEMY-7, bridge ACADEMY-8). */

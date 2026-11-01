@@ -38,6 +38,14 @@ class DockerImageCommandsTest {
     }
 
     @Test
+    fun `build tags a context directory`() {
+        assertEquals(
+            listOf("docker", "build", "-t", "cccp-education/academy-workspace:latest", "/tmp/context"),
+            DockerImageCommands.build("cccp-education/academy-workspace:latest", "/tmp/context"),
+        )
+    }
+
+    @Test
     fun `inspect reads the first repo digest of a reference`() {
         assertEquals(
             listOf(

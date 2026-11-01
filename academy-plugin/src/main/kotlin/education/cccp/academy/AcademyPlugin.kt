@@ -55,6 +55,7 @@ class AcademyPlugin : Plugin<Project> {
             task.bundleFile.set(extension.offlineBundleFile)
             task.manifestFile.set(extension.offlineManifestFile)
             task.dockerRunner.convention(ProcessDockerImageRunner())
+            task.workspaceImage.convention(OfflineImageCatalog.WORKSPACE_IMAGE)
             task.onlyIf { extension.offlineBundleEnabled.get() }
         }
     }
@@ -193,6 +194,8 @@ class AcademyPlugin : Plugin<Project> {
             // ACADEMY-11-4 — the pulled material is a tolerant input so a changed
             // plan re-renders on a plain re-run (never a stale scaffold).
             task.moodleMaterialFiles.from(extension.moodleMaterialDir)
+            // ACADEMY-14 — optional manifest: absent means no digest pinning.
+            task.offlineManifestFiles.from(extension.offlineManifestFile)
         }
     }
 }

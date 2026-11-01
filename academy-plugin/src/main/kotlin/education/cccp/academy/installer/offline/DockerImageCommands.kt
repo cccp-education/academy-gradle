@@ -20,6 +20,12 @@ object DockerImageCommands {
     /** `docker load -i <archive>` */
     fun load(bundlePath: String): List<String> = listOf("docker", "load", "-i", bundlePath)
 
+    /** `docker build -t <tag> <context>` — ACADEMY-14, pre-built workspace image. */
+    fun build(
+        tag: String,
+        contextPath: String,
+    ): List<String> = listOf("docker", "build", "-t", tag, contextPath)
+
     /**
      * Resolves the first `RepoDigests` entry of a locally pulled image.
      * The output line is `repo@sha256:<64 hex>` (see [ImageDigest]).

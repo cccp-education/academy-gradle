@@ -49,7 +49,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-11 | Injection du matériel pédagogique dans Moodle (data structurée AsciiDoc → plan + applicateur natif) | ✅ TERMINÉ 4/4 US (S-016) — 11-0/11-1/11-2/11-3 ✅ S-013 ; 11-4 ✅ S-016 (service compose one-shot `moodle-material` + dogfooding `compose up`)
 | ACADEMY-12 | Provisionnement de l'engine conteneurs par OS (Linux natif / Windows Docker Desktop WSL2 / macOS Colima) + Portainer partout | 🟡 EN COURS 3/4 US (S-015) — 12-0/12-1/12-2 ✅ ; 12-3 🟡 À FAIRE
 | ACADEMY-13 | CI de test obligatoire (unit + functionalTest + suites Cucumber) — l'artefact 0.0.2 est publié Central **sans aucun workflow** : 234 `@Test` et 84 `.feature` ne sont jamais exécutés automatiquement | ✅ TERMINÉ (S-017 / S-224) — `.github/workflows/test.yml` + garde `publish` (tag `v*`, `needs: test`)
-| ACADEMY-14 | Bundle hors-ligne de la boîte (images épinglées par digest + `docker save`/`load`, installation sans réseau, vérification de charge) — le compose référence `erseco/alpine-moodle:v5.2.3` par tag, donc la boîte exige le réseau | 🟡 EN COURS (S-017 / S-224) — manifeste + digests + `docker save` + chargement installateur ✅ ; reste pinning digest du compose + preuve « réseau coupé » |
+| ACADEMY-14 | Bundle hors-ligne de la boîte (images épinglées par digest + `docker save`/`load`, installation sans réseau, vérification de charge) — le compose référence `erseco/alpine-moodle:v5.2.3` par tag, donc la boîte exige le réseau | 🟡 EN COURS (S-017 / S-224) — manifeste + build image workspace + `docker save` + pinning digest + chargement installateur ✅ ; reste preuve « réseau coupé » + dogfooding |
 | ACADEMY-15 | Accessibilité de la boîte : audit Moodle/opencode WCAG 2.1 AA, thème et navigation clavier, matériel accessible vérifié, porte d'acceptation et rapport d'écarts | 🔴 À FAIRE
 |===
 
@@ -553,41 +553,45 @@ ses coordonnées.
 
 === ACADEMY-14 — Bundle hors-ligne (~5 pts, en cours)
 
-*Statut* : 🟡 EN COURS (S-017 / S-224) — socle livré, reste le pinning digest du
-compose et la preuve « réseau coupé ».
+*Statut* : 🟡 EN COURS (S-017 / S-224) — socle **complet**, reste la preuve
+« réseau coupé » et le dogfooding réel.
 *Livré* :
 - domaine pur `academy.installer.offline` : `OfflineImage` (tag + digest,
   `pinnedReference`), `OfflineImageCatalog` (Moodle, PostgreSQL, Ollama,
-  Portainer, base `gradle:9.7.1-jdk25`), `DockerImageCommands` (pull/save/load/
-  inspect), `ImageDigest` (parse `sha256:<64 hex>`), `OfflineBundleManifest`
-  (JSON versionné) ;
+  Portainer, base `gradle:9.7.1-jdk25`, image workspace), `DockerImageCommands`
+  (pull/build/save/load/inspect), `ImageDigest` (parse `sha256:<64 hex>`),
+  `OfflineBundleManifest` (JSON versionné) ;
 - port `DockerImageRunner` + adapter `ProcessDockerImageRunner` (drain du flux
   avant `waitFor`, timeout, échec non fatal) ;
 - tâche `buildOfflineBundle` opt-in (`academyInstaller.offlineBundleEnabled`,
-  défaut `false`) : pull de chaque image, résolution du digest, `docker save`
-  d'une archive unique, écriture du manifeste à côté ;
+  défaut `false`) : pull des images de service, **build de l'image workspace**
+  (`docker build` sur le Dockerfile généré), résolution des digests, `docker
+  save` d'une archive unique, écriture du manifeste à côté ;
+- **blocage `opencode` résolu** : l'image workspace est pré-construite sur la
+  machine (en ligne) qui fabrique le bundle, puis sauvegardée dans l'archive.
+  L'hôte hors-ligne charge l'image et `docker compose up` l'utilise sans
+  exécuter le `curl | bash` du Dockerfile (compose réutilise l'image locale) ;
+- **pinning digest** : `InstallerPlatform.image()` consomme le manifeste via
+  `GenerateInstallerTask.offlineManifestFiles` (input tolérant) ; `composeBody`
+  écrit `repo:tag@sha256:...` quand un digest est connu, la référence historique
+  sinon (byte-identique) ;
 - extension : `offlineImages`, `offlineBundleFile`, `offlineManifestFile` ;
 - installateur : bloc `docker load -i "$APP_DIR/offline-images.tar"` (Unix) /
   `if exist ... docker load -i ...` (Windows) uniquement quand l'option est
   active — backward compatible sinon.
-- tests (à exécuter en CI) : `OfflineImageTest`, `OfflineImageCatalogTest`,
-  `DockerImageCommandsTest`, `ImageDigestTest`, `OfflineBundleManifestTest`,
-  `BuildOfflineBundleTaskTest` (runner factice), `InstallerScriptGeneratorOfflineTest`.
+- tests (CI) : `OfflineImageTest`, `OfflineImageCatalogTest`,
+  `DockerImageCommandsTest` (dont `build`), `ImageDigestTest`,
+  `OfflineBundleManifestTest`, `BuildOfflineBundleTaskTest` (runner factice,
+  build + save + manifest), `InstallerScriptGeneratorOfflineTest`,
+  `InstallerScriptGeneratorDigestTest` (pinning + repli).
 *Reste* :
-. **Blocage réel découvert** — `WorkspaceDockerfileGenerator` exécute
-  `curl -fsSL https://opencode.ai/install | bash` **au build de l'image
-  workspace** : même avec toutes les images de base chargées, `docker compose
-  build` échoue hors réseau. Deux options : (a) pré-construire et sauvegarder
-  l'image `cccp-education/academy-workspace` dans le bundle, ou (b) embarquer le
-  binaire `opencode` et le copier depuis un chemin local. C'est le vrai
-  prérequis de l'offline, plus que le pinning digest.
-. Faire consommer `OfflineImage.pinnedReference` par `composeBody` (pinning
-  digest) — durcissement de reproductibilité, pas un prérequis de l'offline
-  (Docker réutilise les images locales, il ne `pull` pas si elles existent).
-. Test fonctionnel « réseau coupé » (charger l'archive puis `compose up` sans
-  réseau, skip-gardé si Docker absent) + dogfooding réel de l'archive.
+. Test fonctionnel « réseau coupé » : charger l'archive puis `docker compose up`
+  sans réseau, y compris la réutilisation de l'image workspace (skip-gardé si
+  Docker absent).
+. Dogfooding réel : `buildOfflineBundle` sur une machine en ligne, transfert de
+  l'archive, installation sur un hôte sans réseau.
 *Critère de sortie* : `compose up` réussi sans accès réseau après chargement du
-bundle, **y compris le build de l'image workspace**.
+bundle, **y compris l'image workspace pré-construite**.
 
 === ACADEMY-15 — Accessibilité de la boîte (~4 pts)
 

@@ -3,6 +3,7 @@ package education.cccp.academy
 import education.cccp.academy.installer.InstallerPlatform
 import education.cccp.academy.installer.InstallerScriptGenerator
 import education.cccp.academy.installer.TargetOs
+import education.cccp.academy.installer.offline.OfflineBundleManifest
 import education.cccp.academy.material.MaterialRequirement
 import education.cccp.academy.moodle.MoodleImportPlan
 import education.cccp.academy.moodle.MoodleMaterialReader
@@ -51,6 +52,17 @@ abstract class GenerateInstallerTask : DefaultTask() {
     @get:Optional
     abstract val moodleMaterialFiles: ConfigurableFileCollection
 
+    /**
+     * ACADEMY-14 — optional offline bundle manifest. Tolerant input (pattern
+     * S-221): absent means "no digest pinning", never a failure. When present
+     * and the offline bundle is enabled, the compose images are pinned to their
+     * resolved digests.
+     */
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    @get:InputFiles
+    @get:Optional
+    abstract val offlineManifestFiles: ConfigurableFileCollection
+
     /** Base output directory; the platform subdirectory is `<dirName>` on top. */
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
@@ -79,6 +91,7 @@ abstract class GenerateInstallerTask : DefaultTask() {
                 moodleMaterialEnabled = extension.moodleImportEnabled.get(),
                 moodlePlan = moodlePlan(extension),
                 offlineBundleEnabled = extension.offlineBundleEnabled.get(),
+                imageDigests = imageDigests(extension),
             )
 
         val platformDir = File(outputDir.get().asFile, platform.os.dirName).apply { mkdirs() }
@@ -119,5 +132,22 @@ abstract class GenerateInstallerTask : DefaultTask() {
             currentVersion = extension.materialCurrentVersion.get().ifBlank { null },
             expectedTypes = extension.materialExpectedTypes.get(),
         )
+    }
+
+    /**
+     * ACADEMY-14 — reads the resolved digests from the optional offline manifest.
+     *
+     * Disabled bundle or absent manifest yields an empty map (no pinning, the
+     * scaffold stays byte-identical). A malformed manifest is a legitimate
+     * degraded state: it yields no digest rather than failing the installer.
+     */
+    private fun imageDigests(extension: AcademyInstallerExtension): Map<String, String> {
+        if (!extension.offlineBundleEnabled.get()) return emptyMap()
+        val manifest = offlineManifestFiles.files.firstOrNull { it.isFile } ?: return emptyMap()
+        return OfflineBundleManifest
+            .fromJson(manifest.readText())
+            .images
+            .mapNotNull { image -> image.digest?.takeIf { it.isNotBlank() }?.let { image.reference to it } }
+            .toMap()
     }
 }

@@ -16,8 +16,14 @@ package education.cccp.academy.opencode
  * non-root `learner` user with the project mounted at `/workspace`.
  */
 object WorkspaceDockerfileGenerator {
-    /** Renders the `Dockerfile` of the learner workspace image. */
-    fun render(config: OpenCodeConfig): String =
+    /**
+     * Renders the `Dockerfile` of the learner workspace image.
+     *
+     * The exposure configuration lives in `opencode.json` (mounted at runtime),
+     * not in the image; the Dockerfile is therefore independent of the provider
+     * and can be rendered by the offline bundle builder too (ACADEMY-14).
+     */
+    fun render(): String =
         listOf(
             "# Academy workspace image (ACADEMY-5) - generated, built locally by docker compose",
             "# Base carries the pinned toolchain (Java 25 + Gradle 9.7.1) per D-ACADEMY-6-10:",
@@ -44,4 +50,11 @@ object WorkspaceDockerfileGenerator {
             "# Interactive zsh session - the learner drives the agent from here",
             "CMD [\"/bin/zsh\"]",
         ).joinToString("\n", postfix = "\n")
+
+    /**
+     * Backward-compatible overload (ACADEMY-5 installer) — the exposure
+     * configuration is not part of the image, so the argument is unused.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    fun render(config: OpenCodeConfig): String = render()
 }

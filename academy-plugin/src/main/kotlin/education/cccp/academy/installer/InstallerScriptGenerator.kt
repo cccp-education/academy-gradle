@@ -227,7 +227,7 @@ object InstallerScriptGenerator {
         val moodleLines =
             mutableListOf(
                 "  moodle:",
-                "    image: erseco/alpine-moodle:v5.2.3",
+                "    image: ${platform.image("erseco/alpine-moodle:v5.2.3")}",
                 "    ports:",
                 "      - \"8080:8080\"",
             )
@@ -262,7 +262,7 @@ object InstallerScriptGenerator {
             "    build:",
             "      context: ./project",
             "      dockerfile: Dockerfile",
-            "    image: cccp-education/academy-workspace:latest",
+            "    image: ${platform.image("cccp-education/academy-workspace:latest")}",
             "    volumes:",
             "      - \"./project:/workspace\"",
             "    working_dir: /workspace",
@@ -276,7 +276,7 @@ object InstallerScriptGenerator {
             "    profiles:",
             "      - agent",
             "  postgres:",
-            "    image: postgres:16",
+            "    image: ${platform.image("postgres:16")}",
             "    environment:",
             "      POSTGRES_DB: \${POSTGRES_DB}",
             "      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}",
@@ -290,7 +290,7 @@ object InstallerScriptGenerator {
             "    networks:",
             "      - academy-net",
             "  ollama:",
-            "    image: ollama/ollama",
+            "    image: ${platform.image("ollama/ollama")}",
             "    volumes:",
             "      - ollama-models:/root/.ollama",
             "    ports:",
@@ -303,7 +303,7 @@ object InstallerScriptGenerator {
             "    networks:",
             "      - academy-net",
             "  portainer:",
-            "    image: portainer/portainer-ce",
+            "    image: ${platform.image("portainer/portainer-ce")}",
             "    ports:",
             "      - \"9000:9000\"",
             "    volumes:",
@@ -312,7 +312,7 @@ object InstallerScriptGenerator {
             "    networks:",
             "      - academy-net",
             "  moodle-seed:",
-            "    image: postgres:16",
+            "    image: ${platform.image("postgres:16")}",
             "    restart: \"no\"",
             "    entrypoint: [\"sh\", \"/seed/seed.sh\"]",
             "    environment:",
@@ -357,7 +357,7 @@ object InstallerScriptGenerator {
         if (!platform.moodleMaterialEnabled) return emptyList()
         return listOf(
             "  moodle-material:",
-            "    image: erseco/alpine-moodle:v5.2.3",
+            "    image: ${platform.image("erseco/alpine-moodle:v5.2.3")}",
             "    restart: \"no\"",
             "    entrypoint: [\"sh\", \"/ingest/entrypoint.sh\"]",
             "    environment:",
