@@ -172,4 +172,13 @@ abstract class AcademyInstallerExtension {
 
     /** Manifest written next to the archive (ACADEMY-14). */
     abstract val offlineManifestFile: RegularFileProperty
+
+    /** ACADEMY-15 — opt-in material accessibility audit (default `false`). */
+    abstract val a11yAuditEnabled: Property<Boolean>
+
+    /** ACADEMY-15 — fail on `ERROR` findings (default `false`: advisory). */
+    abstract val a11yStrict: Property<Boolean>
+
+    /** ACADEMY-15 — the accessibility report written by `auditTrainingAccessibility`. */
+    abstract val a11yReportFile: RegularFileProperty
 }

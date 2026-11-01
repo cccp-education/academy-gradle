@@ -32,6 +32,27 @@ class AcademyPlugin : Plugin<Project> {
         registerMaterialTask(project, extension)
         registerMoodleImportTask(project, extension)
         registerOfflineBundleTask(project, extension)
+        registerA11yTask(project, extension)
+    }
+
+    /**
+     * Registers the material accessibility audit (ACADEMY-15) — opt-in and
+     * advisory by default. The report is always written when the task runs; only
+     * `a11yStrict` turns an `ERROR` finding into a build failure.
+     */
+    private fun registerA11yTask(
+        project: Project,
+        extension: AcademyInstallerExtension,
+    ) {
+        project.tasks.register("auditTrainingAccessibility", AuditTrainingAccessibilityTask::class.java) { task ->
+            task.group = "academy"
+            task.description = "Audits the accessibility of the pulled training material (ACADEMY-15)"
+            task.a11yAuditEnabled.set(extension.a11yAuditEnabled)
+            task.a11yStrict.set(extension.a11yStrict)
+            task.materialFiles.from(extension.materialDir)
+            task.reportFile.set(extension.a11yReportFile)
+            task.onlyIf { extension.a11yAuditEnabled.get() }
+        }
     }
 
     /**
@@ -161,6 +182,11 @@ class AcademyPlugin : Plugin<Project> {
         )
         extension.offlineManifestFile.convention(
             project.layout.buildDirectory.file("academy/offline/offline-images.json"),
+        )
+        extension.a11yAuditEnabled.convention(false)
+        extension.a11yStrict.convention(false)
+        extension.a11yReportFile.convention(
+            project.layout.buildDirectory.file("academy/a11y/accessibility-report.json"),
         )
     }
 

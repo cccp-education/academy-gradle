@@ -50,7 +50,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-12 | Provisionnement de l'engine conteneurs par OS (Linux natif / Windows Docker Desktop WSL2 / macOS Colima) + Portainer partout | 🟡 EN COURS 3/4 US (S-015) — 12-0/12-1/12-2 ✅ ; 12-3 🟡 À FAIRE
 | ACADEMY-13 | CI de test obligatoire (unit + functionalTest + suites Cucumber) — l'artefact 0.0.2 est publié Central **sans aucun workflow** : 234 `@Test` et 84 `.feature` ne sont jamais exécutés automatiquement | ✅ TERMINÉ (S-017 / S-224) — `.github/workflows/test.yml` + garde `publish` (tag `v*`, `needs: test`)
 | ACADEMY-14 | Bundle hors-ligne de la boîte (images épinglées par digest + `docker save`/`load`, installation sans réseau, vérification de charge) — le compose référence `erseco/alpine-moodle:v5.2.3` par tag, donc la boîte exige le réseau | ✅ TERMINÉ (S-017 / S-224) — bundle + build workspace + `docker save` + pinning digest + installateur + dogfooding CI VERT (run `41362217647`) |
-| ACADEMY-15 | Accessibilité de la boîte : audit Moodle/opencode WCAG 2.1 AA, thème et navigation clavier, matériel accessible vérifié, porte d'acceptation et rapport d'écarts | 🔴 À FAIRE
+| ACADEMY-15 | Accessibilité de la boîte : audit Moodle/opencode WCAG 2.1 AA, thème et navigation clavier, matériel accessible vérifié, porte d'acceptation et rapport d'écarts | 🟡 EN COURS (S-017 / S-224) — socle d'audit (domaine, video/producer inspectors, task, tests) ; reste rapports producteurs + audit Moodle |
 |===
 
 '''
@@ -607,9 +607,33 @@ l'artefact Central publié.
 *Critère de sortie* : ✅ workflow dédié **VERT**, `compose up` sans pull ni build,
 image workspace chargée, manifeste téléversé.
 
-=== ACADEMY-15 — Accessibilité de la boîte (~4 pts)
+=== ACADEMY-15 — Accessibilité de la boîte (~4 pts, en cours)
 
-*Statut* : 🔴 À FAIRE.
-*Recommandation* : (1) audit du thème Moodle et de la navigation clavier (WCAG 2.1 AA), rapport d'écarts versionné ; (2) `opencode` en sortie strictement textuelle, sans dépendance visuelle ; (3) vérification que le matériel injecté est accessible (HTML/EPUB issus de `document`, vidéo sous-titrée et audiodécrite issue de `capsule`) ; (4) porte d'acceptation dans `generateInstaller`/`inspectTrainingMaterial`.
-*Critère de sortie* : rapport d'audit + limites déclarées + matériel accessible vérifié.
-*Dépendances* : `GBL-011-3` (document), `GBL-011-4` (capsule), `GBL-011-6` (magic-stick).
+*Statut* : 🟡 EN COURS (S-017 / S-224) — socle d'audit livré, reste la
+consommation des rapports producteurs et l'audit Moodle.
+*Livré* :
+- domaine `academy.a11y` : `A11yFinding`/`A11ySeverity`/`A11yReadiness`,
+  `A11yRules`, `MaterialA11yReport` (JSON versionné, **limites déclarées**) ;
+- `VideoA11yInspector` : sous-titres `ERROR`, transcription et audiodescription
+  `WARNING` (convention de nommage `foo.mp4` → `foo.vtt/.srt/.ass`,
+  `foo.txt/.md`, `foo.audiodesc.*`) ;
+- `ProducerReportInspector` : lit `a11y-report.json` du producteur (tolérant,
+  règles inconnues conservées), absence/malformation = `WARNING`
+  `producer-report-missing` — jamais un « vérifié » silencieux ;
+- `MaterialA11yAuditor` : verdict `MISSING` / `DEGRADED` / `VERIFIED`, limites
+  déclarées (PDF non PDF/UA, Moodle/opencode hors périmètre, audiodescription
+  étendue non implémentée) ;
+- tâche `auditTrainingAccessibility` opt-in (`a11yAuditEnabled`, défaut `false`),
+  **advisory** sauf `a11yStrict` (un `ERROR` échoue), rapport
+  `build/academy/a11y/accessibility-report.json` ;
+- tests (CI) : `VideoA11yInspectorTest`, `MaterialA11yAuditorTest`,
+  `MaterialA11yReportTest`, `AuditTrainingAccessibilityTaskTest` ; `ktlintCheck`
+  et `validatePlugins` VERTS.
+*Reste* :
+. Le producteur `document` doit écrire `a11y-report.json` (GBL-011-3) et
+  `capsule` doit produire l'audiodescription (GBL-011-4) ; sinon les constats
+  restent des `WARNING`.
+. Audit Moodle/opencode (navigateur/session) — hors périmètre de cette tâche,
+  déclaré en limite du rapport.
+*Critère de sortie* : rapport d'audit + limites + **matériel vérifié**
+(dépend `GBL-011-3`/`-4`/`-6`).
