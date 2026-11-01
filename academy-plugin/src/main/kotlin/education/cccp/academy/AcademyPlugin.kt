@@ -4,6 +4,8 @@ import contracts.runtime.LlmProviderKind
 import education.cccp.academy.bridge.ByokBridgeSupport
 import education.cccp.academy.installer.HostEnvironmentProbe
 import education.cccp.academy.installer.TargetOs
+import education.cccp.academy.installer.offline.OfflineImageCatalog
+import education.cccp.academy.installer.offline.ProcessDockerImageRunner
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -17,18 +19,44 @@ import org.gradle.api.Project
  * `generateMacInstaller` and the `buildAllInstallers` aggregate.
  */
 class AcademyPlugin : Plugin<Project> {
-
     override fun apply(project: Project) {
-        val extension = project.extensions.create(
-            "academyInstaller",
-            AcademyInstallerExtension::class.java,
-        )
+        val extension =
+            project.extensions.create(
+                "academyInstaller",
+                AcademyInstallerExtension::class.java,
+            )
         wireDefaults(project, extension)
         registerInstallerTasks(project, extension)
         registerContainerEngineTask(project)
         registerBridgeTask(project, extension)
         registerMaterialTask(project, extension)
         registerMoodleImportTask(project, extension)
+        registerOfflineBundleTask(project, extension)
+    }
+
+    /**
+     * Registers the offline bundle builder (ACADEMY-14) — opt-in and never
+     * cached: it pulls gigabytes and writes one archive plus its manifest. The
+     * Docker process lives behind the injected runner, so the task is testable
+     * with a fake (D-ACADEMY-14-2).
+     */
+    private fun registerOfflineBundleTask(
+        project: Project,
+        extension: AcademyInstallerExtension,
+    ) {
+        project.tasks.register("buildOfflineBundle", BuildOfflineBundleTask::class.java) { task ->
+            task.group = "academy"
+            task.description = "Builds the offline container image archive + manifest of the academy box (ACADEMY-14)"
+            task.references.set(
+                extension.offlineImages.map { images ->
+                    if (images.isEmpty()) OfflineImageCatalog.defaults else images
+                },
+            )
+            task.bundleFile.set(extension.offlineBundleFile)
+            task.manifestFile.set(extension.offlineManifestFile)
+            task.dockerRunner.convention(ProcessDockerImageRunner())
+            task.onlyIf { extension.offlineBundleEnabled.get() }
+        }
     }
 
     /**
@@ -51,7 +79,10 @@ class AcademyPlugin : Plugin<Project> {
      * only *generates* the plan and the generic CLI script; the one-shot
      * `moodle-material` service applies them after Moodle created its schema.
      */
-    private fun registerMoodleImportTask(project: Project, extension: AcademyInstallerExtension) {
+    private fun registerMoodleImportTask(
+        project: Project,
+        extension: AcademyInstallerExtension,
+    ) {
         project.tasks.register("generateMoodleImport", GenerateMoodleImportTask::class.java) { task ->
             task.group = "academy"
             task.description = "Generates the Moodle material injection plan + generic CLI script (ACADEMY-11)"
@@ -69,7 +100,10 @@ class AcademyPlugin : Plugin<Project> {
      * never destructive: it verifies what the learner pulled, academy does not
      * pull himself (the bureau owns the transport, D-ACADEMY-4-1).
      */
-    private fun registerMaterialTask(project: Project, extension: AcademyInstallerExtension) {
+    private fun registerMaterialTask(
+        project: Project,
+        extension: AcademyInstallerExtension,
+    ) {
         project.tasks.register("inspectTrainingMaterial", InspectTrainingMaterialTask::class.java) { task ->
             task.materialRemoteUrl.set(extension.materialRemoteUrl)
             task.materialCurrentVersion.set(extension.materialCurrentVersion)
@@ -78,7 +112,10 @@ class AcademyPlugin : Plugin<Project> {
         }
     }
 
-    private fun registerBridgeTask(project: Project, extension: AcademyInstallerExtension) {
+    private fun registerBridgeTask(
+        project: Project,
+        extension: AcademyInstallerExtension,
+    ) {
         project.tasks.register("serveWebhookBridge", ServeWebhookBridgeTask::class.java) { task ->
             task.bridgeEnabled.set(extension.bridgeEnabled)
             task.bridgeHost.set(extension.bridgeHost)
@@ -88,7 +125,10 @@ class AcademyPlugin : Plugin<Project> {
         }
     }
 
-    private fun wireDefaults(project: Project, extension: AcademyInstallerExtension) {
+    private fun wireDefaults(
+        project: Project,
+        extension: AcademyInstallerExtension,
+    ) {
         extension.applicationName.convention("academy")
         extension.applicationVersion.convention(project.version.toString())
         extension.javaVersion.convention("25")
@@ -113,9 +153,20 @@ class AcademyPlugin : Plugin<Project> {
         extension.moodleMaterialDir.convention(project.layout.projectDirectory.dir("material"))
         extension.moodleCourseShortName.convention("academy-seed")
         extension.moodleCourseFullName.convention("Academy - Experimentation Track")
+        extension.offlineBundleEnabled.convention(false)
+        extension.offlineImages.convention(emptyList())
+        extension.offlineBundleFile.convention(
+            project.layout.buildDirectory.file("academy/offline/offline-images.tar"),
+        )
+        extension.offlineManifestFile.convention(
+            project.layout.buildDirectory.file("academy/offline/offline-images.json"),
+        )
     }
 
-    private fun registerInstallerTasks(project: Project, extension: AcademyInstallerExtension) {
+    private fun registerInstallerTasks(
+        project: Project,
+        extension: AcademyInstallerExtension,
+    ) {
         registerPlatformTask(project, extension, "generateLinuxInstaller", TargetOs.LINUX)
         registerPlatformTask(project, extension, "generateWindowsInstaller", TargetOs.WINDOWS)
         registerPlatformTask(project, extension, "generateMacInstaller", TargetOs.MACOS)

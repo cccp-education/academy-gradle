@@ -1,5 +1,5 @@
 [versions]
-academy-plugin = "0.0.1"
+academy-plugin = "0.0.2"
 
 [plugins]
 academy = { id = "education.cccp.academy", version.ref = "academy-plugin" }

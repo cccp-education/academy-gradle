@@ -4,6 +4,7 @@ import contracts.runtime.LlmProviderKind
 import education.cccp.academy.installer.TargetOs
 import education.cccp.academy.material.MaterialArtifactType
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 
@@ -33,7 +34,6 @@ import org.gradle.api.provider.Property
  * convention the generated scripts read, never a value).
  */
 abstract class AcademyInstallerExtension {
-
     /** Resource name — defaults to `academy`. */
     abstract val applicationName: Property<String>
 
@@ -152,4 +152,24 @@ abstract class AcademyInstallerExtension {
 
     /** Human-readable full name of the target course (ACADEMY-11). */
     abstract val moodleCourseFullName: Property<String>
+
+    /**
+     * Whether the generated installer loads an offline image archive before the
+     * learner starts the compose stack (ACADEMY-14). Defaults to `false`: the
+     * installer is byte-identical to the networked path unless the learner opts
+     * in.
+     */
+    abstract val offlineBundleEnabled: Property<Boolean>
+
+    /**
+     * Image references the offline bundle archives (ACADEMY-14). An empty list
+     * means "the deterministic default catalog" (`OfflineImageCatalog`).
+     */
+    abstract val offlineImages: ListProperty<String>
+
+    /** Archive written by `buildOfflineBundle` (ACADEMY-14). */
+    abstract val offlineBundleFile: RegularFileProperty
+
+    /** Manifest written next to the archive (ACADEMY-14). */
+    abstract val offlineManifestFile: RegularFileProperty
 }

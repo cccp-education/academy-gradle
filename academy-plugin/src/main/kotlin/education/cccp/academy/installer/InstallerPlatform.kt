@@ -61,6 +61,7 @@ data class InstallerPlatform(
     val material: MaterialRequirement? = null,
     val moodleMaterialEnabled: Boolean = false,
     val moodlePlan: MoodleImportPlan? = null,
+    val offlineBundleEnabled: Boolean = false,
 ) {
     init {
         require(applicationName.isNotBlank()) { "applicationName must not be blank" }
@@ -79,11 +80,12 @@ data class InstallerPlatform(
     }
 
     /** Resolved opencode exposure configuration (ACADEMY-5, BYOK ACADEMY-7, bridge ACADEMY-8). */
-    fun openCodeConfig(): OpenCodeConfig = OpenCodeConfig(
-        providerUrl = openCodeProviderUrl,
-        model = openCodeModel,
-        provider = openCodeProvider,
-        apiKeyEnvVar = openCodeApiKeyEnvVar?.takeIf { it.isNotBlank() },
-        bridge = if (bridgeEnabled) BridgeGuide(host = bridgeHost, port = bridgePort) else null,
-    )
+    fun openCodeConfig(): OpenCodeConfig =
+        OpenCodeConfig(
+            providerUrl = openCodeProviderUrl,
+            model = openCodeModel,
+            provider = openCodeProvider,
+            apiKeyEnvVar = openCodeApiKeyEnvVar?.takeIf { it.isNotBlank() },
+            bridge = if (bridgeEnabled) BridgeGuide(host = bridgeHost, port = bridgePort) else null,
+        )
 }

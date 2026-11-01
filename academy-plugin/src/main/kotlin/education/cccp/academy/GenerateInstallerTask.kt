@@ -32,7 +32,6 @@ import java.io.File
  */
 @DisableCachingByDefault(because = "Script scaffolds re-render each run; up-to-date checks are enough (ACADEMY-1-1)")
 abstract class GenerateInstallerTask : DefaultTask() {
-
     /** Target platform produced by this task instance (LINUX/WINDOWS/MACOS). */
     @get:Input
     abstract val targetOs: Property<TargetOs>
@@ -59,26 +58,28 @@ abstract class GenerateInstallerTask : DefaultTask() {
     @TaskAction
     fun generate() {
         val extension = installerExtension.get()
-        val platform = InstallerPlatform(
-            os = targetOs.get(),
-            applicationName = extension.applicationName.get(),
-            applicationVersion = extension.applicationVersion.get(),
-            javaVersion = extension.javaVersion.get(),
-            gradleVersion = extension.gradleVersion.get(),
-            composeEnabled = extension.composeEnabled.get(),
-            credentialsEnvPrefix = extension.credentialsEnvPrefix.get(),
-            openCodeEnabled = extension.openCodeEnabled.get(),
-            openCodeModel = extension.openCodeModel.get(),
-            openCodeProviderUrl = extension.openCodeProviderUrl.get(),
-            openCodeProvider = extension.openCodeProvider.get(),
-            openCodeApiKeyEnvVar = extension.openCodeApiKeyEnvVar.get().takeIf { it.isNotBlank() },
-            bridgeEnabled = extension.bridgeEnabled.get(),
-            bridgeHost = extension.bridgeHost.get(),
-            bridgePort = extension.bridgePort.get(),
-            material = materialRequirement(extension),
-            moodleMaterialEnabled = extension.moodleImportEnabled.get(),
-            moodlePlan = moodlePlan(extension),
-        )
+        val platform =
+            InstallerPlatform(
+                os = targetOs.get(),
+                applicationName = extension.applicationName.get(),
+                applicationVersion = extension.applicationVersion.get(),
+                javaVersion = extension.javaVersion.get(),
+                gradleVersion = extension.gradleVersion.get(),
+                composeEnabled = extension.composeEnabled.get(),
+                credentialsEnvPrefix = extension.credentialsEnvPrefix.get(),
+                openCodeEnabled = extension.openCodeEnabled.get(),
+                openCodeModel = extension.openCodeModel.get(),
+                openCodeProviderUrl = extension.openCodeProviderUrl.get(),
+                openCodeProvider = extension.openCodeProvider.get(),
+                openCodeApiKeyEnvVar = extension.openCodeApiKeyEnvVar.get().takeIf { it.isNotBlank() },
+                bridgeEnabled = extension.bridgeEnabled.get(),
+                bridgeHost = extension.bridgeHost.get(),
+                bridgePort = extension.bridgePort.get(),
+                material = materialRequirement(extension),
+                moodleMaterialEnabled = extension.moodleImportEnabled.get(),
+                moodlePlan = moodlePlan(extension),
+                offlineBundleEnabled = extension.offlineBundleEnabled.get(),
+            )
 
         val platformDir = File(outputDir.get().asFile, platform.os.dirName).apply { mkdirs() }
         InstallerScriptGenerator.render(platform).forEach { file ->
