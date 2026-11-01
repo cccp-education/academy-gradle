@@ -585,13 +585,17 @@ ses coordonnées.
   build + save + manifest), `InstallerScriptGeneratorOfflineTest`,
   `InstallerScriptGeneratorDigestTest` (pinning + repli).
 *Reste* :
-. Test fonctionnel « réseau coupé » : charger l'archive puis `docker compose up`
-  sans réseau, y compris la réutilisation de l'image workspace (skip-gardé si
-  Docker absent).
-. Dogfooding réel : `buildOfflineBundle` sur une machine en ligne, transfert de
-  l'archive, installation sur un hôte sans réseau.
-*Critère de sortie* : `compose up` réussi sans accès réseau après chargement du
-bundle, **y compris l'image workspace pré-construite**.
+. **Dogfooding CI dédié** — `.github/workflows/offline-dogfood.yml`
+  (`workflow_dispatch` + hebdomadaire, **non bloquant**, jamais dans `test.yml`) :
+  `publishToMavenLocal` → `buildOfflineBundle` → installer → `docker load` →
+  `docker compose up --pull never --no-build` → Moodle HTTP 200 → conteneur
+  `workspace` sur l'image chargée → logs sans `Pulling`/`Building`. Le dogfooding
+  pèse plusieurs Go et 20-40 min (disque à libérer, artefact = manifeste + logs,
+  pas l'archive). Cadrage : `.agents/CADRAGE_ACADEMY_14_OFFLINE_DOGFOOD.adoc`.
+. Prérequis code : mapper `-PacademyOffline=true` sur `offlineBundleEnabled` dans
+  le consommateur racine.
+*Critère de sortie* : workflow dédié **VERT** — `compose up` sans pull ni build,
+  y compris l'image workspace pré-construite, et manifeste téléversé.
 
 === ACADEMY-15 — Accessibilité de la boîte (~4 pts)
 

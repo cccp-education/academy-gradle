@@ -1,0 +1,185 @@
+= CADRAGE — ACADEMY-14 : dogfooding hors-ligne en GitHub Actions
+:toc: left
+:toclevels: 2
+:date: 2026-11-01
+:statut: CADRÉ — workflow dédié, non bloquant
+
+[abstract]
+--
+Prouver en CI que la boîte academy démarre **sans réseau** : construire le bundle
+(images de service + image workspace pré-construite), charger l'archive, puis
+`docker compose up --pull never --no-build`. Le workflow est **dédié** (dispatch +
+hebdomadaire), jamais dans `test.yml` : il pèse plusieurs Go et 20-40 minutes.
+--
+
+== 1. Pourquoi un workflow dédié
+
+`test.yml` doit rester rapide (1-3 min) et prouver le code. Le dogfooding offline
+télécharge des images (Moodle, PostgreSQL, Ollama, Portainer, base Gradle), construit
+l'image workspace (`curl | bash` opencode) et sauvegarde une archive de plusieurs Go.
+Le mettre dans `test.yml` ferait payer ce coût à chaque push et rendrait la CI
+ordinaire fragile (disque, réseau, temps).
+
+Décision : `.github/workflows/offline-dogfood.yml`, **non requis** pour merger,
+`workflow_dispatch` + `schedule` hebdomadaire.
+
+== 2. Ce que le workflow prouve (et ce qu'il ne prouve pas)
+
+*Preuve réelle* : les images sont **locales** et l'image workspace est **réutilisée**
+sans build. C'est le mode de défaillance réel de la boîte (pull ou build au premier
+démarrage).
+
+*Preuve choisie* : `docker compose up --pull never --no-build`.
+— `--pull never` interdit tout téléchargement ;
+— `--no-build` interdit toute construction ;
+— si une image manque, la commande échoue, donc le succès est la preuve.
+
+*Limite assumée* : ce n'est pas une coupure réseau du runner (fragile, privilégiée,
+non portable). Un test en `network namespace` est possible mais hors périmètre : il
+n'apporte rien de plus que `--pull never --no-build` pour le risque visé.
+
+== 3. Séquence du workflow
+
+[cols="1,4", options="header"]
+|===
+| Étape | Contenu
+
+| Déclencheurs
+| `workflow_dispatch` + `schedule: '0 4 * * 1'` (lundi), `timeout-minutes: 60`
+
+| Runner
+| `ubuntu-latest`, `permissions: contents: read`
+
+| Disque
+| `sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && docker system prune -af` (pattern magic-stick `build.yml`)
+
+| Outils
+| JDK 25 temurin + `gradle/actions/setup-gradle@v4`
+
+| Plugin courant
+| `./gradlew publishToMavenLocal` dans `academy-plugin` (le consommateur résout 0.0.2 depuis mavenLocal)
+
+| Bundle
+| `./gradlew buildOfflineBundle -PacademyOffline=true` à la racine (le consommateur mappe la propriété sur `offlineBundleEnabled`)
+
+| Scafold
+| `bash build/academy/installers/linux/install.sh` → `$HOME/.academy/academy/` (Docker déjà présent ; le script écrit compose, `.env`, seed, projet)
+
+| Archive
+| copier `build/academy/offline/offline-images.tar` dans `$APP_DIR`, puis `docker load -i`
+
+| Démarrage
+| `cd $APP_DIR && docker compose up --pull never --no-build -d` (sortie capturée)
+
+| Santé
+| boucle `curl -fsS http://localhost:8080/login/index.php` (60 × 5 s) ; `docker compose ps`
+
+| Preuve image
+| `docker inspect --format '{{.Config.Image}}' "$(docker compose ps -q workspace)"` == `cccp-education/academy-workspace:latest` ; comparer l'image ID au manifeste
+
+| Nettoyage
+| `docker compose down -v` ; upload `offline-images.json` + logs (rétention 7 jours)
+|===
+
+== 4. Prérequis de code (petits)
+
+. **Consommateur racine** — mapper une propriété CLI sur l'extension :
++
+[source,kotlin]
+----
+academyInstaller {
+    offlineBundleEnabled.set(
+        providers.gradleProperty("academyOffline").map { it.toBoolean() }.orElse(false),
+    )
+}
+----
+. **Installer** — déjà pourvu du bloc `docker load -i` (ACADEMY-14) ; il charge
+   l'archive si elle est présente au moment de l'installation. Le workflow peut donc
+   soit copier l'archive avant de lancer le script, soit la copier après et charger
+   explicitement.
+. **Manifeste** — `offline-images.json` contient les tags et digests ; le workflow
+   vérifie que l'image workspace chargée correspond au manifeste.
+
+== 5. Critères d'acceptation
+
+[cols="1,4", options="header"]
+|===
+| # | Critère
+
+| A1
+| `docker compose up --pull never --no-build` réussit.
+
+| A2
+| Moodle répond HTTP 200 sur `:8080`.
+
+| A3
+| Le conteneur `workspace` tourne l'image `cccp-education/academy-workspace:latest`
+   chargée depuis l'archive (pas reconstruite).
+
+| A4
+| Les logs ne contiennent ni `Pulling` ni `Building`.
+
+| A5
+| Le manifeste est téléversé avec les logs (traçabilité).
+|===
+
+== 6. Risques et parades
+
+[cols="2,2,3", options="header"]
+|===
+| Risque | Impact | Parade
+
+| Disque insuffisant (~14 Go sur `ubuntu-latest`)
+| `docker save` ou `load` échoue
+| étape « free disk » + `docker system prune -af` ; si nécessaire, réduire le jeu au
+  cœur (Moodle + PostgreSQL + workspace) et documenter Portainer/Ollama comme
+  optionnels dans le dogfood (le produit les garde)
+
+| Durée 20-40 min
+| Coût CI
+| hebdomadaire + dispatch, jamais sur push/PR ; `timeout-minutes` explicite
+
+| Échec transitoire du registre
+| Faux rouge
+| `retry` sur pull ou relance manuelle ; le workflow n'est pas un check requis
+
+| Poids de l'artefact (Go)
+| Quota Actions
+| téléverser **le manifeste et les logs**, pas l'archive (ou rétention 1 jour)
+
+| `moodle-seed` dépend de PostgreSQL
+| Démarrage lent
+| `depends_on: service_healthy` déjà présent dans le compose ; la boucle de santé
+  couvre le reste
+|===
+
+== 7. Ce que ce cadrage ne fait pas
+
+- Il n'implémente pas le workflow (US suivante).
+- Il ne remplace pas `test.yml` : le dogfooding est une preuve d'intégration lourde,
+  pas un gate de merge.
+- Il ne prétend pas couper le réseau du runner : `--pull never --no-build` est la
+  preuve proportionnée au risque.
+
+== 8. Références
+
+[cols="1,2", options="header"]
+|===
+| Document | Rôle
+
+| `.agents/BACKLOG.adoc` § ACADEMY-14
+| État du bundle, preuve CI unitaire/functional
+
+| `src/main/kotlin/education/cccp/academy/BuildOfflineBundleTask.kt`
+| Construction de l'archive (pull + build workspace + manifeste)
+
+| `.github/workflows/test.yml`
+| CI rapide, à ne pas alourdir
+
+| `foundry/public/magic-stick/.github/workflows/build.yml`
+| Pattern « free disk » + workflow lourd dédié
+|===
+
+[.text-right]
+*Cadrage ACADEMY-14 — dogfooding offline dédié, non bloquant, preuve `--pull never
+--no-build`.*
