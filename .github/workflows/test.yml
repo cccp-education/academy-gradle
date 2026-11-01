@@ -66,17 +66,25 @@ jobs:
           fi
           exit 1
 
-      # Proves the POM is publishable (sources/javadoc, no unresolved platform
-      # pin). Signing is skipped on CI (the build guards on CI=true).
-      - name: Verify publishToMavenLocal (POM)
+      # Proves the POM is generated and publishable without invoking signing.
+      # `com.gradle.plugin-publish` signs automatically as soon as the `signing`
+      # plugin is applied, so `publishToMavenLocal` cannot run on a keyless CI
+      # job. Generating the POM is the keyless equivalent: it catches an
+      # unresolved platform pin or a malformed coordinate.
+      - name: Verify POM generation
         if: steps.build.outcome == 'success'
-        run: ./gradlew publishToMavenLocal
         working-directory: academy-plugin
-        env:
-          # The build skips signing when CI=true. The runner did not expose it
-          # to this step (build.gradle.kts reads System.getenv("CI")), so the
-          # POM check tried to sign without a key. Set it explicitly.
-          CI: "true"
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew generatePomFileForPluginMavenPublication
+          pom=build/publications/pluginMaven/pom-default.xml
+          test -f "$pom"
+          grep -q "<groupId>education.cccp</groupId>" "$pom"
+          grep -q "<artifactId>academy-plugin</artifactId>" "$pom"
+          grep -Eq "<version>[0-9]+\.[0-9]+\.[0-9]+</version>" "$pom"
+          ! grep -q "SNAPSHOT" "$pom"
+          echo "POM OK: $pom"
 
   publish:
     name: Publish to Maven Central
