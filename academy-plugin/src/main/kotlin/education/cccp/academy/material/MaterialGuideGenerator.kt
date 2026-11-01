@@ -16,46 +16,46 @@ package education.cccp.academy.material
  * absent binary.
  */
 object MaterialGuideGenerator {
-
     /** Renders the material guide for [requirement]. */
-    fun render(requirement: MaterialRequirement): String = buildString {
-        appendLine("# Academy Training Material")
-        appendLine()
-        appendLine("This workspace consumes versioned training material produced by the")
-        appendLine("CCCP education pipeline. The material is **pulled**, never pushed:")
-        appendLine("the creator publishes tagged versions, you fetch the one you want.")
-        appendLine()
-        appendLine("## Declared requirement")
-        appendLine()
-        appendLine("- **Remote** — ${requirement.remoteUrl}")
-        if (requirement.currentVersion != null) {
-            appendLine("- **Expected version** — ${requirement.currentVersion}")
-        } else {
-            appendLine("- **Expected version** — any (no version pinned)")
-        }
-        appendLine("- **Expected artifacts** — ${renderTypes(requirement)}")
-        appendLine()
-        appendLine("## How the material arrives")
-        appendLine()
-        appendLine("The delivery mechanism is fixed: **git pull** of the tagged version")
-        appendLine("from the declared remote into your office. You are the one who pulls —")
-        appendLine("the creator never writes into your workspace.")
-        appendLine()
-        appendLine("```sh")
-        appendLine("git fetch <remote>")
-        appendLine("git checkout ${requirement.currentVersion ?: "<tag>"}")
-        appendLine("```")
-        appendLine()
-        appendLine("## Verify what you received")
-        appendLine()
-        appendLine("Every artifact ships an EPIC K `metadata.json` pivot next to its")
-        appendLine("AsciiDoc output. Run the verification task to see whether the pulled")
-        appendLine("material satisfies this requirement:")
-        appendLine()
-        appendLine("```sh")
-        appendLine("./gradlew inspectTrainingMaterial")
-        appendLine("```")
-    }.trimEnd('\n') + "\n"
+    fun render(requirement: MaterialRequirement): String =
+        buildString {
+            appendLine("# Academy Training Material")
+            appendLine()
+            appendLine("This workspace consumes versioned training material produced by the")
+            appendLine("CCCP education pipeline. The material is **pulled**, never pushed:")
+            appendLine("the creator publishes tagged versions, you fetch the one you want.")
+            appendLine()
+            appendLine("## Declared requirement")
+            appendLine()
+            appendLine("- **Remote** — ${requirement.remoteUrl}")
+            if (requirement.currentVersion != null) {
+                appendLine("- **Expected version** — ${requirement.currentVersion}")
+            } else {
+                appendLine("- **Expected version** — any (no version pinned)")
+            }
+            appendLine("- **Expected artifacts** — ${renderTypes(requirement)}")
+            appendLine()
+            appendLine("## How the material arrives")
+            appendLine()
+            appendLine("The delivery mechanism is fixed: **git pull** of the tagged version")
+            appendLine("from the declared remote into your office. You are the one who pulls —")
+            appendLine("the creator never writes into your workspace.")
+            appendLine()
+            appendLine("```sh")
+            appendLine("git fetch <remote>")
+            appendLine("git checkout ${requirement.currentVersion ?: "<tag>"}")
+            appendLine("```")
+            appendLine()
+            appendLine("## Verify what you received")
+            appendLine()
+            appendLine("Every artifact ships an EPIC K `metadata.json` pivot next to its")
+            appendLine("AsciiDoc output. Run the verification task to see whether the pulled")
+            appendLine("material satisfies this requirement:")
+            appendLine()
+            appendLine("```sh")
+            appendLine("./gradlew inspectTrainingMaterial")
+            appendLine("```")
+        }.trimEnd('\n') + "\n"
 
     private fun renderTypes(requirement: MaterialRequirement): String =
         if (requirement.expectedTypes.isEmpty()) {

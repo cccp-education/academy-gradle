@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit
 class HostEnvironmentProbe(
     private val commandTimeoutSeconds: Long = 5,
 ) : EnvironmentProbe {
-
     override fun observe(): EnvironmentFacts {
         val os = HostOs.fromOsName(System.getProperty("os.name"))
         return EnvironmentFacts(
@@ -34,13 +33,15 @@ class HostEnvironmentProbe(
         )
     }
 
-    private fun runSucceeds(vararg command: String): Boolean = try {
-        val process = ProcessBuilder(*command)
-            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
-            .redirectError(ProcessBuilder.Redirect.DISCARD)
-            .start()
-        process.waitFor(commandTimeoutSeconds, TimeUnit.SECONDS) && process.exitValue() == 0
-    } catch (_: Exception) {
-        false
-    }
+    private fun runSucceeds(vararg command: String): Boolean =
+        try {
+            val process =
+                ProcessBuilder(*command)
+                    .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                    .redirectError(ProcessBuilder.Redirect.DISCARD)
+                    .start()
+            process.waitFor(commandTimeoutSeconds, TimeUnit.SECONDS) && process.exitValue() == 0
+        } catch (_: Exception) {
+            false
+        }
 }

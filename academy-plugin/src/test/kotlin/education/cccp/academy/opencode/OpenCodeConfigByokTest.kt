@@ -18,7 +18,6 @@ import kotlin.test.assertTrue
  * variable name** (`{env:NAME}`, the official opencode syntax) — never a value.
  */
 class OpenCodeConfigByokTest {
-
     private fun config(
         provider: LlmProviderKind = LlmProviderKind.OLLAMA_LOCAL,
         providerUrl: String = "http://ollama:11434/v1",
@@ -54,9 +53,10 @@ class OpenCodeConfigByokTest {
 
     @Test
     fun `gemini renders the google package and the env var reference`() {
-        val json = OpenCodeConfigGenerator.render(
-            config(provider = LlmProviderKind.GEMINI, model = "gemini-2.5-flash"),
-        )
+        val json =
+            OpenCodeConfigGenerator.render(
+                config(provider = LlmProviderKind.GEMINI, model = "gemini-2.5-flash"),
+            )
 
         assertTrue(json.contains("\"model\": \"google/gemini-2.5-flash\""))
         assertTrue(json.contains("\"google\": {"))
@@ -67,9 +67,10 @@ class OpenCodeConfigByokTest {
 
     @Test
     fun `huggingface renders the router endpoint and HF_TOKEN`() {
-        val json = OpenCodeConfigGenerator.render(
-            config(provider = LlmProviderKind.HUGGINGFACE, model = "meta-llama/Llama-3.3-70B-Instruct"),
-        )
+        val json =
+            OpenCodeConfigGenerator.render(
+                config(provider = LlmProviderKind.HUGGINGFACE, model = "meta-llama/Llama-3.3-70B-Instruct"),
+            )
 
         assertTrue(json.contains("\"model\": \"huggingface/meta-llama/Llama-3.3-70B-Instruct\""))
         assertTrue(json.contains("\"huggingface\": {"))
@@ -79,13 +80,14 @@ class OpenCodeConfigByokTest {
 
     @Test
     fun `custom renders the extension base url and env var name`() {
-        val json = OpenCodeConfigGenerator.render(
-            config(
-                provider = LlmProviderKind.CUSTOM,
-                providerUrl = "https://api.myprovider.com/v1",
-                apiKeyEnvVar = "MY_PROVIDER_KEY",
-            ),
-        )
+        val json =
+            OpenCodeConfigGenerator.render(
+                config(
+                    provider = LlmProviderKind.CUSTOM,
+                    providerUrl = "https://api.myprovider.com/v1",
+                    apiKeyEnvVar = "MY_PROVIDER_KEY",
+                ),
+            )
 
         assertTrue(json.contains("\"model\": \"custom/gpt-oss:120b-cloud\""))
         assertTrue(json.contains("\"custom\": {"))
@@ -114,7 +116,8 @@ class OpenCodeConfigByokTest {
 
     @Test
     fun `the default output is byte-identical to the ACADEMY-5 rendering`() {
-        val expected = """
+        val expected =
+            """
             |{
             |  "${'$'}schema": "https://opencode.ai/config.json",
             |  "model": "ollama/gpt-oss:120b-cloud",
@@ -136,7 +139,8 @@ class OpenCodeConfigByokTest {
             |    "AGENTS.md"
             |  ]
             |}
-            |""".trimMargin()
+            |
+            """.trimMargin()
 
         assertEquals(expected, OpenCodeConfigGenerator.render(config()))
     }
@@ -144,13 +148,14 @@ class OpenCodeConfigByokTest {
     @Test
     fun `the rendered json is structurally balanced for every provider`() {
         LlmProviderKind.entries.forEach { kind ->
-            val extra = when (kind) {
-                LlmProviderKind.OLLAMA_LOCAL -> null
-                LlmProviderKind.OLLAMA_CLOUD -> null
-                LlmProviderKind.GEMINI -> null
-                LlmProviderKind.HUGGINGFACE -> null
-                LlmProviderKind.CUSTOM -> "MY_PROVIDER_KEY"
-            }
+            val extra =
+                when (kind) {
+                    LlmProviderKind.OLLAMA_LOCAL -> null
+                    LlmProviderKind.OLLAMA_CLOUD -> null
+                    LlmProviderKind.GEMINI -> null
+                    LlmProviderKind.HUGGINGFACE -> null
+                    LlmProviderKind.CUSTOM -> "MY_PROVIDER_KEY"
+                }
             val json = OpenCodeConfigGenerator.render(config(provider = kind, apiKeyEnvVar = extra))
             assertEquals(json.count { it == '{' }, json.count { it == '}' }, "braces must balance for $kind")
             assertEquals(json.count { it == '[' }, json.count { it == ']' }, "brackets must balance for $kind")

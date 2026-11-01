@@ -11,14 +11,14 @@ import kotlin.test.assertFailsWith
  * transport — academy does not pull (the bureau owns git, vision § 3.2).
  */
 class MaterialRequirementTest {
-
     @Test
     fun `holds the remote and the expected artifacts`() {
-        val requirement = MaterialRequirement(
-            remoteUrl = "https://github.com/cccp-education/formation-fpa",
-            currentVersion = "v1.0",
-            expectedTypes = listOf(MaterialArtifactType.SPG, MaterialArtifactType.SLIDES),
-        )
+        val requirement =
+            MaterialRequirement(
+                remoteUrl = "https://github.com/cccp-education/formation-fpa",
+                currentVersion = "v1.0",
+                expectedTypes = listOf(MaterialArtifactType.SPG, MaterialArtifactType.SLIDES),
+            )
 
         assertEquals("https://github.com/cccp-education/formation-fpa", requirement.remoteUrl)
         assertEquals("v1.0", requirement.currentVersion)

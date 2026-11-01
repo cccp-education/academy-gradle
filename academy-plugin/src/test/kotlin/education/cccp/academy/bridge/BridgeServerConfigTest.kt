@@ -9,7 +9,6 @@ import kotlin.test.assertFailsWith
  * never a credential (BYOK stays in the environment).
  */
 class BridgeServerConfigTest {
-
     @Test
     fun `holds the bind address and the descriptive provider`() {
         val config = config()

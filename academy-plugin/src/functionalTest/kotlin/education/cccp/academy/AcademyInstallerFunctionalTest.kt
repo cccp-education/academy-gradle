@@ -15,7 +15,6 @@ import kotlin.test.assertTrue
  * scripts to the expected locations, honouring the extension overrides.
  */
 class AcademyInstallerFunctionalTest {
-
     @TempDir
     lateinit var projectDir: File
 
@@ -105,10 +104,11 @@ class AcademyInstallerFunctionalTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":buildAllInstallers")?.outcome)
 
-        val scripts = listOf(
-            File(projectDir, "build/academy/installers/linux/install.sh").readText(),
-            File(projectDir, "build/academy/installers/windows/install.bat").readText(),
-        )
+        val scripts =
+            listOf(
+                File(projectDir, "build/academy/installers/linux/install.sh").readText(),
+                File(projectDir, "build/academy/installers/windows/install.bat").readText(),
+            )
         scripts.forEach { script ->
             assertTrue(
                 script.contains("erseco/alpine-moodle:v5.2.3"),
@@ -180,11 +180,12 @@ class AcademyInstallerFunctionalTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":buildAllInstallers")?.outcome)
 
-        val scripts = listOf(
-            File(projectDir, "build/academy/installers/linux/install.sh").readText(),
-            File(projectDir, "build/academy/installers/macos/install.sh").readText(),
-            File(projectDir, "build/academy/installers/windows/install.bat").readText(),
-        )
+        val scripts =
+            listOf(
+                File(projectDir, "build/academy/installers/linux/install.sh").readText(),
+                File(projectDir, "build/academy/installers/macos/install.sh").readText(),
+                File(projectDir, "build/academy/installers/windows/install.bat").readText(),
+            )
         scripts.forEach { script ->
             assertTrue(script.contains("docker"), "every installer must bootstrap Docker")
             assertFalse(script.contains("JAVA_HOME"), "the host must not provision Java (D-ACADEMY-6-10)")
@@ -236,10 +237,11 @@ class AcademyInstallerFunctionalTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":buildAllInstallers")?.outcome)
 
-        val scripts = listOf(
-            File(projectDir, "build/academy/installers/linux/install.sh").readText(),
-            File(projectDir, "build/academy/installers/windows/install.bat").readText(),
-        )
+        val scripts =
+            listOf(
+                File(projectDir, "build/academy/installers/linux/install.sh").readText(),
+                File(projectDir, "build/academy/installers/windows/install.bat").readText(),
+            )
         scripts.forEach { script ->
             assertTrue(script.contains("GEMINI_API_KEY="), "the .env must document the key variable name")
             assertFalse(script.contains("GEMINI_API_KEY=sk-"), "the key value must never be written (Secrets rule)")
@@ -315,10 +317,11 @@ class AcademyInstallerFunctionalTest {
         val result = runner("buildAllInstallers").build()
         assertEquals(TaskOutcome.SUCCESS, result.task(":buildAllInstallers")?.outcome)
 
-        val scripts = listOf(
-            File(projectDir, "build/academy/installers/linux/install.sh").readText(),
-            File(projectDir, "build/academy/installers/windows/install.bat").readText(),
-        )
+        val scripts =
+            listOf(
+                File(projectDir, "build/academy/installers/linux/install.sh").readText(),
+                File(projectDir, "build/academy/installers/windows/install.bat").readText(),
+            )
         scripts.forEach { script ->
             assertTrue(
                 script.contains("cat > \"\$APP_DIR/project/MATERIAL.md\" <<'EOF'") ||
@@ -406,9 +409,10 @@ class AcademyInstallerFunctionalTest {
 
         listOf("linux", "macos").forEach { os ->
             val script = File(projectDir, "build/academy/installers/$os/install.sh")
-            val syntax = ProcessBuilder("bash", "-n", script.absolutePath)
-                .redirectErrorStream(true)
-                .start()
+            val syntax =
+                ProcessBuilder("bash", "-n", script.absolutePath)
+                    .redirectErrorStream(true)
+                    .start()
             val output = syntax.inputStream.bufferedReader().readText()
             val exit = syntax.waitFor()
             assertEquals(0, exit, "the $os installer must be valid bash, got:\n$output")
@@ -468,9 +472,11 @@ class AcademyInstallerFunctionalTest {
         File(projectDir, "build.gradle.kts").writeText(content)
     }
 
-    private fun runner(vararg args: String) = GradleRunner.create()
-        .withProjectDir(projectDir)
-        .withArguments(*args)
-        .withPluginClasspath()
-        .forwardOutput()
+    private fun runner(vararg args: String) =
+        GradleRunner
+            .create()
+            .withProjectDir(projectDir)
+            .withArguments(*args)
+            .withPluginClasspath()
+            .forwardOutput()
 }

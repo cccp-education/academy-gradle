@@ -24,7 +24,6 @@ import kotlin.test.assertTrue
  * `Unresolved reference`.
  */
 class GenerateMoodleImportTaskTest {
-
     private fun applyPlugin(): Project {
         val project = ProjectBuilder.builder().build()
         project.version = "0.0.1"
@@ -32,13 +31,16 @@ class GenerateMoodleImportTaskTest {
         return project
     }
 
-    private fun task(project: Project) =
-        project.tasks.getByName("generateMoodleImport") as GenerateMoodleImportTask
+    private fun task(project: Project) = project.tasks.getByName("generateMoodleImport") as GenerateMoodleImportTask
 
     private fun materialDir(parent: File): File = File(parent, "material").apply { mkdirs() }
 
     /** Writes the real producer layout: the artifact and its sibling EPIC K pivot. */
-    private fun pivot(dir: File, relative: String, type: String) {
+    private fun pivot(
+        dir: File,
+        relative: String,
+        type: String,
+    ) {
         val artifact = File(dir, relative)
         artifact.parentFile.mkdirs()
         artifact.writeText("== $relative\n")
@@ -63,7 +65,9 @@ class GenerateMoodleImportTaskTest {
     }
 
     @Test
-    fun `an empty material directory builds an empty plan and writes nothing`(@org.junit.jupiter.api.io.TempDir temp: File) {
+    fun `an empty material directory builds an empty plan and writes nothing`(
+        @org.junit.jupiter.api.io.TempDir temp: File,
+    ) {
         val project = applyPlugin()
         val dir = materialDir(temp)
         project.extensions.getByType(AcademyInstallerExtension::class.java).apply {
@@ -78,7 +82,9 @@ class GenerateMoodleImportTaskTest {
     }
 
     @Test
-    fun `the plan is built from the material structure and pivots`(@org.junit.jupiter.api.io.TempDir temp: File) {
+    fun `the plan is built from the material structure and pivots`(
+        @org.junit.jupiter.api.io.TempDir temp: File,
+    ) {
         val project = applyPlugin()
         val dir = materialDir(temp)
         pivot(dir, "SPG/spg.adoc", "SPG")
@@ -98,7 +104,9 @@ class GenerateMoodleImportTaskTest {
     }
 
     @Test
-    fun `an unreadable pivot never breaks the plan - it is skipped`(@org.junit.jupiter.api.io.TempDir temp: File) {
+    fun `an unreadable pivot never breaks the plan - it is skipped`(
+        @org.junit.jupiter.api.io.TempDir temp: File,
+    ) {
         val project = applyPlugin()
         val dir = materialDir(temp)
         File(dir, "BROKEN").apply { mkdirs() }

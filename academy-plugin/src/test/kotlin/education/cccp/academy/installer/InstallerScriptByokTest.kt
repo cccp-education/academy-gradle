@@ -1,8 +1,8 @@
 package education.cccp.academy.installer
 
 import contracts.runtime.LlmProviderKind
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -13,7 +13,6 @@ import kotlin.test.assertTrue
  * value itself never appears anywhere (Secrets rule, D-ACADEMY-7-2/7-8).
  */
 class InstallerScriptByokTest {
-
     private fun platform(
         provider: LlmProviderKind = LlmProviderKind.OLLAMA_LOCAL,
         apiKeyEnvVar: String? = null,
@@ -44,9 +43,12 @@ class InstallerScriptByokTest {
 
     @Test
     fun `an external provider documents the key variable name without a value`() {
-        val script = InstallerScriptGenerator.render(
-            platform(provider = LlmProviderKind.GEMINI),
-        ).single().content
+        val script =
+            InstallerScriptGenerator
+                .render(
+                    platform(provider = LlmProviderKind.GEMINI),
+                ).single()
+                .content
 
         assertTrue(script.contains("GEMINI_API_KEY="), ".env must document the key variable name")
         assertFalse(
@@ -57,18 +59,24 @@ class InstallerScriptByokTest {
 
     @Test
     fun `the compose transmits the key variable to the workspace service`() {
-        val script = InstallerScriptGenerator.render(
-            platform(provider = LlmProviderKind.GEMINI),
-        ).single().content
+        val script =
+            InstallerScriptGenerator
+                .render(
+                    platform(provider = LlmProviderKind.GEMINI),
+                ).single()
+                .content
 
         assertTrue(script.contains("GEMINI_API_KEY"), "the workspace service must receive the key variable")
     }
 
     @Test
     fun `a custom provider uses the learner supplied variable name`() {
-        val script = InstallerScriptGenerator.render(
-            platform(provider = LlmProviderKind.CUSTOM, apiKeyEnvVar = "MY_PROVIDER_KEY"),
-        ).single().content
+        val script =
+            InstallerScriptGenerator
+                .render(
+                    platform(provider = LlmProviderKind.CUSTOM, apiKeyEnvVar = "MY_PROVIDER_KEY"),
+                ).single()
+                .content
 
         assertTrue(script.contains("MY_PROVIDER_KEY="), ".env must document the custom variable name")
     }
@@ -76,12 +84,15 @@ class InstallerScriptByokTest {
     @Test
     fun `the script never carries a secret-looking value`() {
         LlmProviderKind.entries.forEach { kind ->
-            val script = InstallerScriptGenerator.render(
-                platform(
-                    provider = kind,
-                    apiKeyEnvVar = if (kind == LlmProviderKind.CUSTOM) "MY_PROVIDER_KEY" else null,
-                ),
-            ).single().content
+            val script =
+                InstallerScriptGenerator
+                    .render(
+                        platform(
+                            provider = kind,
+                            apiKeyEnvVar = if (kind == LlmProviderKind.CUSTOM) "MY_PROVIDER_KEY" else null,
+                        ),
+                    ).single()
+                    .content
 
             listOf("sk-", "ghp_", "gho_", "AIza", "Bearer ").forEach { leaked ->
                 assertFalse(script.contains(leaked), "$kind must never embed a credential value")
@@ -91,9 +102,12 @@ class InstallerScriptByokTest {
 
     @Test
     fun `the windows installer mirrors the key variable contract`() {
-        val script = InstallerScriptGenerator.render(
-            platform(provider = LlmProviderKind.GEMINI, os = TargetOs.WINDOWS),
-        ).single().content
+        val script =
+            InstallerScriptGenerator
+                .render(
+                    platform(provider = LlmProviderKind.GEMINI, os = TargetOs.WINDOWS),
+                ).single()
+                .content
 
         assertTrue(script.contains("GEMINI_API_KEY="), "windows .env must document the key variable (parity)")
         assertTrue(script.contains("GEMINI_API_KEY"), "windows workspace service must receive the key variable (parity)")
@@ -103,20 +117,23 @@ class InstallerScriptByokTest {
     @Test
     fun `the scaffold documents the bridge only when it is enabled`() {
         val off = InstallerScriptGenerator.render(platform()).single().content
-        val on = InstallerScriptGenerator.render(
-            InstallerPlatform(
-                os = TargetOs.LINUX,
-                applicationName = "academy",
-                applicationVersion = "0.0.1",
-                javaVersion = "25",
-                gradleVersion = "9.7.1",
-                composeEnabled = true,
-                credentialsEnvPrefix = "ACADEMY_",
-                bridgeEnabled = true,
-                bridgeHost = "127.0.0.1",
-                bridgePort = 8765,
-            ),
-        ).single().content
+        val on =
+            InstallerScriptGenerator
+                .render(
+                    InstallerPlatform(
+                        os = TargetOs.LINUX,
+                        applicationName = "academy",
+                        applicationVersion = "0.0.1",
+                        javaVersion = "25",
+                        gradleVersion = "9.7.1",
+                        composeEnabled = true,
+                        credentialsEnvPrefix = "ACADEMY_",
+                        bridgeEnabled = true,
+                        bridgeHost = "127.0.0.1",
+                        bridgePort = 8765,
+                    ),
+                ).single()
+                .content
 
         assertFalse(off.contains("serveWebhookBridge"), "a disabled bridge must not be documented")
         assertFalse(off.contains("8765"), "a disabled bridge must not leak a port")

@@ -10,9 +10,10 @@ package education.cccp.academy.material
  * to fail, without the domain knowing anything about Gradle.
  */
 sealed interface MaterialReadiness {
-
     /** At least one manifest is present and every declared expectation is met. */
-    data class Ready(val presentTypes: List<MaterialArtifactType>) : MaterialReadiness
+    data class Ready(
+        val presentTypes: List<MaterialArtifactType>,
+    ) : MaterialReadiness
 
     /**
      * Material is present but an expectation is not met.

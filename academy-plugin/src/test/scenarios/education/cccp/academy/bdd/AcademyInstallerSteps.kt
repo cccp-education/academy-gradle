@@ -15,7 +15,6 @@ import org.assertj.core.api.Assertions.assertThat
  * scenario, so instance fields are naturally reset.
  */
 class AcademyInstallerSteps : En {
-
     private var os: TargetOs? = null
     private var applicationName: String = "academy"
     private var applicationVersion: String = "0.0.1"
@@ -41,15 +40,16 @@ class AcademyInstallerSteps : En {
         And("credential env prefix {string}") { prefix: String -> credentialsEnvPrefix = prefix }
 
         When("the installer generator renders the platform") {
-            val platform = InstallerPlatform(
-                os = checkNotNull(os) { "target platform must be set" },
-                applicationName = applicationName,
-                applicationVersion = applicationVersion,
-                javaVersion = javaVersion,
-                gradleVersion = gradleVersion,
-                composeEnabled = composeEnabled,
-                credentialsEnvPrefix = credentialsEnvPrefix,
-            )
+            val platform =
+                InstallerPlatform(
+                    os = checkNotNull(os) { "target platform must be set" },
+                    applicationName = applicationName,
+                    applicationVersion = applicationVersion,
+                    javaVersion = javaVersion,
+                    gradleVersion = gradleVersion,
+                    composeEnabled = composeEnabled,
+                    credentialsEnvPrefix = credentialsEnvPrefix,
+                )
             files = InstallerScriptGenerator.render(platform)
         }
 

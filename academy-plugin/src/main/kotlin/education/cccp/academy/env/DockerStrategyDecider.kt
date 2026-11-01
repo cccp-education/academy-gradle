@@ -14,28 +14,32 @@ package education.cccp.academy.env
  *  - otherwise             -> [DockerStrategy.Unsupported] (never a throw)
  */
 object DockerStrategyDecider {
-
     /** Computes the provisioning strategy for [facts]. */
-    fun decide(facts: EnvironmentFacts): DockerStrategy = when {
-        facts.dockerEngineReady -> DockerStrategy.AlreadyReady(facts.os)
+    fun decide(facts: EnvironmentFacts): DockerStrategy =
+        when {
+            facts.dockerEngineReady -> DockerStrategy.AlreadyReady(facts.os)
 
-        facts.os == HostOs.LINUX -> DockerStrategy.InstallDockerEngine(facts.os)
+            facts.os == HostOs.LINUX -> DockerStrategy.InstallDockerEngine(facts.os)
 
-        facts.os == HostOs.MACOS -> DockerStrategy.InstallColima(facts.os)
+            facts.os == HostOs.MACOS -> DockerStrategy.InstallColima(facts.os)
 
-        facts.os == HostOs.WINDOWS -> when {
-            facts.wsl2Present -> DockerStrategy.InstallDockerDesktop(facts.os)
-            facts.admin -> DockerStrategy.BootstrapWsl2First(facts.os)
-            else -> DockerStrategy.Unsupported(
-                os = facts.os,
-                reason = "WSL2 is required for Linux containers on Windows and enabling it " +
-                    "needs administrator rights - re-run the installer as administrator",
-            )
+            facts.os == HostOs.WINDOWS ->
+                when {
+                    facts.wsl2Present -> DockerStrategy.InstallDockerDesktop(facts.os)
+                    facts.admin -> DockerStrategy.BootstrapWsl2First(facts.os)
+                    else ->
+                        DockerStrategy.Unsupported(
+                            os = facts.os,
+                            reason =
+                                "WSL2 is required for Linux containers on Windows and enabling it " +
+                                    "needs administrator rights - re-run the installer as administrator",
+                        )
+                }
+
+            else ->
+                DockerStrategy.Unsupported(
+                    os = facts.os,
+                    reason = "unsupported host operating system - install Docker manually then re-run",
+                )
         }
-
-        else -> DockerStrategy.Unsupported(
-            os = facts.os,
-            reason = "unsupported host operating system - install Docker manually then re-run",
-        )
-    }
 }

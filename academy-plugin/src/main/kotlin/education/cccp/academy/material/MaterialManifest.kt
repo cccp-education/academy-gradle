@@ -41,19 +41,20 @@ data class MaterialManifest(
         private val reader = Json { ignoreUnknownKeys = true }
 
         /** Parses the pivot JSON, or returns `null` when it is not readable. */
-        fun fromJson(json: String): MaterialManifest? = try {
-            val pivot = reader.decodeFromString(Pivot.serializer(), json)
-            MaterialManifest(
-                source = pivot.source,
-                type = MaterialArtifactType.fromPivotType(pivot.type),
-                rawType = pivot.type,
-                version = pivot.version,
-                model = pivot.model,
-                dependencies = pivot.dependencies,
-            )
-        } catch (_: Exception) {
-            null
-        }
+        fun fromJson(json: String): MaterialManifest? =
+            try {
+                val pivot = reader.decodeFromString(Pivot.serializer(), json)
+                MaterialManifest(
+                    source = pivot.source,
+                    type = MaterialArtifactType.fromPivotType(pivot.type),
+                    rawType = pivot.type,
+                    version = pivot.version,
+                    model = pivot.model,
+                    dependencies = pivot.dependencies,
+                )
+            } catch (_: Exception) {
+                null
+            }
 
         /**
          * The EPIC K pivot wire shape, private to the reader: only the fields

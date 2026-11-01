@@ -11,11 +11,11 @@ import kotlin.test.assertTrue
  * so a generated Dockerfile is required (audit S-009).
  */
 class WorkspaceDockerfileGeneratorTest {
-
-    private fun platform() = OpenCodeConfig(
-        providerUrl = "http://ollama:11434/v1",
-        model = "gpt-oss:120b-cloud",
-    )
+    private fun platform() =
+        OpenCodeConfig(
+            providerUrl = "http://ollama:11434/v1",
+            model = "gpt-oss:120b-cloud",
+        )
 
     @Test
     fun `bases the workspace on the pinned gradle image`() {

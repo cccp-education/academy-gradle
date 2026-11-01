@@ -17,23 +17,28 @@ import kotlin.test.assertTrue
  * Baby-step TDD: this file drove [MoodleIngestionScriptGenerator.renderApplicator].
  */
 class MoodleIngestionScriptGeneratorTest {
+    private val plan =
+        MoodlePlanBuilder.build(
+            shortName = "academy-seed",
+            fullName = "Academy",
+            material =
+                listOf(
+                    material("SPG/spg.adoc", "SPG"),
+                    material("SPD/01_accueil/001_bienvenue.adoc", "SPD"),
+                    material("QUIZ/quiz.adoc", "QUIZ"),
+                ),
+        )
 
-    private val plan = MoodlePlanBuilder.build(
-        shortName = "academy-seed",
-        fullName = "Academy",
-        material = listOf(
-            material("SPG/spg.adoc", "SPG"),
-            material("SPD/01_accueil/001_bienvenue.adoc", "SPD"),
-            material("QUIZ/quiz.adoc", "QUIZ"),
-        ),
-    )
-
-    private fun material(path: String, type: String): MoodleMaterial =
+    private fun material(
+        path: String,
+        type: String,
+    ): MoodleMaterial =
         MoodleMaterial(
             relativePath = path,
-            manifest = MaterialManifest.fromJson(
-                """{ "source": "training", "type": "$type", "version": "1.0" }""",
-            )!!,
+            manifest =
+                MaterialManifest.fromJson(
+                    """{ "source": "training", "type": "$type", "version": "1.0" }""",
+                )!!,
         )
 
     @Test
@@ -62,18 +67,20 @@ class MoodleIngestionScriptGeneratorTest {
 
     @Test
     fun `the plan json escapes a quote in a title, never breaking the document`() {
-        val quoted = MoodlePlanBuilder.build(
-            "academy-seed",
-            "Academy",
-            listOf(
-                MoodleMaterial(
-                    relativePath = "SPD/mod/a\"b.adoc",
-                    manifest = MaterialManifest.fromJson(
-                        """{ "source": "training", "type": "SPD" }""",
-                    )!!,
+        val quoted =
+            MoodlePlanBuilder.build(
+                "academy-seed",
+                "Academy",
+                listOf(
+                    MoodleMaterial(
+                        relativePath = "SPD/mod/a\"b.adoc",
+                        manifest =
+                            MaterialManifest.fromJson(
+                                """{ "source": "training", "type": "SPD" }""",
+                            )!!,
+                    ),
                 ),
-            ),
-        )
+            )
 
         val json = MoodleIngestionScriptGenerator.renderPlanJson(quoted)
 
@@ -135,18 +142,20 @@ class MoodleIngestionScriptGeneratorTest {
 
     @Test
     fun `the applicator shell-quotes a title and stays balanced`() {
-        val quoted = MoodlePlanBuilder.build(
-            "academy-seed",
-            "Academy",
-            listOf(
-                MoodleMaterial(
-                    relativePath = "SPD/mod/a b.adoc",
-                    manifest = MaterialManifest.fromJson(
-                        """{ "source": "training", "type": "SPD" }""",
-                    )!!,
+        val quoted =
+            MoodlePlanBuilder.build(
+                "academy-seed",
+                "Academy",
+                listOf(
+                    MoodleMaterial(
+                        relativePath = "SPD/mod/a b.adoc",
+                        manifest =
+                            MaterialManifest.fromJson(
+                                """{ "source": "training", "type": "SPD" }""",
+                            )!!,
+                    ),
                 ),
-            ),
-        )
+            )
 
         val script = MoodleIngestionScriptGenerator.renderApplicator(quoted)
 

@@ -17,7 +17,6 @@ import kotlin.test.assertTrue
  * content from the same source ([MaterialGuideGenerator]).
  */
 class InstallerScriptMaterialTest {
-
     private fun platform(
         material: MaterialRequirement? = null,
         os: TargetOs = TargetOs.LINUX,
@@ -32,11 +31,12 @@ class InstallerScriptMaterialTest {
         material = material,
     )
 
-    private val requirement = MaterialRequirement(
-        remoteUrl = "https://github.com/cccp-education/formation-fpa",
-        currentVersion = "v1.0",
-        expectedTypes = listOf(MaterialArtifactType.SPG, MaterialArtifactType.SLIDES),
-    )
+    private val requirement =
+        MaterialRequirement(
+            remoteUrl = "https://github.com/cccp-education/formation-fpa",
+            currentVersion = "v1.0",
+            expectedTypes = listOf(MaterialArtifactType.SPG, MaterialArtifactType.SLIDES),
+        )
 
     @Test
     fun `no requirement writes no material guide`() {
@@ -71,9 +71,12 @@ class InstallerScriptMaterialTest {
     @Test
     fun `the windows installer mirrors the material guide (structural parity)`() {
         val linux = InstallerScriptGenerator.render(platform(material = requirement)).single().content
-        val windows = InstallerScriptGenerator.render(
-            platform(material = requirement, os = TargetOs.WINDOWS),
-        ).single().content
+        val windows =
+            InstallerScriptGenerator
+                .render(
+                    platform(material = requirement, os = TargetOs.WINDOWS),
+                ).single()
+                .content
 
         assertTrue(windows.contains("MATERIAL.md"), "windows must write the material guide (parity)")
         assertTrue(windows.contains("MATERIAL.md"), "windows must use the same file name (parity)")

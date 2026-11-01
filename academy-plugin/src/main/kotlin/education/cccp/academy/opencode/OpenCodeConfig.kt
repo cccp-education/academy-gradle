@@ -58,13 +58,14 @@ data class OpenCodeConfig(
          * external providers require the env var name, `OLLAMA_CLOUD` has a
          * documented default ([education.cccp.academy.byok.ByokProviderCatalog]).
          */
-        fun isExternalProvider(provider: LlmProviderKind): Boolean = when (provider) {
-            LlmProviderKind.CUSTOM -> true
-            LlmProviderKind.OLLAMA_LOCAL,
-            LlmProviderKind.OLLAMA_CLOUD,
-            LlmProviderKind.GEMINI,
-            LlmProviderKind.HUGGINGFACE,
-            -> false
-        }
+        fun isExternalProvider(provider: LlmProviderKind): Boolean =
+            when (provider) {
+                LlmProviderKind.CUSTOM -> true
+                LlmProviderKind.OLLAMA_LOCAL,
+                LlmProviderKind.OLLAMA_CLOUD,
+                LlmProviderKind.GEMINI,
+                LlmProviderKind.HUGGINGFACE,
+                -> false
+            }
     }
 }

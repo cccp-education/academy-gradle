@@ -10,7 +10,6 @@ import kotlin.test.assertTrue
  * can never drift from a served route (pattern `OpenCodeCatalog`).
  */
 class BridgeRoutesTest {
-
     @Test
     fun `declares the health probe, the moodle event sink and the session sink`() {
         val paths = BridgeRoutes.routes.map { it.path }

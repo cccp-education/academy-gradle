@@ -23,27 +23,29 @@ data class BridgeRoute(
 }
 
 object BridgeRoutes {
-
     /** The health probe — reports the resolved LLM provider and model. */
-    val HEALTH: BridgeRoute = BridgeRoute(
-        method = "GET",
-        path = "/health",
-        description = "Health probe reporting the resolved provider and model",
-    )
+    val HEALTH: BridgeRoute =
+        BridgeRoute(
+            method = "GET",
+            path = "/health",
+            description = "Health probe reporting the resolved provider and model",
+        )
 
     /** The inbound LMS event sink — translates an event into a session prompt. */
-    val MOODLE_EVENT: BridgeRoute = BridgeRoute(
-        method = "POST",
-        path = "/events/moodle",
-        description = "Accepts a formation event and acknowledges it with a session response",
-    )
+    val MOODLE_EVENT: BridgeRoute =
+        BridgeRoute(
+            method = "POST",
+            path = "/events/moodle",
+            description = "Accepts a formation event and acknowledges it with a session response",
+        )
 
     /** The inbound session sink — accepts an N0 session prompt directly. */
-    val SESSION: BridgeRoute = BridgeRoute(
-        method = "POST",
-        path = "/session",
-        description = "Accepts an N0 session prompt and acknowledges it",
-    )
+    val SESSION: BridgeRoute =
+        BridgeRoute(
+            method = "POST",
+            path = "/session",
+            description = "Accepts an N0 session prompt and acknowledges it",
+        )
 
     /** Every route, in declaration order (deterministic). */
     val routes: List<BridgeRoute> = listOf(HEALTH, MOODLE_EVENT, SESSION)

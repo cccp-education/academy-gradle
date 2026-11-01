@@ -18,7 +18,6 @@ import kotlin.test.assertTrue
  * heredoc when [InstallerPlatform.composeEnabled] is true.
  */
 class InstallerScriptGeneratorTest {
-
     private fun platform(
         os: TargetOs = TargetOs.LINUX,
         composeEnabled: Boolean = true,
@@ -224,9 +223,12 @@ class InstallerScriptGeneratorTest {
 
     @Test
     fun `credentials never hold values - only the env prefix convention`() {
-        val script = InstallerScriptGenerator.render(
-            platform(credentialsEnvPrefix = "MY_ACADEMY_"),
-        ).single().content
+        val script =
+            InstallerScriptGenerator
+                .render(
+                    platform(credentialsEnvPrefix = "MY_ACADEMY_"),
+                ).single()
+                .content
 
         assertTrue(script.contains("MY_ACADEMY_"))
         assertFalse(script.contains("SECRET="))

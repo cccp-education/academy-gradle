@@ -22,7 +22,6 @@ import kotlin.test.assertTrue
  * proven by the absent provisioning fragments.
  */
 class InstallerScriptEngineTest {
-
     private fun platform(
         os: TargetOs,
         composeEnabled: Boolean = true,
@@ -36,8 +35,7 @@ class InstallerScriptEngineTest {
         credentialsEnvPrefix = "ACADEMY_",
     )
 
-    private fun render(os: TargetOs): String =
-        InstallerScriptGenerator.render(platform(os)).single().content
+    private fun render(os: TargetOs): String = InstallerScriptGenerator.render(platform(os)).single().content
 
     @Test
     fun `linux provisions the native Docker Engine from the official apt repository`() {

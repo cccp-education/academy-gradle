@@ -16,7 +16,6 @@ import contracts.runtime.ToolExposure
  * [exposure], which reads the N0 `ToolExposure` the runtime declares.
  */
 object OpenCodeCatalog {
-
     /**
      * The physical boundary the guardrail rests on — the single literal from
      * which [exposure] is built. `foundry/private` is the complementary
@@ -34,71 +33,70 @@ object OpenCodeCatalog {
      * @param publicBoroughsRoot the public boundary, overridable for a caller
      *   that relocates the workspace (defaults to [PUBLIC_BOROUGHS_ROOT]).
      */
-    fun exposure(publicBoroughsRoot: String = PUBLIC_BOROUGHS_ROOT): ToolExposure =
-        ToolExposure(publicBoroughsRoot = publicBoroughsRoot)
+    fun exposure(publicBoroughsRoot: String = PUBLIC_BOROUGHS_ROOT): ToolExposure = ToolExposure(publicBoroughsRoot = publicBoroughsRoot)
 
     /** Public ecosystem plugins with their formation entry points, in chain order. */
-    val plugins: List<OpenCodePlugin> = listOf(
-        OpenCodePlugin(
-            id = "education.cccp.planner",
-            role = "Decompose an intention into a structured execution plan",
-            tasks = listOf("generatePlan"),
-        ),
-        OpenCodePlugin(
-            id = "education.cccp.codex",
-            role = "Acquire documents (PDF/EPUB) into a structured corpus (READ)",
-            tasks = listOf("collectText", "collectBookStructure", "collectOcr", "generateCompositeContext"),
-        ),
-        OpenCodePlugin(
-            id = "education.cccp.codebase",
-            role = "Provide the shared RAG foundation and the augmented context",
-            tasks = listOf("collectFromCodebase", "collectCompositeContext", "generateAugmentedPlan"),
-        ),
-        OpenCodePlugin(
-            id = "education.cccp.slider",
-            role = "Generate Reveal.js slide decks from the pedagogical material (SLIDES)",
-            tasks = listOf("generateDeck", "generateDeckPipeline", "proposeDeckContext"),
-        ),
-        OpenCodePlugin(
-            id = "education.cccp.document",
-            role = "Create and publish the learner documents (PDF/EPUB/HTML)",
-            tasks = listOf("bookPipeline", "generateDocument", "assembleBook", "validateDocument"),
-        ),
-        OpenCodePlugin(
-            id = "education.cccp.capsule",
-            role = "Capture narrated video capsules from the decks (VIDEO)",
-            tasks = listOf("generateCapsuleVideo", "generateCapsule", "generateCapsuleScript"),
-        ),
-        OpenCodePlugin(
-            id = "education.cccp.plantuml",
-            role = "Generate the diagrams and the knowledge-graph visuals",
-            tasks = listOf("generatePlantumlDiagrams", "generateDiagramDocs", "generateKnowledgeGraphDiagram"),
-        ),
-        OpenCodePlugin(
-            id = "education.cccp.graphify",
-            role = "Extract the knowledge graph of the workspace",
-            tasks = listOf("collectAndVerify", "collectFromWorkspace"),
-        ),
-        OpenCodePlugin(
-            id = "education.cccp.hyperframes",
-            role = "Render AsciiDoc content to MP4 via HyperFrames",
-            tasks = listOf("renderHyperframes", "generateHyperframesHtml"),
-        ),
-        OpenCodePlugin(
-            id = "education.cccp.bakery",
-            role = "Generate and deploy the static formation site",
-            tasks = listOf("generateSite", "generateArticle", "bake"),
-        ),
-        OpenCodePlugin(
-            id = "education.cccp.readme",
-            role = "Generate the project README with PlantUML diagrams",
-            tasks = listOf("generateReadme", "transformReadme"),
-        ),
-    )
+    val plugins: List<OpenCodePlugin> =
+        listOf(
+            OpenCodePlugin(
+                id = "education.cccp.planner",
+                role = "Decompose an intention into a structured execution plan",
+                tasks = listOf("generatePlan"),
+            ),
+            OpenCodePlugin(
+                id = "education.cccp.codex",
+                role = "Acquire documents (PDF/EPUB) into a structured corpus (READ)",
+                tasks = listOf("collectText", "collectBookStructure", "collectOcr", "generateCompositeContext"),
+            ),
+            OpenCodePlugin(
+                id = "education.cccp.codebase",
+                role = "Provide the shared RAG foundation and the augmented context",
+                tasks = listOf("collectFromCodebase", "collectCompositeContext", "generateAugmentedPlan"),
+            ),
+            OpenCodePlugin(
+                id = "education.cccp.slider",
+                role = "Generate Reveal.js slide decks from the pedagogical material (SLIDES)",
+                tasks = listOf("generateDeck", "generateDeckPipeline", "proposeDeckContext"),
+            ),
+            OpenCodePlugin(
+                id = "education.cccp.document",
+                role = "Create and publish the learner documents (PDF/EPUB/HTML)",
+                tasks = listOf("bookPipeline", "generateDocument", "assembleBook", "validateDocument"),
+            ),
+            OpenCodePlugin(
+                id = "education.cccp.capsule",
+                role = "Capture narrated video capsules from the decks (VIDEO)",
+                tasks = listOf("generateCapsuleVideo", "generateCapsule", "generateCapsuleScript"),
+            ),
+            OpenCodePlugin(
+                id = "education.cccp.plantuml",
+                role = "Generate the diagrams and the knowledge-graph visuals",
+                tasks = listOf("generatePlantumlDiagrams", "generateDiagramDocs", "generateKnowledgeGraphDiagram"),
+            ),
+            OpenCodePlugin(
+                id = "education.cccp.graphify",
+                role = "Extract the knowledge graph of the workspace",
+                tasks = listOf("collectAndVerify", "collectFromWorkspace"),
+            ),
+            OpenCodePlugin(
+                id = "education.cccp.hyperframes",
+                role = "Render AsciiDoc content to MP4 via HyperFrames",
+                tasks = listOf("renderHyperframes", "generateHyperframesHtml"),
+            ),
+            OpenCodePlugin(
+                id = "education.cccp.bakery",
+                role = "Generate and deploy the static formation site",
+                tasks = listOf("generateSite", "generateArticle", "bake"),
+            ),
+            OpenCodePlugin(
+                id = "education.cccp.readme",
+                role = "Generate the project README with PlantUML diagrams",
+                tasks = listOf("generateReadme", "transformReadme"),
+            ),
+        )
 
     /** Entry points of one plugin id, or `null` when the plugin is not exposed. */
-    fun tasksFor(pluginId: String): List<String>? =
-        plugins.firstOrNull { it.id == pluginId }?.tasks
+    fun tasksFor(pluginId: String): List<String>? = plugins.firstOrNull { it.id == pluginId }?.tasks
 
     /** Every exposed task, flattened in catalog order (deterministic). */
     val allTasks: List<String> get() = plugins.flatMap { it.tasks }

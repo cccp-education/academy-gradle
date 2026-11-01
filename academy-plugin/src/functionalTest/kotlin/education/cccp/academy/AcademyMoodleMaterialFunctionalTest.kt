@@ -21,7 +21,6 @@ import kotlin.test.assertTrue
  *    no service, no shared volume, no staging directory.
  */
 class AcademyMoodleMaterialFunctionalTest {
-
     @TempDir
     lateinit var projectDir: File
 
@@ -30,14 +29,19 @@ class AcademyMoodleMaterialFunctionalTest {
         File(projectDir, "build.gradle.kts").writeText(content)
     }
 
-    private fun runner(vararg args: String) = GradleRunner.create()
-        .withProjectDir(projectDir)
-        .withArguments(*args)
-        .withPluginClasspath()
-        .forwardOutput()
+    private fun runner(vararg args: String) =
+        GradleRunner
+            .create()
+            .withProjectDir(projectDir)
+            .withArguments(*args)
+            .withPluginClasspath()
+            .forwardOutput()
 
     /** Writes the real producer layout under `material/`: artifact + sibling pivot. */
-    private fun pivot(relative: String, type: String) {
+    private fun pivot(
+        relative: String,
+        type: String,
+    ) {
         val artifact = File(projectDir, "material/$relative")
         artifact.parentFile.mkdirs()
         artifact.writeText("== $relative\n")
@@ -158,9 +162,10 @@ class AcademyMoodleMaterialFunctionalTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(":buildAllInstallers")?.outcome)
 
         val script = File(projectDir, "build/academy/installers/linux/install.sh")
-        val syntax = ProcessBuilder("bash", "-n", script.absolutePath)
-            .redirectErrorStream(true)
-            .start()
+        val syntax =
+            ProcessBuilder("bash", "-n", script.absolutePath)
+                .redirectErrorStream(true)
+                .start()
         val output = syntax.inputStream.bufferedReader().readText()
         val exit = syntax.waitFor()
         assertEquals(0, exit, "the installer with injection must be valid bash, got:\n$output")

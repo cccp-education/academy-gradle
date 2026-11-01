@@ -10,7 +10,6 @@ import kotlin.test.assertTrue
  * never embed a credential.
  */
 class OpenCodeConfigGeneratorTest {
-
     private fun config(
         providerUrl: String = "http://ollama:11434/v1",
         model: String = "gpt-oss:120b-cloud",

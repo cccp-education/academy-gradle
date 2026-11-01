@@ -25,7 +25,6 @@ import education.cccp.academy.byok.ByokProviderSpec
  *    value never appears here (Secrets rule, BYOK ACADEMY-7)
  */
 object OpenCodeConfigGenerator {
-
     /** Renders the learner `opencode.json`. */
     fun render(config: OpenCodeConfig): String {
         val spec = resolveSpec(config)
@@ -34,31 +33,33 @@ object OpenCodeConfigGenerator {
         spec.baseUrl?.let { options += "        \"baseURL\": \"$it\"" }
         spec.apiKeyEnvVar?.let { options += "        \"apiKey\": \"{env:$it}\"" }
 
-        val lines = mutableListOf(
-            "{",
-            "  \"\$schema\": \"https://opencode.ai/config.json\",",
-            "  \"model\": \"${spec.id}/${config.model}\",",
-            "  \"provider\": {",
-            "    \"${spec.id}\": {",
-            "      \"npm\": \"${spec.npm}\",",
-            "      \"name\": \"${spec.displayName}\",",
-            "      \"options\": {",
-        )
+        val lines =
+            mutableListOf(
+                "{",
+                "  \"\$schema\": \"https://opencode.ai/config.json\",",
+                "  \"model\": \"${spec.id}/${config.model}\",",
+                "  \"provider\": {",
+                "    \"${spec.id}\": {",
+                "      \"npm\": \"${spec.npm}\",",
+                "      \"name\": \"${spec.displayName}\",",
+                "      \"options\": {",
+            )
         lines += options.joinToString(",\n")
-        lines += listOf(
-            "      },",
-            "      \"models\": {",
-            "        \"${config.model}\": {",
-            "          \"name\": \"${config.model}\"",
-            "        }",
-            "      }",
-            "    }",
-            "  },",
-            "  \"instructions\": [",
-            "    \"AGENTS.md\"",
-            "  ]",
-            "}",
-        )
+        lines +=
+            listOf(
+                "      },",
+                "      \"models\": {",
+                "        \"${config.model}\": {",
+                "          \"name\": \"${config.model}\"",
+                "        }",
+                "      }",
+                "    }",
+                "  },",
+                "  \"instructions\": [",
+                "    \"AGENTS.md\"",
+                "  ]",
+                "}",
+            )
         return lines.joinToString("\n", postfix = "\n")
     }
 
@@ -75,15 +76,16 @@ object OpenCodeConfigGenerator {
      */
     private fun resolveSpec(config: OpenCodeConfig): ByokProviderSpec {
         val base = ByokProviderCatalog.specFor(config.provider)
-        val baseUrl = when (config.provider) {
-            LlmProviderKind.OLLAMA_LOCAL,
-            LlmProviderKind.CUSTOM,
-            -> config.providerUrl
-            LlmProviderKind.OLLAMA_CLOUD,
-            LlmProviderKind.GEMINI,
-            LlmProviderKind.HUGGINGFACE,
-            -> base.baseUrl
-        }
+        val baseUrl =
+            when (config.provider) {
+                LlmProviderKind.OLLAMA_LOCAL,
+                LlmProviderKind.CUSTOM,
+                -> config.providerUrl
+                LlmProviderKind.OLLAMA_CLOUD,
+                LlmProviderKind.GEMINI,
+                LlmProviderKind.HUGGINGFACE,
+                -> base.baseUrl
+            }
         return base.copy(
             baseUrl = baseUrl,
             apiKeyEnvVar = config.apiKeyEnvVar ?: base.apiKeyEnvVar,

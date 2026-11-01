@@ -20,7 +20,6 @@ import org.assertj.core.api.Assertions.assertThat
  * collide and raise an ambiguous-step error (lesson S-088).
  */
 class AcademyByokSteps : En {
-
     private var provider: LlmProviderKind = LlmProviderKind.OLLAMA_LOCAL
     private var model: String = "gpt-oss:120b-cloud"
     private var providerUrl: String = "http://ollama:11434/v1"
@@ -77,10 +76,11 @@ class AcademyByokSteps : En {
         }
     }
 
-    private fun config() = OpenCodeConfig(
-        providerUrl = providerUrl,
-        model = model,
-        provider = provider,
-        apiKeyEnvVar = apiKeyEnvVar,
-    )
+    private fun config() =
+        OpenCodeConfig(
+            providerUrl = providerUrl,
+            model = model,
+            provider = provider,
+            apiKeyEnvVar = apiKeyEnvVar,
+        )
 }

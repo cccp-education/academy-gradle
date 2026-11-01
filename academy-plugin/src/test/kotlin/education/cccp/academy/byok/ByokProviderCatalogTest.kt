@@ -15,7 +15,6 @@ import kotlin.test.assertTrue
  * `moodle:4.5` lesson (a plausible-but-inexistent reference that passed tests).
  */
 class ByokProviderCatalogTest {
-
     @Test
     fun `maps every contract provider kind`() {
         LlmProviderKind.entries.forEach { kind ->

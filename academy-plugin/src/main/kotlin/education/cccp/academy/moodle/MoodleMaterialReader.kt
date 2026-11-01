@@ -16,7 +16,6 @@ import java.io.File
  * (the installer stages a self-contained injection), so the read rule lives once.
  */
 object MoodleMaterialReader {
-
     /** The EPIC K pivot file every producing borough writes next to its output. */
     const val PIVOT_FILE_NAME = "metadata.json"
 
@@ -27,18 +26,19 @@ object MoodleMaterialReader {
      */
     fun read(root: File): List<MoodleMaterial> {
         if (!root.isDirectory) return emptyList()
-        return root.walkTopDown()
+        return root
+            .walkTopDown()
             .filter { it.isFile && it.name == PIVOT_FILE_NAME }
             .mapNotNull { pivotFile ->
                 val manifest = MaterialManifest.fromJson(pivotFile.readText()) ?: return@mapNotNull null
                 val artifactDir = pivotFile.parentFile
-                val artifact = (artifactDir.listFiles() ?: emptyArray())
-                    .filter { it.isFile && it.name != PIVOT_FILE_NAME }
-                    .minByOrNull { it.name }
-                    ?: return@mapNotNull null
+                val artifact =
+                    (artifactDir.listFiles() ?: emptyArray())
+                        .filter { it.isFile && it.name != PIVOT_FILE_NAME }
+                        .minByOrNull { it.name }
+                        ?: return@mapNotNull null
                 val relative = artifact.relativeTo(root).invariantSeparatorsPath
                 MoodleMaterial(relativePath = relative, manifest = manifest)
-            }
-            .toList()
+            }.toList()
     }
 }

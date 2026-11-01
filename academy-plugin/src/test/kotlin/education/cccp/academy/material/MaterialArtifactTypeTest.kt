@@ -12,7 +12,6 @@ import kotlin.test.assertTrue
  * verdict (D-ACADEMY-4-6).
  */
 class MaterialArtifactTypeTest {
-
     @Test
     fun `resolves the activated deliverable types case-insensitively`() {
         assertEquals(MaterialArtifactType.SPG, MaterialArtifactType.fromPivotType("SPG"))

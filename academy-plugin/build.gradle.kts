@@ -5,6 +5,9 @@ plugins {
     `maven-publish`
     signing
     alias(libs.plugins.plugin.publish)
+    // LINT-ADOPT-13 (S-336) — static analysis gate; the CI runs `./gradlew build`
+    // → `check` includes ktlintCheck, so the gate is free (no extra step).
+    id("education.cccp.build.lint") version "0.0.7"
 }
 
 group = "education.cccp"
@@ -76,26 +79,31 @@ dependencies {
     add(functionalTest.runtimeOnlyConfigurationName, libs.junit.platform.launcher)
 }
 
-val functionalTestTask = tasks.register<Test>("functionalTest") {
-    testClassesDirs = functionalTest.output.classesDirs
-    classpath = configurations[functionalTest.runtimeClasspathConfigurationName] + functionalTest.output
-    useJUnitPlatform()
-}
+val functionalTestTask =
+    tasks.register<Test>("functionalTest") {
+        testClassesDirs = functionalTest.output.classesDirs
+        classpath = configurations[functionalTest.runtimeClasspathConfigurationName] + functionalTest.output
+        useJUnitPlatform()
+    }
 
 gradlePlugin.testSourceSets.add(functionalTest)
 tasks.check { dependsOn(functionalTestTask) }
 
-val cucumberTest = tasks.register<Test>("cucumberTest") {
-    testClassesDirs = sourceSets.test.get().output.classesDirs
-    classpath = configurations.testRuntimeClasspath.get() +
-        sourceSets.test.get().output +
-        sourceSets.main.get().output +
-        files(tasks.jar.get().archiveFile)
-    useJUnitPlatform { excludeEngines("junit-jupiter") }
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
-    shouldRunAfter("test")
-    failOnNoDiscoveredTests = false
-}
+val cucumberTest =
+    tasks.register<Test>("cucumberTest") {
+        testClassesDirs =
+            sourceSets.test
+                .get()
+                .output.classesDirs
+        classpath = configurations.testRuntimeClasspath.get() +
+            sourceSets.test.get().output +
+            sourceSets.main.get().output +
+            files(tasks.jar.get().archiveFile)
+        useJUnitPlatform { excludeEngines("junit-jupiter") }
+        systemProperty("cucumber.junit-platform.naming-strategy", "long")
+        shouldRunAfter("test")
+        failOnNoDiscoveredTests = false
+    }
 
 tasks.named<Test>("test") {
     filter { excludeTestsMatching("*.scenarios.*") }
@@ -296,7 +304,9 @@ publishing {
         withType<MavenPublication> {
             pom {
                 name.set("Academy Gradle Plugin")
-                description.set("Academy Plugin — consommateur d'expérience pédagogique via Moodle LMS archive, opencode agent et BYOK LLM. Aucun VPS - artefact de build mono-utilisateur.")
+                description.set(
+                    "Academy Plugin — consommateur d'expérience pédagogique via Moodle LMS archive, opencode agent et BYOK LLM. Aucun VPS - artefact de build mono-utilisateur.",
+                )
                 url.set("https://github.com/cccp-education/academy-gradle")
                 licenses {
                     license {

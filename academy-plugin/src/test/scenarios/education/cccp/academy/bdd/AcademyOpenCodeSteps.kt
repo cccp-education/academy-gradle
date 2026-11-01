@@ -15,7 +15,6 @@ import org.assertj.core.api.Assertions.assertThat
  * re-instantiates the glue per scenario, so instance fields reset naturally.
  */
 class AcademyOpenCodeSteps : En {
-
     private var providerUrl: String = "http://ollama:11434/v1"
     private var model: String = "gpt-oss:120b-cloud"
     private var json: String = ""

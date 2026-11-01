@@ -17,7 +17,6 @@ import org.assertj.core.api.Assertions.assertThat
  * unprefixed phrases would collide (lesson S-088).
  */
 class AcademyEnvSteps : En {
-
     private var os: HostOs = HostOs.UNKNOWN
     private var engineReady: Boolean = false
     private var wsl2Present: Boolean = false
@@ -58,14 +57,15 @@ class AcademyEnvSteps : En {
         }
 
         When("the container engine strategy is decided") {
-            strategy = DockerStrategyDecider.decide(
-                EnvironmentFacts(
-                    os = os,
-                    dockerEngineReady = engineReady,
-                    wsl2Present = wsl2Present,
-                    admin = admin,
-                ),
-            )
+            strategy =
+                DockerStrategyDecider.decide(
+                    EnvironmentFacts(
+                        os = os,
+                        dockerEngineReady = engineReady,
+                        wsl2Present = wsl2Present,
+                        admin = admin,
+                    ),
+                )
         }
 
         Then("the strategy is already ready") {
@@ -97,10 +97,11 @@ class AcademyEnvSteps : En {
 
     private fun selected(): DockerStrategy = checkNotNull(strategy) { "no strategy decided yet" }
 
-    private fun hostOs(name: String): HostOs = when (name) {
-        "linux" -> HostOs.LINUX
-        "windows" -> HostOs.WINDOWS
-        "macos" -> HostOs.MACOS
-        else -> HostOs.UNKNOWN
-    }
+    private fun hostOs(name: String): HostOs =
+        when (name) {
+            "linux" -> HostOs.LINUX
+            "windows" -> HostOs.WINDOWS
+            "macos" -> HostOs.MACOS
+            else -> HostOs.UNKNOWN
+        }
 }

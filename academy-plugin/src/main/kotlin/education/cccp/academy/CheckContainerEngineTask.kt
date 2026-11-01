@@ -27,7 +27,6 @@ import org.gradle.work.DisableCachingByDefault
  */
 @DisableCachingByDefault(because = "Probes the host, which lives outside the build cache (ACADEMY-12-2)")
 abstract class CheckContainerEngineTask : DefaultTask() {
-
     /**
      * The host probe — injected. Defaults to the real [HostEnvironmentProbe]
      * adapter; tests override it with a fake to drive the decision without a
@@ -47,17 +46,19 @@ abstract class CheckContainerEngineTask : DefaultTask() {
     @TaskAction
     fun checkContainerEngine() {
         when (val strategy = strategy()) {
-            is DockerStrategy.AlreadyReady -> logger.lifecycle(
-                "[academy] a Docker engine is ready on ${strategy.os.name.lowercase()} - nothing to provision",
-            )
-            is DockerStrategy.Unsupported -> logger.lifecycle(
-                "[academy] this host cannot be provisioned automatically - ${strategy.reason}",
-            )
-            else -> logger.lifecycle(
-                "[academy] the generated installer will provision the engine on " +
-                    "${strategy.os.name.lowercase()} (${strategy::class.simpleName})",
-            )
+            is DockerStrategy.AlreadyReady ->
+                logger.lifecycle(
+                    "[academy] a Docker engine is ready on ${strategy.os.name.lowercase()} - nothing to provision",
+                )
+            is DockerStrategy.Unsupported ->
+                logger.lifecycle(
+                    "[academy] this host cannot be provisioned automatically - ${strategy.reason}",
+                )
+            else ->
+                logger.lifecycle(
+                    "[academy] the generated installer will provision the engine on " +
+                        "${strategy.os.name.lowercase()} (${strategy::class.simpleName})",
+                )
         }
     }
 }
-

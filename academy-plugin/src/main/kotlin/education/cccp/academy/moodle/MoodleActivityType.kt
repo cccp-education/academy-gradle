@@ -14,7 +14,9 @@ import education.cccp.academy.material.MaterialArtifactType
  *
  * @property moduleName the Moodle module directory / activity type name
  */
-enum class MoodleActivityType(val moduleName: String) {
+enum class MoodleActivityType(
+    val moduleName: String,
+) {
     LABEL("label"),
     PAGE("page"),
     QUIZ("quiz"),
@@ -24,8 +26,7 @@ enum class MoodleActivityType(val moduleName: String) {
 
     companion object {
         /** The activity matching [moduleName] exactly, or `null` when unknown. */
-        fun fromModuleName(raw: String): MoodleActivityType? =
-            entries.firstOrNull { it.moduleName.equals(raw.trim(), ignoreCase = true) }
+        fun fromModuleName(raw: String): MoodleActivityType? = entries.firstOrNull { it.moduleName.equals(raw.trim(), ignoreCase = true) }
     }
 }
 
@@ -46,15 +47,15 @@ enum class MoodleActivityType(val moduleName: String) {
  *  - `SLIDES` / `CAPSULE` — an external artifact the learner opens, so a link
  */
 object MoodleActivityMapping {
-
     /** The Moodle activity that presents [type]. */
-    fun forMaterial(type: MaterialArtifactType): MoodleActivityType = when (type) {
-        MaterialArtifactType.SPG -> MoodleActivityType.LABEL
-        MaterialArtifactType.SPD -> MoodleActivityType.PAGE
-        MaterialArtifactType.QUIZ -> MoodleActivityType.QUIZ
-        MaterialArtifactType.DOCUMENT -> MoodleActivityType.RESOURCE
-        MaterialArtifactType.SLIDES,
-        MaterialArtifactType.CAPSULE,
-        -> MoodleActivityType.URL
-    }
+    fun forMaterial(type: MaterialArtifactType): MoodleActivityType =
+        when (type) {
+            MaterialArtifactType.SPG -> MoodleActivityType.LABEL
+            MaterialArtifactType.SPD -> MoodleActivityType.PAGE
+            MaterialArtifactType.QUIZ -> MoodleActivityType.QUIZ
+            MaterialArtifactType.DOCUMENT -> MoodleActivityType.RESOURCE
+            MaterialArtifactType.SLIDES,
+            MaterialArtifactType.CAPSULE,
+            -> MoodleActivityType.URL
+        }
 }

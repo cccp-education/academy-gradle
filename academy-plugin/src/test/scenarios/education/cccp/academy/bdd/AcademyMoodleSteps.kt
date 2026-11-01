@@ -21,7 +21,6 @@ import org.assertj.core.api.Assertions.assertThat
  * such as `the material carries {string}` would collide (lesson S-088).
  */
 class AcademyMoodleSteps : En {
-
     private var shortName: String = ""
     private var fullName: String = ""
     private val material: MutableList<MoodleMaterial> = mutableListOf()
@@ -43,12 +42,14 @@ class AcademyMoodleSteps : En {
         }
 
         And("the material carries an artifact {string} of type {string}") { path: String, type: String ->
-            material += MoodleMaterial(
-                relativePath = path,
-                manifest = MaterialManifest.fromJson(
-                    """{ "source": "training", "type": "$type", "version": "1.0" }""",
-                ) ?: error("the tolerant reader must parse a well-formed pivot"),
-            )
+            material +=
+                MoodleMaterial(
+                    relativePath = path,
+                    manifest =
+                        MaterialManifest.fromJson(
+                            """{ "source": "training", "type": "$type", "version": "1.0" }""",
+                        ) ?: error("the tolerant reader must parse a well-formed pivot"),
+                )
         }
 
         And("the material carries no artifact") {
@@ -60,15 +61,17 @@ class AcademyMoodleSteps : En {
         }
 
         When("the moodle plan json is rendered") {
-            planJson = MoodleIngestionScriptGenerator.renderPlanJson(
-                MoodlePlanBuilder.build(shortName, fullName, material),
-            )
+            planJson =
+                MoodleIngestionScriptGenerator.renderPlanJson(
+                    MoodlePlanBuilder.build(shortName, fullName, material),
+                )
         }
 
         When("the moodle ingestion script is rendered") {
-            script = MoodleIngestionScriptGenerator.renderApplicator(
-                MoodlePlanBuilder.build(shortName, fullName, material),
-            )
+            script =
+                MoodleIngestionScriptGenerator.renderApplicator(
+                    MoodlePlanBuilder.build(shortName, fullName, material),
+                )
         }
 
         Given("a moodle material service installer for {string}") { target: String ->
@@ -82,17 +85,18 @@ class AcademyMoodleSteps : En {
 
         When("the moodle material installer is rendered") {
             val built = MoodlePlanBuilder.build(shortName, fullName, material)
-            val platform = InstallerPlatform(
-                os = installerOs,
-                applicationName = "academy",
-                applicationVersion = "0.0.1",
-                javaVersion = "25",
-                gradleVersion = "9.7.1",
-                composeEnabled = true,
-                credentialsEnvPrefix = "ACADEMY_",
-                moodleMaterialEnabled = injectionEnabled,
-                moodlePlan = built,
-            )
+            val platform =
+                InstallerPlatform(
+                    os = installerOs,
+                    applicationName = "academy",
+                    applicationVersion = "0.0.1",
+                    javaVersion = "25",
+                    gradleVersion = "9.7.1",
+                    composeEnabled = true,
+                    credentialsEnvPrefix = "ACADEMY_",
+                    moodleMaterialEnabled = injectionEnabled,
+                    moodlePlan = built,
+                )
             installerScript = InstallerScriptGenerator.render(platform).single().content
         }
 

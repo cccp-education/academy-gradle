@@ -14,7 +14,6 @@ import kotlin.test.assertEquals
  * over the material vocabulary — no default invented.
  */
 class MoodleActivityTypeTest {
-
     @Test
     fun `the activity vocabulary is the real Moodle module set`() {
         assertEquals("label", MoodleActivityType.LABEL.moduleName)

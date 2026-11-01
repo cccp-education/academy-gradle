@@ -1,13 +1,13 @@
 package education.cccp.academy.bdd
 
-import io.cucumber.java8.En
-import org.assertj.core.api.Assertions.assertThat
 import education.cccp.academy.material.MaterialArtifactType
 import education.cccp.academy.material.MaterialGuideGenerator
 import education.cccp.academy.material.MaterialInspector
 import education.cccp.academy.material.MaterialManifest
 import education.cccp.academy.material.MaterialReadiness
 import education.cccp.academy.material.MaterialRequirement
+import io.cucumber.java8.En
+import org.assertj.core.api.Assertions.assertThat
 
 /**
  * Steps for `academy_material.feature` (ACADEMY-4-3) — pattern S-088
@@ -20,7 +20,6 @@ import education.cccp.academy.material.MaterialRequirement
  * re-instantiates the glue per scenario, so instance fields reset naturally.
  */
 class AcademyMaterialSteps : En {
-
     private var remote: String = ""
     private var version: String? = null
     private var expected: List<MaterialArtifactType> = emptyList()
@@ -71,11 +70,12 @@ class AcademyMaterialSteps : En {
             assertThat(requirement().expectedTypes).contains(MaterialArtifactType.valueOf(type))
         }
         And("the material verdict is {string}") { verdict: String ->
-            val actual = when (checkNotNull(readiness)) {
-                is MaterialReadiness.Ready -> "READY"
-                is MaterialReadiness.Incomplete -> "INCOMPLETE"
-                is MaterialReadiness.Empty -> "EMPTY"
-            }
+            val actual =
+                when (checkNotNull(readiness)) {
+                    is MaterialReadiness.Ready -> "READY"
+                    is MaterialReadiness.Incomplete -> "INCOMPLETE"
+                    is MaterialReadiness.Empty -> "EMPTY"
+                }
             assertThat(actual).isEqualTo(verdict)
         }
         And("the material report names the missing artifact {string}") { type: String ->
@@ -97,13 +97,17 @@ class AcademyMaterialSteps : En {
         }
     }
 
-    private fun requirement() = MaterialRequirement(
-        remoteUrl = remote.ifBlank { "https://example.org/training.git" },
-        currentVersion = version,
-        expectedTypes = expected,
-    )
+    private fun requirement() =
+        MaterialRequirement(
+            remoteUrl = remote.ifBlank { "https://example.org/training.git" },
+            currentVersion = version,
+            expectedTypes = expected,
+        )
 
-    private fun pivot(type: String, version: String): MaterialManifest =
+    private fun pivot(
+        type: String,
+        version: String,
+    ): MaterialManifest =
         MaterialManifest.fromJson("""{ "source": "training", "type": "$type", "version": "$version" }""")
             ?: error("the reader must parse a well-formed pivot")
 }

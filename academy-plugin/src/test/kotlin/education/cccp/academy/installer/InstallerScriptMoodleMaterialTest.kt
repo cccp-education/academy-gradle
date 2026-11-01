@@ -22,7 +22,6 @@ import kotlin.test.assertTrue
  * scaffold is **byte-identical** — no service, no shared volume.
  */
 class InstallerScriptMoodleMaterialTest {
-
     private fun platform(
         os: TargetOs = TargetOs.LINUX,
         moodleMaterialEnabled: Boolean = false,
@@ -93,9 +92,12 @@ class InstallerScriptMoodleMaterialTest {
 
     @Test
     fun `windows injection mirrors the material service and the entrypoint - structural parity`() {
-        val windows = InstallerScriptGenerator.render(
-            platform(os = TargetOs.WINDOWS, moodleMaterialEnabled = true),
-        ).single().content
+        val windows =
+            InstallerScriptGenerator
+                .render(
+                    platform(os = TargetOs.WINDOWS, moodleMaterialEnabled = true),
+                ).single()
+                .content
 
         assertTrue(windows.contains("moodle-material"), "windows must declare the one-shot material service (parity)")
         assertTrue(windows.contains("restart: \"no\""), "windows material service must be one-shot (parity)")

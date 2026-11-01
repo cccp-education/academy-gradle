@@ -1,9 +1,9 @@
 package education.cccp.academy.bdd
 
+import contracts.session.SessionPrompt
 import education.cccp.academy.bridge.BridgeEventTranslator
 import education.cccp.academy.bridge.BridgeRoutes
 import education.cccp.academy.bridge.MoodleEvent
-import contracts.session.SessionPrompt
 import io.cucumber.java8.En
 import org.assertj.core.api.Assertions.assertThat
 
@@ -18,7 +18,6 @@ import org.assertj.core.api.Assertions.assertThat
  * (lesson S-088).
  */
 class AcademyBridgeSteps : En {
-
     private var event: MoodleEvent? = null
     private var second: MoodleEvent? = null
     private var prompt: SessionPrompt? = null

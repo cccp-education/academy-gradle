@@ -15,13 +15,13 @@ import education.cccp.academy.byok.ByokProviderCatalog
  * name of the environment variable to export — never a value (D-ACADEMY-7-10).
  */
 object LearnerGuideGenerator {
-
     /** Renders the learner `AGENTS.md`. */
     fun render(config: OpenCodeConfig): String {
-        val taskInventory = OpenCodeCatalog.plugins.joinToString("\n") { plugin ->
-            val tasks = plugin.tasks.joinToString(", ") { "`./gradlew $it`" }
-            "- **${plugin.id}** — ${plugin.role}: $tasks"
-        }
+        val taskInventory =
+            OpenCodeCatalog.plugins.joinToString("\n") { plugin ->
+                val tasks = plugin.tasks.joinToString(", ") { "`./gradlew $it`" }
+                "- **${plugin.id}** — ${plugin.role}: $tasks"
+            }
         val spec = ByokProviderCatalog.specFor(config.provider)
         val keyName = config.apiKeyEnvVar ?: spec.apiKeyEnvVar
         return """
@@ -77,7 +77,8 @@ object LearnerGuideGenerator {
             |Never put a key in this workspace. Provide your LLM provider key
             |through the environment — the agent reads it from there, never from
             |a file.
-            |""".trimMargin()
+            |
+            """.trimMargin()
     }
 
     /**
@@ -106,17 +107,18 @@ object LearnerGuideGenerator {
             |
             |The bridge routes and acknowledges; the agent (opencode) executes.
             |
-        """.trimMargin()
+            """.trimMargin()
     }
 
-    private fun byokSection(keyName: String?): String = if (keyName == null) {
-        """
+    private fun byokSection(keyName: String?): String =
+        if (keyName == null) {
+            """
         |The default provider is the embedded Ollama runtime: it is local, so
         |**no key is required**. To use an external provider instead, regenerate
         |the workspace with the matching `openCodeProvider` and export its key.
-        """.trimMargin()
-    } else {
-        """
+            """.trimMargin()
+        } else {
+            """
         |Export your provider key before starting the agent — the workspace reads
         |the value from the environment, never from a file:
         |
@@ -125,6 +127,6 @@ object LearnerGuideGenerator {
         |```
         |
         |`opencode.json` only references `$keyName` (never its value).
-        """.trimMargin()
-    }
+            """.trimMargin()
+        }
 }

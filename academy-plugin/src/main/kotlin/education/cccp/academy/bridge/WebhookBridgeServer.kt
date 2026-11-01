@@ -61,24 +61,26 @@ fun Application.installBridge(config: BridgeServerConfig) {
         }
 
         post(BridgeRoutes.MOODLE_EVENT.path) {
-            val event = try {
-                call.receive<MoodleEvent>()
-            } catch (e: Exception) {
-                call.respond(HttpStatusCode.BadRequest, badRequest("Invalid event", e))
-                return@post
-            }
+            val event =
+                try {
+                    call.receive<MoodleEvent>()
+                } catch (e: Exception) {
+                    call.respond(HttpStatusCode.BadRequest, badRequest("Invalid event", e))
+                    return@post
+                }
 
             val prompt = BridgeEventTranslator.toSessionPrompt(event)
             call.respond(acknowledge(prompt, "event ${event.eventName}", event.eventName))
         }
 
         post(BridgeRoutes.SESSION.path) {
-            val prompt = try {
-                call.receive<SessionRequest>().toSessionPrompt()
-            } catch (e: Exception) {
-                call.respond(HttpStatusCode.BadRequest, badRequest("Invalid session prompt", e))
-                return@post
-            }
+            val prompt =
+                try {
+                    call.receive<SessionRequest>().toSessionPrompt()
+                } catch (e: Exception) {
+                    call.respond(HttpStatusCode.BadRequest, badRequest("Invalid session prompt", e))
+                    return@post
+                }
 
             call.respond(acknowledge(prompt, "session prompt"))
         }
@@ -100,15 +102,23 @@ private fun acknowledge(
     prompt: SessionPrompt,
     what: String,
     eventName: String? = null,
-): BridgeAck = BridgeAck(
-    sessionId = prompt.sessionId.toString(),
-    output = "accepted $what (bridge routes, the agent executes)",
-    status = "COMPLETED",
-    eventName = eventName,
-)
+): BridgeAck =
+    BridgeAck(
+        sessionId = prompt.sessionId.toString(),
+        output = "accepted $what (bridge routes, the agent executes)",
+        status = "COMPLETED",
+        eventName = eventName,
+    )
 
-private fun badRequest(prefix: String, cause: Exception): BridgeAck = BridgeAck(
-    sessionId = java.util.UUID.randomUUID().toString(),
-    output = "$prefix: ${cause.message}",
-    status = "ERROR",
-)
+private fun badRequest(
+    prefix: String,
+    cause: Exception,
+): BridgeAck =
+    BridgeAck(
+        sessionId =
+            java.util.UUID
+                .randomUUID()
+                .toString(),
+        output = "$prefix: ${cause.message}",
+        status = "ERROR",
+    )

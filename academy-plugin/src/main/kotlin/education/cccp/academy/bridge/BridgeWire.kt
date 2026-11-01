@@ -21,11 +21,12 @@ data class SessionRequest(
 )
 
 /** Inbound [SessionRequest] mapped to the N0 [SessionPrompt]. */
-fun SessionRequest.toSessionPrompt(): SessionPrompt = SessionPrompt(
-    prompt = prompt,
-    maxActions = maxActions,
-    model = model,
-)
+fun SessionRequest.toSessionPrompt(): SessionPrompt =
+    SessionPrompt(
+        prompt = prompt,
+        maxActions = maxActions,
+        model = model,
+    )
 
 /** The bridge's acknowledgement of a routed prompt — never an LLM answer. */
 @Serializable

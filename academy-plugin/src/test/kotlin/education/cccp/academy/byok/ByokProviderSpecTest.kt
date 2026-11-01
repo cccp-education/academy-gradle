@@ -13,15 +13,15 @@ import kotlin.test.assertNull
  * variable.
  */
 class ByokProviderSpecTest {
-
     @Test
     fun `holds the opencode provider identity`() {
-        val spec = ByokProviderSpec(
-            id = "google",
-            npm = "@ai-sdk/google",
-            displayName = "Google Gemini",
-            apiKeyEnvVar = "GEMINI_API_KEY",
-        )
+        val spec =
+            ByokProviderSpec(
+                id = "google",
+                npm = "@ai-sdk/google",
+                displayName = "Google Gemini",
+                apiKeyEnvVar = "GEMINI_API_KEY",
+            )
 
         assertEquals("google", spec.id)
         assertEquals("@ai-sdk/google", spec.npm)

@@ -14,7 +14,9 @@ package education.cccp.academy.material
  *
  * @property pivotType the normalized label written by producers
  */
-enum class MaterialArtifactType(val pivotType: String) {
+enum class MaterialArtifactType(
+    val pivotType: String,
+) {
     SPG("SPG"),
     SPD("SPD"),
     SLIDES("SLIDES"),
@@ -25,7 +27,6 @@ enum class MaterialArtifactType(val pivotType: String) {
 
     companion object {
         /** The type matching [raw] case-insensitively, or `null` when unknown. */
-        fun fromPivotType(raw: String): MaterialArtifactType? =
-            entries.firstOrNull { it.pivotType.equals(raw.trim(), ignoreCase = true) }
+        fun fromPivotType(raw: String): MaterialArtifactType? = entries.firstOrNull { it.pivotType.equals(raw.trim(), ignoreCase = true) }
     }
 }

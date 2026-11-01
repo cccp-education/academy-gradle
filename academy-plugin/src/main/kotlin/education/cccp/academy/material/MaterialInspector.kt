@@ -18,7 +18,6 @@ package education.cccp.academy.material
  * requirement only constrains versions that exist.
  */
 object MaterialInspector {
-
     /** Computes the verdict for [requirement] against [manifests]. */
     fun inspect(
         requirement: MaterialRequirement,
@@ -26,15 +25,18 @@ object MaterialInspector {
     ): MaterialReadiness {
         if (manifests.isEmpty()) return MaterialReadiness.Empty
 
-        val byType = manifests.mapNotNull { manifest ->
-            manifest.type?.let { it to manifest }
-        }.toMap()
+        val byType =
+            manifests
+                .mapNotNull { manifest ->
+                    manifest.type?.let { it to manifest }
+                }.toMap()
 
         val missing = requirement.expectedTypes.filterNot { byType.containsKey(it) }
 
-        val outdated = requirement.currentVersion?.let { required ->
-            byType.values.any { it.version != null && it.version != required }
-        } ?: false
+        val outdated =
+            requirement.currentVersion?.let { required ->
+                byType.values.any { it.version != null && it.version != required }
+            } ?: false
 
         return if (missing.isEmpty() && !outdated) {
             MaterialReadiness.Ready(presentTypes = byType.keys.toList())

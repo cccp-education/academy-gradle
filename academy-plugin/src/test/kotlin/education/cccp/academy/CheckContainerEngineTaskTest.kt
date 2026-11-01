@@ -24,7 +24,6 @@ import kotlin.test.assertNotNull
  * proven by `Unresolved reference`.
  */
 class CheckContainerEngineTaskTest {
-
     private fun applyPlugin(): Project {
         val project = ProjectBuilder.builder().build()
         project.version = "0.0.1"
@@ -32,8 +31,7 @@ class CheckContainerEngineTaskTest {
         return project
     }
 
-    private fun task(project: Project) =
-        project.tasks.getByName("checkContainerEngine") as CheckContainerEngineTask
+    private fun task(project: Project) = project.tasks.getByName("checkContainerEngine") as CheckContainerEngineTask
 
     private fun probe(
         os: HostOs,

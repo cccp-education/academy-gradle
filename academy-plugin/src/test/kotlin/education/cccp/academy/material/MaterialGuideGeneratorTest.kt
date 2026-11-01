@@ -12,12 +12,12 @@ import kotlin.test.assertTrue
  * applied — cite the mechanism, not an absent binary.
  */
 class MaterialGuideGeneratorTest {
-
-    private val requirement = MaterialRequirement(
-        remoteUrl = "https://github.com/cccp-education/formation-fpa",
-        currentVersion = "v1.0",
-        expectedTypes = listOf(MaterialArtifactType.SPG, MaterialArtifactType.SLIDES),
-    )
+    private val requirement =
+        MaterialRequirement(
+            remoteUrl = "https://github.com/cccp-education/formation-fpa",
+            currentVersion = "v1.0",
+            expectedTypes = listOf(MaterialArtifactType.SPG, MaterialArtifactType.SLIDES),
+        )
 
     @Test
     fun `declares the remote and the expected version`() {
@@ -64,9 +64,10 @@ class MaterialGuideGeneratorTest {
 
     @Test
     fun `an unversioned requirement does not invent a version`() {
-        val guide = MaterialGuideGenerator.render(
-            MaterialRequirement(remoteUrl = "https://example.org/training.git"),
-        )
+        val guide =
+            MaterialGuideGenerator.render(
+                MaterialRequirement(remoteUrl = "https://example.org/training.git"),
+            )
 
         assertTrue(guide.contains("https://example.org/training.git"))
         assertFalse(guide.contains("v1.0"))

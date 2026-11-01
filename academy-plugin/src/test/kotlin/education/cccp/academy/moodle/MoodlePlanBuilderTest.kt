@@ -18,43 +18,63 @@ import kotlin.test.assertTrue
  * `MoodlePlanBuilder`. RED proved by `Unresolved reference`.
  */
 class MoodlePlanBuilderTest {
-
     private val spg = material("SPG/spg.adoc", "SPG")
     private val quiz = material("QUIZ/quiz.adoc", "QUIZ")
     private val document = material("DOCUMENT/livret.pdf", "DOCUMENT")
 
-    private fun material(path: String, type: String): MoodleMaterial =
+    private fun material(
+        path: String,
+        type: String,
+    ): MoodleMaterial =
         MoodleMaterial(
             relativePath = path,
-            manifest = MaterialManifest.fromJson(
-                """{ "source": "training", "type": "$type", "version": "1.0" }""",
-            )!!,
+            manifest =
+                MaterialManifest.fromJson(
+                    """{ "source": "training", "type": "$type", "version": "1.0" }""",
+                )!!,
         )
 
-    private fun spd(module: String, file: String): MoodleMaterial =
-        material("SPD/$module/$file", "SPD")
+    private fun spd(
+        module: String,
+        file: String,
+    ): MoodleMaterial = material("SPD/$module/$file", "SPD")
 
     @Test
     fun `an spg becomes a course-level label activity`() {
         val plan = MoodlePlanBuilder.build("academy-seed", "Academy", listOf(spg))
 
         assertEquals("academy-seed", plan.courseShortName)
-        assertEquals(MoodleActivityType.LABEL, plan.sections.single().activities.single().type)
-        assertEquals("SPG/spg.adoc", plan.sections.single().activities.single().sourcePath)
+        assertEquals(
+            MoodleActivityType.LABEL,
+            plan.sections
+                .single()
+                .activities
+                .single()
+                .type,
+        )
+        assertEquals(
+            "SPG/spg.adoc",
+            plan.sections
+                .single()
+                .activities
+                .single()
+                .sourcePath,
+        )
     }
 
     @Test
     fun `each spd module becomes a section and each session a page`() {
-        val plan = MoodlePlanBuilder.build(
-            "academy-seed",
-            "Academy",
-            listOf(
-                spg,
-                spd("01_accueil", "001_bienvenue.adoc"),
-                spd("01_accueil", "002_objectifs.adoc"),
-                spd("02_coeur", "003_algorithmes.adoc"),
-            ),
-        )
+        val plan =
+            MoodlePlanBuilder.build(
+                "academy-seed",
+                "Academy",
+                listOf(
+                    spg,
+                    spd("01_accueil", "001_bienvenue.adoc"),
+                    spd("01_accueil", "002_objectifs.adoc"),
+                    spd("02_coeur", "003_algorithmes.adoc"),
+                ),
+            )
 
         val modules = plan.sections.filter { it.module != null }
         assertEquals(2, modules.size)
@@ -68,7 +88,11 @@ class MoodlePlanBuilderTest {
     fun `a quiz becomes a quiz activity in its own section`() {
         val plan = MoodlePlanBuilder.build("academy-seed", "Academy", listOf(quiz))
 
-        val activity = plan.sections.single().activities.single()
+        val activity =
+            plan.sections
+                .single()
+                .activities
+                .single()
         assertEquals(MoodleActivityType.QUIZ, activity.type)
     }
 
@@ -76,28 +100,41 @@ class MoodlePlanBuilderTest {
     fun `a document becomes a resource and never an inlined body`() {
         val plan = MoodlePlanBuilder.build("academy-seed", "Academy", listOf(document))
 
-        val activity = plan.sections.single().activities.single()
+        val activity =
+            plan.sections
+                .single()
+                .activities
+                .single()
         assertEquals(MoodleActivityType.RESOURCE, activity.type)
         assertEquals("DOCUMENT/livret.pdf", activity.sourcePath)
     }
 
     @Test
     fun `the activity title is derived from the file name, never invented`() {
-        val plan = MoodlePlanBuilder.build(
-            "academy-seed",
-            "Academy",
-            listOf(spd("01_accueil", "001_bienvenue.adoc")),
-        )
+        val plan =
+            MoodlePlanBuilder.build(
+                "academy-seed",
+                "Academy",
+                listOf(spd("01_accueil", "001_bienvenue.adoc")),
+            )
 
-        assertEquals("001 bienvenue", plan.sections.single().activities.single().title)
+        assertEquals(
+            "001 bienvenue",
+            plan.sections
+                .single()
+                .activities
+                .single()
+                .title,
+        )
     }
 
     @Test
     fun `an unknown producer type is skipped, never guessed`() {
-        val unknown = MoodleMaterial(
-            relativePath = "MYSTERY/thing.adoc",
-            manifest = MaterialManifest.fromJson("""{ "source": "x", "type": "SomeFutureThing" }""")!!,
-        )
+        val unknown =
+            MoodleMaterial(
+                relativePath = "MYSTERY/thing.adoc",
+                manifest = MaterialManifest.fromJson("""{ "source": "x", "type": "SomeFutureThing" }""")!!,
+            )
 
         val plan = MoodlePlanBuilder.build("academy-seed", "Academy", listOf(unknown))
 
@@ -117,6 +154,13 @@ class MoodlePlanBuilderTest {
         val plan = MoodlePlanBuilder.build("academy-seed", "Academy", listOf(spg))
 
         assertEquals(MaterialArtifactType.SPG, spg.manifest.type)
-        assertTrue(plan.sections.single().activities.single().sourcePath.endsWith(".adoc"))
+        assertTrue(
+            plan.sections
+                .single()
+                .activities
+                .single()
+                .sourcePath
+                .endsWith(".adoc"),
+        )
     }
 }

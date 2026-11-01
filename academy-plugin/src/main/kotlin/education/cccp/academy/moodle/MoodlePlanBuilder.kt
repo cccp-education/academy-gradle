@@ -21,7 +21,6 @@ import education.cccp.academy.material.MaterialArtifactType
  * @see MoodleImportPlan
  */
 object MoodlePlanBuilder {
-
     /** Builds the plan for [shortName]/[fullName] from the [material] list. */
     fun build(
         shortName: String,
@@ -33,11 +32,12 @@ object MoodlePlanBuilder {
 
         for (artifact in material) {
             val type = artifact.artifactType ?: continue
-            val activity = MoodleActivity(
-                type = MoodleActivityMapping.forMaterial(type),
-                title = titleOf(artifact),
-                sourcePath = artifact.relativePath,
-            )
+            val activity =
+                MoodleActivity(
+                    type = MoodleActivityMapping.forMaterial(type),
+                    title = titleOf(artifact),
+                    sourcePath = artifact.relativePath,
+                )
             if (type == MaterialArtifactType.SPD) {
                 val module = artifact.module ?: COURSE_LEVEL_MODULE
                 modules.getOrPut(module) { mutableListOf() } += activity
@@ -46,12 +46,13 @@ object MoodlePlanBuilder {
             }
         }
 
-        val sections = buildList {
-            if (courseLevel.isNotEmpty()) add(MoodleSection(module = null, activities = courseLevel))
-            modules.forEach { (module, activities) ->
-                add(MoodleSection(module = module, activities = activities))
+        val sections =
+            buildList {
+                if (courseLevel.isNotEmpty()) add(MoodleSection(module = null, activities = courseLevel))
+                modules.forEach { (module, activities) ->
+                    add(MoodleSection(module = module, activities = activities))
+                }
             }
-        }
 
         return MoodleImportPlan(
             courseShortName = shortName,

@@ -26,10 +26,10 @@ import org.junit.platform.suite.api.Suite
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "education.cccp.academy.bdd")
 @ConfigurationParameter(
     key = PLUGIN_PROPERTY_NAME,
-    value = "pretty, html:build/reports/cucumber-moodle.html, json:build/reports/cucumber-moodle.json"
+    value = "pretty, html:build/reports/cucumber-moodle.html, json:build/reports/cucumber-moodle.json",
 )
 @ConfigurationParameter(
     key = FILTER_TAGS_PROPERTY_NAME,
-    value = "@moodle and not @wip and not @integration"
+    value = "@moodle and not @wip and not @integration",
 )
 class AcademyMoodleCucumberRunner

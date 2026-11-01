@@ -15,7 +15,6 @@ import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
-import java.io.File
 
 /**
  * Verifies the training material present in the learner workspace against the
@@ -34,7 +33,6 @@ import java.io.File
  */
 @DisableCachingByDefault(because = "Reads the learner material directory, which lives outside the build cache (ACADEMY-4-2)")
 abstract class InspectTrainingMaterialTask : DefaultTask() {
-
     /** Declared remote of the versioned material — blank means "no requirement". */
     @get:Input
     abstract val materialRemoteUrl: Property<String>
@@ -74,10 +72,11 @@ abstract class InspectTrainingMaterialTask : DefaultTask() {
             is MaterialReadiness.Incomplete -> throw GradleException(
                 "[academy] training material is incomplete - " + describe(requirement, readiness),
             )
-            is MaterialReadiness.Ready -> logger.lifecycle(
-                "[academy] training material satisfies the requirement - " +
-                    "present: ${readiness.presentTypes.joinToString(", ") { it.pivotType }}",
-            )
+            is MaterialReadiness.Ready ->
+                logger.lifecycle(
+                    "[academy] training material satisfies the requirement - " +
+                        "present: ${readiness.presentTypes.joinToString(", ") { it.pivotType }}",
+                )
         }
     }
 
@@ -87,15 +86,15 @@ abstract class InspectTrainingMaterialTask : DefaultTask() {
      * names the artifacts it needs has declared a requirement even before it
      * pins the remote, so the verification must not silently ignore it.
      */
-    fun hasRequirement(): Boolean =
-        materialRemoteUrl.get().isNotBlank() || materialExpectedTypes.get().isNotEmpty()
+    fun hasRequirement(): Boolean = materialRemoteUrl.get().isNotBlank() || materialExpectedTypes.get().isNotEmpty()
 
     /** The resolved, pure requirement — testable without running the task. */
-    fun requirement(): MaterialRequirement = MaterialRequirement(
-        remoteUrl = materialRemoteUrl.get().ifBlank { "unset" },
-        currentVersion = materialCurrentVersion.get().ifBlank { null },
-        expectedTypes = materialExpectedTypes.get(),
-    )
+    fun requirement(): MaterialRequirement =
+        MaterialRequirement(
+            remoteUrl = materialRemoteUrl.get().ifBlank { "unset" },
+            currentVersion = materialCurrentVersion.get().ifBlank { null },
+            expectedTypes = materialExpectedTypes.get(),
+        )
 
     /**
      * Reads every `*.json` manifest under [materialDir] and computes the verdict.
@@ -105,7 +104,8 @@ abstract class InspectTrainingMaterialTask : DefaultTask() {
         val dir = materialDir.get().asFile
         val manifests: List<MaterialManifest> =
             if (dir.isDirectory) {
-                dir.walkTopDown()
+                dir
+                    .walkTopDown()
                     .filter { it.isFile && it.name.endsWith(".json") }
                     .mapNotNull { MaterialManifest.fromJson(it.readText()) }
                     .toList()
@@ -115,7 +115,10 @@ abstract class InspectTrainingMaterialTask : DefaultTask() {
         return MaterialInspector.inspect(requirement(), manifests)
     }
 
-    private fun describe(requirement: MaterialRequirement, readiness: MaterialReadiness.Incomplete): String =
+    private fun describe(
+        requirement: MaterialRequirement,
+        readiness: MaterialReadiness.Incomplete,
+    ): String =
         buildList {
             if (readiness.missingTypes.isNotEmpty()) {
                 add("missing ${readiness.missingTypes.joinToString(", ") { it.pivotType }}")

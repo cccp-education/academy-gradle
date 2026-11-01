@@ -12,15 +12,15 @@ import kotlin.test.assertTrue
  * not an assertion about an official wire format.
  */
 class MoodleEventTest {
-
     @Test
     fun `holds the event identity and an opaque payload`() {
-        val event = MoodleEvent(
-            eventName = "course_module_completed",
-            courseId = "academy-seed",
-            userId = "learner-1",
-            payload = mapOf("module" to "M01"),
-        )
+        val event =
+            MoodleEvent(
+                eventName = "course_module_completed",
+                courseId = "academy-seed",
+                userId = "learner-1",
+                payload = mapOf("module" to "M01"),
+            )
 
         assertEquals("course_module_completed", event.eventName)
         assertEquals("academy-seed", event.courseId)

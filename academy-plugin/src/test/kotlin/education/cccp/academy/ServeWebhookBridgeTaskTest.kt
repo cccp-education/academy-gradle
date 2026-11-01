@@ -13,7 +13,6 @@ import kotlin.test.assertFalse
  * explicit opt-in (D-ACADEMY-8-7/8).
  */
 class ServeWebhookBridgeTaskTest {
-
     private fun applyPlugin(): Project {
         val project = ProjectBuilder.builder().build()
         project.version = "0.0.1"

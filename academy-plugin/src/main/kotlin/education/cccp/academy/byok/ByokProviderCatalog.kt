@@ -13,45 +13,49 @@ import contracts.runtime.LlmProviderKind
  * (`ByokProviderSpec.copy`), and `CUSTOM` requires it (D-ACADEMY-7-7).
  */
 object ByokProviderCatalog {
-
     /** The embedded local runtime — the ACADEMY-5 default, no key. */
-    val OLLAMA_LOCAL: ByokProviderSpec = ByokProviderSpec(
-        id = "ollama",
-        npm = "@ai-sdk/openai-compatible",
-        displayName = "Academy Ollama (embedded)",
-    )
+    val OLLAMA_LOCAL: ByokProviderSpec =
+        ByokProviderSpec(
+            id = "ollama",
+            npm = "@ai-sdk/openai-compatible",
+            displayName = "Academy Ollama (embedded)",
+        )
 
     /** The mapping keyed by the N0 provider kind. */
-    val specs: Map<LlmProviderKind, ByokProviderSpec> = mapOf(
-        LlmProviderKind.OLLAMA_LOCAL to OLLAMA_LOCAL,
-        LlmProviderKind.OLLAMA_CLOUD to ByokProviderSpec(
-            id = "ollama-cloud",
-            npm = "@ai-sdk/openai-compatible",
-            displayName = "Ollama Cloud",
-            baseUrl = "https://ollama.com/v1",
-            apiKeyEnvVar = "OLLAMA_API_KEY",
-        ),
-        LlmProviderKind.GEMINI to ByokProviderSpec(
-            id = "google",
-            npm = "@ai-sdk/google",
-            displayName = "Google Gemini",
-            apiKeyEnvVar = "GEMINI_API_KEY",
-        ),
-        LlmProviderKind.HUGGINGFACE to ByokProviderSpec(
-            id = "huggingface",
-            npm = "@ai-sdk/openai-compatible",
-            displayName = "Hugging Face",
-            baseUrl = "https://router.huggingface.co/v1",
-            apiKeyEnvVar = "HF_TOKEN",
-        ),
-        LlmProviderKind.CUSTOM to ByokProviderSpec(
-            id = "custom",
-            npm = "@ai-sdk/openai-compatible",
-            displayName = "Custom provider",
-        ),
-    )
+    val specs: Map<LlmProviderKind, ByokProviderSpec> =
+        mapOf(
+            LlmProviderKind.OLLAMA_LOCAL to OLLAMA_LOCAL,
+            LlmProviderKind.OLLAMA_CLOUD to
+                ByokProviderSpec(
+                    id = "ollama-cloud",
+                    npm = "@ai-sdk/openai-compatible",
+                    displayName = "Ollama Cloud",
+                    baseUrl = "https://ollama.com/v1",
+                    apiKeyEnvVar = "OLLAMA_API_KEY",
+                ),
+            LlmProviderKind.GEMINI to
+                ByokProviderSpec(
+                    id = "google",
+                    npm = "@ai-sdk/google",
+                    displayName = "Google Gemini",
+                    apiKeyEnvVar = "GEMINI_API_KEY",
+                ),
+            LlmProviderKind.HUGGINGFACE to
+                ByokProviderSpec(
+                    id = "huggingface",
+                    npm = "@ai-sdk/openai-compatible",
+                    displayName = "Hugging Face",
+                    baseUrl = "https://router.huggingface.co/v1",
+                    apiKeyEnvVar = "HF_TOKEN",
+                ),
+            LlmProviderKind.CUSTOM to
+                ByokProviderSpec(
+                    id = "custom",
+                    npm = "@ai-sdk/openai-compatible",
+                    displayName = "Custom provider",
+                ),
+        )
 
     /** The provider description for [kind] (total: every kind is mapped). */
-    fun specFor(kind: LlmProviderKind): ByokProviderSpec =
-        requireNotNull(specs[kind]) { "no opencode provider mapped for $kind" }
+    fun specFor(kind: LlmProviderKind): ByokProviderSpec = requireNotNull(specs[kind]) { "no opencode provider mapped for $kind" }
 }

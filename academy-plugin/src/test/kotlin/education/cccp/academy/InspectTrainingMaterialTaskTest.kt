@@ -20,7 +20,6 @@ import kotlin.test.assertTrue
  * requirement the verdict is `Empty` and the task succeeds (D-ACADEMY-4-7).
  */
 class InspectTrainingMaterialTaskTest {
-
     private fun applyPlugin(): Project {
         val project = ProjectBuilder.builder().build()
         project.version = "0.0.1"
@@ -28,8 +27,7 @@ class InspectTrainingMaterialTaskTest {
         return project
     }
 
-    private fun task(project: Project) =
-        project.tasks.getByName("inspectTrainingMaterial") as InspectTrainingMaterialTask
+    private fun task(project: Project) = project.tasks.getByName("inspectTrainingMaterial") as InspectTrainingMaterialTask
 
     @Test
     fun `the extension carries no requirement by default`() {
@@ -37,7 +35,12 @@ class InspectTrainingMaterialTaskTest {
 
         assertEquals("", extension.materialRemoteUrl.get(), "no requirement is declared by default")
         assertEquals("", extension.materialCurrentVersion.get())
-        assertEquals("material", extension.materialDir.get().asFile.name)
+        assertEquals(
+            "material",
+            extension.materialDir
+                .get()
+                .asFile.name,
+        )
         assertEquals(emptyList(), extension.materialExpectedTypes.get())
     }
 
@@ -72,8 +75,10 @@ class InspectTrainingMaterialTaskTest {
     @Test
     fun `a declared requirement is detected`() {
         val project = applyPlugin()
-        project.extensions.getByType(AcademyInstallerExtension::class.java)
-            .materialRemoteUrl.set("https://example.org/training.git")
+        project.extensions
+            .getByType(AcademyInstallerExtension::class.java)
+            .materialRemoteUrl
+            .set("https://example.org/training.git")
 
         assertTrue(task(project).hasRequirement())
     }
@@ -81,8 +86,10 @@ class InspectTrainingMaterialTaskTest {
     @Test
     fun `expected artifacts alone declare a requirement even without a remote`() {
         val project = applyPlugin()
-        project.extensions.getByType(AcademyInstallerExtension::class.java)
-            .materialExpectedTypes.set(listOf(MaterialArtifactType.SPG))
+        project.extensions
+            .getByType(AcademyInstallerExtension::class.java)
+            .materialExpectedTypes
+            .set(listOf(MaterialArtifactType.SPG))
 
         assertTrue(
             task(project).hasRequirement(),
@@ -114,8 +121,10 @@ class InspectTrainingMaterialTaskTest {
         val project = applyPlugin()
         val materialDir = File(project.projectDir, "material").apply { mkdirs() }
         File(materialDir, "broken.json").writeText("not json")
-        project.extensions.getByType(AcademyInstallerExtension::class.java)
-            .materialRemoteUrl.set("https://example.org/training.git")
+        project.extensions
+            .getByType(AcademyInstallerExtension::class.java)
+            .materialRemoteUrl
+            .set("https://example.org/training.git")
 
         val readiness = task(project).inspect()
 

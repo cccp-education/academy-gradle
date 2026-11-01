@@ -8,7 +8,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -21,7 +20,6 @@ import kotlin.test.assertTrue
  * available on apply.
  */
 class AcademyPluginTest {
-
     private fun applyPlugin(version: String = "0.0.1"): Project {
         val project = ProjectBuilder.builder().build()
         project.version = version

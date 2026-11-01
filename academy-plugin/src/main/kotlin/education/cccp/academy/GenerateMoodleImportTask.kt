@@ -37,7 +37,6 @@ import java.io.File
  */
 @DisableCachingByDefault(because = "Reads the learner material directory, which lives outside the build cache (ACADEMY-11-2)")
 abstract class GenerateMoodleImportTask : DefaultTask() {
-
     /** Opt-in switch — mirrors `academyInstaller.moodleImportEnabled`. */
     @get:Input
     abstract val moodleImportEnabled: Property<Boolean>

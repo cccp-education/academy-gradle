@@ -13,7 +13,6 @@ import kotlin.test.assertTrue
  * never invented, cf. the S-007 `moodle:4.5` lesson).
  */
 class OpenCodeCatalogTest {
-
     @Test
     fun `every exposed plugin belongs to the education cccp public namespace`() {
         assertTrue(OpenCodeCatalog.plugins.isNotEmpty())

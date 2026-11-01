@@ -21,7 +21,6 @@ import kotlin.test.assertFailsWith
  * guide refactor. RED proved by `Unresolved reference 'exposure'`.
  */
 class OpenCodeCatalogExposureTest {
-
     @Test
     fun `the catalog exposes the N0 guardrail contract`() {
         val exposure: ToolExposure = OpenCodeCatalog.exposure()

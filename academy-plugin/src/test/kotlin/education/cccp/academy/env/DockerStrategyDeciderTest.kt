@@ -14,7 +14,6 @@ import kotlin.test.assertTrue
  * not an error (same sealed-verdict pattern as MaterialReadiness).
  */
 class DockerStrategyDeciderTest {
-
     @Test
     fun `a reachable engine is ready on every OS`() {
         HostOs.entries.forEach { os ->
@@ -40,27 +39,30 @@ class DockerStrategyDeciderTest {
 
     @Test
     fun `windows with WSL2 present installs Docker Desktop`() {
-        val strategy = DockerStrategyDecider.decide(
-            facts(os = HostOs.WINDOWS, wsl2Present = true),
-        )
+        val strategy =
+            DockerStrategyDecider.decide(
+                facts(os = HostOs.WINDOWS, wsl2Present = true),
+            )
 
         assertIs<DockerStrategy.InstallDockerDesktop>(strategy)
     }
 
     @Test
     fun `windows without WSL2 and with admin bootstraps WSL2 first`() {
-        val strategy = DockerStrategyDecider.decide(
-            facts(os = HostOs.WINDOWS, wsl2Present = false, admin = true),
-        )
+        val strategy =
+            DockerStrategyDecider.decide(
+                facts(os = HostOs.WINDOWS, wsl2Present = false, admin = true),
+            )
 
         assertIs<DockerStrategy.BootstrapWsl2First>(strategy)
     }
 
     @Test
     fun `windows without WSL2 and without admin is unsupported`() {
-        val strategy = DockerStrategyDecider.decide(
-            facts(os = HostOs.WINDOWS, wsl2Present = false, admin = false),
-        )
+        val strategy =
+            DockerStrategyDecider.decide(
+                facts(os = HostOs.WINDOWS, wsl2Present = false, admin = false),
+            )
 
         val unsupported = assertIs<DockerStrategy.Unsupported>(strategy)
         assertTrue(unsupported.reason.isNotBlank(), "an unsupported verdict must explain why")
@@ -75,9 +77,10 @@ class DockerStrategyDeciderTest {
 
     @Test
     fun `admin and WSL2 facts are irrelevant once the engine is ready`() {
-        val strategy = DockerStrategyDecider.decide(
-            facts(os = HostOs.WINDOWS, engineReady = true, wsl2Present = false, admin = false),
-        )
+        val strategy =
+            DockerStrategyDecider.decide(
+                facts(os = HostOs.WINDOWS, engineReady = true, wsl2Present = false, admin = false),
+            )
 
         assertIs<DockerStrategy.AlreadyReady>(strategy)
     }
@@ -99,9 +102,10 @@ class DockerStrategyDeciderTest {
 
     @Test
     fun `already ready exposes the detected OS`() {
-        val ready = assertIs<DockerStrategy.AlreadyReady>(
-            DockerStrategyDecider.decide(facts(os = HostOs.LINUX, engineReady = true)),
-        )
+        val ready =
+            assertIs<DockerStrategy.AlreadyReady>(
+                DockerStrategyDecider.decide(facts(os = HostOs.LINUX, engineReady = true)),
+            )
 
         assertEquals(HostOs.LINUX, ready.os)
     }

@@ -9,7 +9,6 @@ import kotlin.test.assertEquals
  * unrecognized or absent name is [HostOs.UNKNOWN], never a crash.
  */
 class HostOsTest {
-
     @Test
     fun `recognizes the three supported hosts from the jvm os name`() {
         assertEquals(HostOs.LINUX, HostOs.fromOsName("Linux"))

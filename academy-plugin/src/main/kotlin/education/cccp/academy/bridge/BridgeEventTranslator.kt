@@ -14,7 +14,6 @@ import java.util.UUID
  * (idempotent, testable, safe for at-least-once delivery).
  */
 object BridgeEventTranslator {
-
     /**
      * Translates [event] into the session prompt the formation runtime consumes.
      *
@@ -23,11 +22,12 @@ object BridgeEventTranslator {
      * has no free-form map, so the key/value detail rides the eager-rules slot
      * (never invented context when the payload is empty).
      */
-    fun toSessionPrompt(event: MoodleEvent): SessionPrompt = SessionPrompt(
-        sessionId = stableSessionId(event),
-        prompt = buildPrompt(event),
-        context = AgentContext(eagerRules = renderPayload(event.payload)),
-    )
+    fun toSessionPrompt(event: MoodleEvent): SessionPrompt =
+        SessionPrompt(
+            sessionId = stableSessionId(event),
+            prompt = buildPrompt(event),
+            context = AgentContext(eagerRules = renderPayload(event.payload)),
+        )
 
     private fun buildPrompt(event: MoodleEvent): String =
         "Formation event ${event.eventName} for learner ${event.userId} " +

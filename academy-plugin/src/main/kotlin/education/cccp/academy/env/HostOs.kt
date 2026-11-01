@@ -12,7 +12,8 @@ enum class HostOs {
     LINUX,
     WINDOWS,
     MACOS,
-    UNKNOWN;
+    UNKNOWN,
+    ;
 
     companion object {
         /**

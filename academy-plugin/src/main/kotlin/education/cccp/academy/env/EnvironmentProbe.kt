@@ -10,7 +10,6 @@ package education.cccp.academy.env
  * without a machine and without executing a single command.
  */
 fun interface EnvironmentProbe {
-
     /** Reads the observed facts of the host running the build. */
     fun observe(): EnvironmentFacts
 }

@@ -7,7 +7,6 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
-import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
 
@@ -21,7 +20,6 @@ import org.gradle.work.DisableCachingByDefault
  */
 @DisableCachingByDefault(because = "Interactive daemon — binds a port and blocks, non-cacheable (ACADEMY-8-2)")
 abstract class ServeWebhookBridgeTask : DefaultTask() {
-
     /** Opt-in switch — mirrors `academyInstaller.bridgeEnabled`. */
     @get:Input
     abstract val bridgeEnabled: Property<Boolean>
@@ -63,10 +61,11 @@ abstract class ServeWebhookBridgeTask : DefaultTask() {
     }
 
     /** The resolved, pure bridge configuration (testable without a server). */
-    fun config(): BridgeServerConfig = BridgeServerConfig(
-        host = bridgeHost.get(),
-        port = bridgePort.get(),
-        providerId = providerId.get(),
-        model = model.get(),
-    )
+    fun config(): BridgeServerConfig =
+        BridgeServerConfig(
+            host = bridgeHost.get(),
+            port = bridgePort.get(),
+            providerId = providerId.get(),
+            model = model.get(),
+        )
 }

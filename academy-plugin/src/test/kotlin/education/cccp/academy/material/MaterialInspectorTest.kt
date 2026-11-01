@@ -12,7 +12,6 @@ import kotlin.test.assertTrue
  * a legitimate `Empty`, not an error.
  */
 class MaterialInspectorTest {
-
     private val spg = manifest(MaterialArtifactType.SPG, version = "1.0")
     private val slides = manifest(MaterialArtifactType.SLIDES, version = "1.0")
 
@@ -25,10 +24,11 @@ class MaterialInspectorTest {
 
     @Test
     fun `every expected type present and version matching is ready`() {
-        val readiness = MaterialInspector.inspect(
-            requirement(expected = listOf(MaterialArtifactType.SPG, MaterialArtifactType.SLIDES)),
-            listOf(spg, slides),
-        )
+        val readiness =
+            MaterialInspector.inspect(
+                requirement(expected = listOf(MaterialArtifactType.SPG, MaterialArtifactType.SLIDES)),
+                listOf(spg, slides),
+            )
 
         val ready = assertIs<MaterialReadiness.Ready>(readiness)
         assertEquals(
@@ -39,10 +39,11 @@ class MaterialInspectorTest {
 
     @Test
     fun `a missing expected type is incomplete`() {
-        val readiness = MaterialInspector.inspect(
-            requirement(expected = listOf(MaterialArtifactType.SPG, MaterialArtifactType.QUIZ)),
-            listOf(spg),
-        )
+        val readiness =
+            MaterialInspector.inspect(
+                requirement(expected = listOf(MaterialArtifactType.SPG, MaterialArtifactType.QUIZ)),
+                listOf(spg),
+            )
 
         val incomplete = assertIs<MaterialReadiness.Incomplete>(readiness)
         assertEquals(listOf(MaterialArtifactType.QUIZ), incomplete.missingTypes)
@@ -50,10 +51,11 @@ class MaterialInspectorTest {
 
     @Test
     fun `a version divergence is incomplete and reported as outdated`() {
-        val readiness = MaterialInspector.inspect(
-            requirement(expected = listOf(MaterialArtifactType.SPG), version = "2.0"),
-            listOf(manifest(MaterialArtifactType.SPG, version = "1.0")),
-        )
+        val readiness =
+            MaterialInspector.inspect(
+                requirement(expected = listOf(MaterialArtifactType.SPG), version = "2.0"),
+                listOf(manifest(MaterialArtifactType.SPG, version = "1.0")),
+            )
 
         val incomplete = assertIs<MaterialReadiness.Incomplete>(readiness)
         assertTrue(incomplete.outdated, "a version divergence must be reported")
@@ -62,10 +64,11 @@ class MaterialInspectorTest {
 
     @Test
     fun `an unexpected artifact is simply ignored`() {
-        val readiness = MaterialInspector.inspect(
-            requirement(expected = listOf(MaterialArtifactType.SPG)),
-            listOf(spg, manifest(MaterialArtifactType.CAPSULE, version = "1.0")),
-        )
+        val readiness =
+            MaterialInspector.inspect(
+                requirement(expected = listOf(MaterialArtifactType.SPG)),
+                listOf(spg, manifest(MaterialArtifactType.CAPSULE, version = "1.0")),
+            )
 
         assertIs<MaterialReadiness.Ready>(readiness)
     }
@@ -74,10 +77,11 @@ class MaterialInspectorTest {
     fun `an unknown producer type does not satisfy a requirement`() {
         val unknown = manifest(null, version = "1.0", rawType = "SomeFutureThing")
 
-        val readiness = MaterialInspector.inspect(
-            requirement(expected = listOf(MaterialArtifactType.SPG)),
-            listOf(unknown),
-        )
+        val readiness =
+            MaterialInspector.inspect(
+                requirement(expected = listOf(MaterialArtifactType.SPG)),
+                listOf(unknown),
+            )
 
         val incomplete = assertIs<MaterialReadiness.Incomplete>(readiness)
         assertEquals(listOf(MaterialArtifactType.SPG), incomplete.missingTypes)
@@ -94,10 +98,11 @@ class MaterialInspectorTest {
     fun `a versioned requirement only checks types carrying a version`() {
         val versionless = manifest(MaterialArtifactType.SPG, version = null)
 
-        val readiness = MaterialInspector.inspect(
-            requirement(expected = listOf(MaterialArtifactType.SPG), version = "2.0"),
-            listOf(versionless),
-        )
+        val readiness =
+            MaterialInspector.inspect(
+                requirement(expected = listOf(MaterialArtifactType.SPG), version = "2.0"),
+                listOf(versionless),
+            )
 
         assertIs<MaterialReadiness.Ready>(readiness)
     }
@@ -105,10 +110,11 @@ class MaterialInspectorTest {
     @Test
     fun `the verdict never throws on any combination`() {
         MaterialArtifactType.entries.forEach { type ->
-            val readiness = MaterialInspector.inspect(
-                requirement(expected = listOf(type), version = "1.0"),
-                listOf(manifest(type, version = "1.0")),
-            )
+            val readiness =
+                MaterialInspector.inspect(
+                    requirement(expected = listOf(type), version = "1.0"),
+                    listOf(manifest(type, version = "1.0")),
+                )
             assertIs<MaterialReadiness.Ready>(readiness)
         }
     }

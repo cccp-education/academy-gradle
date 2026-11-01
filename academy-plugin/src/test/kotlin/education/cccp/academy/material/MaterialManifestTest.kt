@@ -12,22 +12,22 @@ import kotlin.test.assertTrue
  * than throwing — the verdict, not the parser, decides.
  */
 class MaterialManifestTest {
-
     @Test
     fun `reads the pivot fields`() {
-        val manifest = MaterialManifest.fromJson(
-            """
-            {
-              "source": "training",
-              "type": "SPG",
-              "sessions": 7,
-              "generatedAt": "2026-09-21T10:00:00Z",
-              "model": "gemma4:31b-cloud",
-              "version": "1.0",
-              "dependencies": ["codebase"]
-            }
-            """.trimIndent(),
-        )
+        val manifest =
+            MaterialManifest.fromJson(
+                """
+                {
+                  "source": "training",
+                  "type": "SPG",
+                  "sessions": 7,
+                  "generatedAt": "2026-09-21T10:00:00Z",
+                  "model": "gemma4:31b-cloud",
+                  "version": "1.0",
+                  "dependencies": ["codebase"]
+                }
+                """.trimIndent(),
+            )
 
         val read = checkNotNull(manifest)
         assertEquals("training", read.source)
@@ -39,16 +39,17 @@ class MaterialManifestTest {
 
     @Test
     fun `ignores an unknown field added by a producer`() {
-        val manifest = MaterialManifest.fromJson(
-            """
-            {
-              "source": "training",
-              "type": "SPD",
-              "version": "1.1",
-              "futureField": { "anything": true }
-            }
-            """.trimIndent(),
-        )
+        val manifest =
+            MaterialManifest.fromJson(
+                """
+                {
+                  "source": "training",
+                  "type": "SPD",
+                  "version": "1.1",
+                  "futureField": { "anything": true }
+                }
+                """.trimIndent(),
+            )
 
         val read = checkNotNull(manifest)
         assertEquals(MaterialArtifactType.SPD, read.type)
@@ -57,9 +58,10 @@ class MaterialManifestTest {
 
     @Test
     fun `an unknown type keeps the raw label and resolves no enum`() {
-        val manifest = MaterialManifest.fromJson(
-            """{ "source": "x", "type": "SomeFutureThing", "version": "1.0" }""",
-        )
+        val manifest =
+            MaterialManifest.fromJson(
+                """{ "source": "x", "type": "SomeFutureThing", "version": "1.0" }""",
+            )
 
         val read = checkNotNull(manifest)
         assertNull(read.type, "an unknown producer type must never be guessed")
