@@ -72,6 +72,11 @@ jobs:
         if: steps.build.outcome == 'success'
         run: ./gradlew publishToMavenLocal
         working-directory: academy-plugin
+        env:
+          # The build skips signing when CI=true. The runner did not expose it
+          # to this step (build.gradle.kts reads System.getenv("CI")), so the
+          # POM check tried to sign without a key. Set it explicitly.
+          CI: "true"
 
   publish:
     name: Publish to Maven Central
