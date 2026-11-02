@@ -11,17 +11,21 @@ data class ProducerInspection(
 )
 
 /**
- * ACADEMY-15 — reads the accessibility report produced by the text producer
+ * ACADEMY-15 — reads the accessibility reports produced by the text producer
  * (`document`, GBL-011-3).
  *
- * Contract: a JSON file named `a11y-report.json` (or `accessibility-report.json`)
- * under the material directory. The producer owns the checks; academy only
- * transports and aggregates them. Until the producer exists, a text deliverable
- * (HTML/EPUB/PDF) without the report yields a `producer-report-missing` warning —
- * never a silent "verified".
+ * Contract: JSON files named `a11y-report.json` (or `accessibility-report.json`)
+ * under the material directory. Every report contributes — a producer may write
+ * one report per artifact directory. The producer owns the checks; academy only
+ * transports and aggregates them.
  *
- * The reader is tolerant (unknown fields/rules ignored) and a malformed report is
- * a declared limit, not a crash.
+ * A report only verifies the deliverable kinds it declares. A text deliverable
+ * (HTML/EPUB/PDF) that no report covers yields a `producer-report-incomplete`
+ * warning, and a text deliverable with no usable report yields a
+ * `producer-report-missing` warning — never a silent "verified".
+ *
+ * The reader is tolerant (unknown fields/rules/kinds ignored) and a malformed
+ * report is a declared limit, not a crash.
  */
 object ProducerReportInspector {
     private val REPORT_NAMES = setOf("a11y-report.json", "accessibility-report.json")
@@ -33,7 +37,7 @@ object ProducerReportInspector {
         )
     private val json = Json { ignoreUnknownKeys = true }
 
-    /** Reads the producer report of [materialDir] against the [files] it contains. */
+    /** Reads every producer report of [materialDir] against the [files] it contains. */
     fun inspect(
         materialDir: File,
         files: List<File>,
@@ -42,59 +46,87 @@ object ProducerReportInspector {
             files
                 .filter { it.extension.lowercase() in TEXT_EXTENSIONS }
                 .map { TEXT_EXTENSIONS.getValue(it.extension.lowercase()) to it }
-        val reportFile = files.firstOrNull { it.name.lowercase() in REPORT_NAMES }
+        val reportFiles = files.filter { it.name.lowercase() in REPORT_NAMES }
 
-        if (reportFile == null) {
-            val findings =
-                textDeliverables.map { (deliverable, file) ->
-                    A11yFinding(
-                        deliverable = deliverable,
-                        rule = A11yRules.PRODUCER_REPORT_MISSING,
-                        severity = A11ySeverity.WARNING,
-                        location = file.relativeTo(materialDir).path,
-                        message = "No producer accessibility report: $deliverable cannot be verified",
-                    )
-                }
-            return ProducerInspection(findings, emptyList())
+        if (reportFiles.isEmpty()) {
+            return ProducerInspection(missingFindings(materialDir, textDeliverables, malformed = false), emptyList())
         }
 
-        val report = parse(reportFile)
-        if (report == null) {
-            val findings =
-                textDeliverables.map { (deliverable, file) ->
-                    A11yFinding(
-                        deliverable = deliverable,
-                        rule = A11yRules.PRODUCER_REPORT_MISSING,
-                        severity = A11ySeverity.WARNING,
-                        location = file.relativeTo(materialDir).path,
-                        message = "Malformed producer accessibility report: $deliverable cannot be verified",
-                    )
-                }
-            return ProducerInspection(findings, listOf("Malformed producer report: ${reportFile.name}"))
+        val parsed = reportFiles.mapNotNull { parse(it) }
+        val malformedLimits =
+            reportFiles
+                .filter { report -> parsed.none { it.source == report } }
+                .map { "Malformed producer report: ${it.name}" }
+
+        if (parsed.isEmpty()) {
+            return ProducerInspection(
+                missingFindings(materialDir, textDeliverables, malformed = true),
+                malformedLimits,
+            )
         }
+
+        val coveredKinds =
+            parsed
+                .flatMap { it.report.deliverables }
+                .mapNotNull { kindOf(it.kind) }
+                .toSet()
 
         val findings =
-            report.deliverables.flatMap { deliverable ->
-                val kind =
-                    A11yDeliverable.entries.firstOrNull {
-                        it.name.equals(deliverable.kind.trim(), ignoreCase = true)
-                    } ?: return@flatMap emptyList()
-                deliverable.findings.map { finding ->
-                    A11yFinding(
-                        deliverable = kind,
-                        rule = finding.rule.ifBlank { A11yRules.PRODUCER_FINDING },
-                        severity = severityOf(finding.severity),
-                        location = finding.location,
-                        message = finding.message,
-                    )
+            parsed.flatMap { parsedReport ->
+                parsedReport.report.deliverables.flatMap { deliverable ->
+                    val kind = kindOf(deliverable.kind) ?: return@flatMap emptyList()
+                    deliverable.findings.map { finding ->
+                        A11yFinding(
+                            deliverable = kind,
+                            rule = finding.rule.ifBlank { A11yRules.PRODUCER_FINDING },
+                            severity = severityOf(finding.severity),
+                            location = finding.location,
+                            message = finding.message,
+                        )
+                    }
                 }
-            }
-        return ProducerInspection(findings, report.deliverables.flatMap { it.limits })
+            } +
+                textDeliverables
+                    .filter { (kind, _) -> kind !in coveredKinds }
+                    .map { (kind, file) ->
+                        A11yFinding(
+                            deliverable = kind,
+                            rule = A11yRules.PRODUCER_REPORT_INCOMPLETE,
+                            severity = A11ySeverity.WARNING,
+                            location = file.relativeTo(materialDir).path,
+                            message = "Producer accessibility report does not cover $kind: the deliverable cannot be verified",
+                        )
+                    }
+
+        val limits = parsed.flatMap { it.report.deliverables.flatMap { deliverable -> deliverable.limits } } + malformedLimits
+        return ProducerInspection(findings, limits)
     }
 
-    private fun parse(file: File): ProducerA11yReport? =
+    private fun missingFindings(
+        materialDir: File,
+        textDeliverables: List<Pair<A11yDeliverable, File>>,
+        malformed: Boolean,
+    ): List<A11yFinding> {
+        val cause = if (malformed) "Malformed producer accessibility report" else "No producer accessibility report"
+        return textDeliverables.map { (deliverable, file) ->
+            A11yFinding(
+                deliverable = deliverable,
+                rule = A11yRules.PRODUCER_REPORT_MISSING,
+                severity = A11ySeverity.WARNING,
+                location = file.relativeTo(materialDir).path,
+                message = "$cause: $deliverable cannot be verified",
+            )
+        }
+    }
+
+    private fun kindOf(raw: String): A11yDeliverable? =
+        A11yDeliverable.entries.firstOrNull {
+            it.name.equals(raw.trim(), ignoreCase = true)
+        }
+
+    private fun parse(file: File): ParsedReport? =
         try {
-            json.decodeFromString(ProducerA11yReport.serializer(), file.readText())
+            ParsedReport(file, json.decodeFromString(ProducerA11yReport.serializer(), file.readText()))
         } catch (_: Exception) {
             null
         }
@@ -102,6 +134,11 @@ object ProducerReportInspector {
     private fun severityOf(raw: String): A11ySeverity =
         A11ySeverity.entries.firstOrNull { it.name.equals(raw.trim(), ignoreCase = true) }
             ?: A11ySeverity.WARNING
+
+    private data class ParsedReport(
+        val source: File,
+        val report: ProducerA11yReport,
+    )
 
     @Serializable
     private data class ProducerA11yReport(

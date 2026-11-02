@@ -1,0 +1,30 @@
+= COMPLETED_TASKS_ARCHIVE — 2026-11 — academy-gradle
+
+_Session 017 (2026-11-02) — ACADEMY-13/14 TERMINÉS + ACADEMY-15 socle_
+
+- ACADEMY-13 : CI obligatoire (`.github/workflows/test.yml`, job `test` →
+  `./gradlew build` dans `academy-plugin`, job `publish` en garde `v*` +
+  `needs: [test]`) — 3 pts
+- ACADEMY-14 : bundle hors-ligne (domaine `installer.offline`, port/adapter
+  Docker, task `buildOfflineBundle`, pinning digest, image workspace
+  pré-construite) + dogfooding CI dédié **VERT** `41362217647` — 5 pts
+- ACADEMY-15 (socle, **non terminé**) : domaine `academy.a11y`, inspecteurs
+  vidéo/producteur, auditeur, task `auditTrainingAccessibility` — reste
+  producteurs (`document`/`capsule`) + audit Moodle/opencode
+
+_Session 018 (2026-11-02) — ACADEMY-15 (socle + producteur)_
+
+- ACADEMY-15 : consommation des rapports producteurs rendue **mesurable** —
+  `ProducerReportInspector` agrège tous les `a11y-report.json` du matériel et
+  vérifie la couverture (`producer-report-incomplete`, WARNING) ; un rapport
+  malformé est une limite déclarée, jamais un crash.
+- Pyramide complète : +6 unit `ProducerReportInspectorTest`, +8 scénarios BDD
+  `@a11y` (`AcademyA11ySteps`, `AcademyA11yCucumberRunner`, `cucumberTestA11y`),
+  +4 functional TestKit `AcademyA11yFunctionalTest`.
+- Dogfooding cross-borough réel : `document-plugin 0.0.29` (rapport producteur
+  sur HTML déficient) → `academy-plugin 0.0.2` (agrégation : 4 findings
+  producteur + 3 vidéo + 1 couverture manquante PDF).
+- Gates : compiles ×3, `ktlintCheck`, `validatePlugins`, `publishToMavenLocal`
+  VERTS ; `check --dry-run` inclut `cucumberTestA11y` + `functionalTest`.
+- Reste : `GBL-011-4` (audiodescription capsule), matériel FPA réel,
+  audit Moodle/opencode (limite déclarée).

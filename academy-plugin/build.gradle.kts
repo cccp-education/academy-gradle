@@ -277,6 +277,30 @@ val cucumberTestEnv by tasks.registering(Test::class) {
 
 tasks.check { dependsOn(cucumberTestEnv) }
 
+// ── ACADEMY-15 — Dedicated Cucumber runner for academy_a11y.feature (pattern S-082) ──
+// Scoped to AcademyA11yCucumberRunner so only the accessibility feature runs.
+val cucumberTestA11y by tasks.registering(Test::class) {
+    group = "verification"
+    description = "Runs the academy_a11y.feature Cucumber suite (ACADEMY-15)"
+    testClassesDirs = sourceSets.getByName("test").output.classesDirs
+    classpath = configurations.getByName("testRuntimeClasspath") +
+        sourceSets.getByName("test").output +
+        sourceSets.getByName("main").output
+    useJUnitPlatform {
+        excludeEngines("junit-jupiter")
+    }
+    filter {
+        includeTestsMatching("education.cccp.academy.bdd.AcademyA11yCucumberRunner")
+    }
+    systemProperty("cucumber.junit-platform.naming-strategy", "long")
+    systemProperty("cucumber.features", "src/test/resources/features/academy_a11y.feature")
+    systemProperty("cucumber.filter.tags", "@a11y and not @wip and not @integration")
+    shouldRunAfter(tasks.named("test"))
+    outputs.upToDateWhen { false }
+}
+
+tasks.check { dependsOn(cucumberTestA11y) }
+
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     testLogging {

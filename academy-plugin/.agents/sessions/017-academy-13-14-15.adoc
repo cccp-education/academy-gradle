@@ -1,0 +1,50 @@
+= Session 017 — ACADEMY-13/14 TERMINÉS + ACADEMY-15 socle
+:toc: left
+:date: 2026-11-02
+:statut: ✅ ACADEMY-13/14 TERMINÉS — ACADEMY-15 🟡
+
+== Objet
+
+Suite de la session 016. Trois missions : rendre l'artefact publiable **prouvé**
+(ACADEMY-13), rendre la boîte **hors-ligne** (ACADEMY-14), puis armer la porte
+d'accessibilité (ACADEMY-15).
+
+== ACADEMY-13 — CI obligatoire ✅
+
+- `.github/workflows/test.yml` : job `test` (`./gradlew build` dans
+  `academy-plugin`, JDK 25, annotations par test en échec) + job `publish`
+  (`v*`, `needs: [test]`, GPG/OSSRH).
+- Leçon : `com.gradle.plugin-publish` signe automatiquement dès que `signing`
+  est appliqué ; la vérification keyless génère le POM au lieu de publier.
+- Preuve : CI `41351698417`, puis `41352779082`, `41363625109` **VERTES**.
+
+== ACADEMY-14 — bundle hors-ligne ✅
+
+- Domaine `academy.installer.offline`, port/adapter Docker, tâche opt-in
+  `buildOfflineBundle`, pinning digest, bloc `docker load` dans l'installateur.
+- Image workspace **pré-construite** (le Dockerfile installe `opencode` par
+  `curl`) et sauvegardée : l'hôte hors-ligne ne fait ni pull ni build.
+- Dogfooding dédié `.github/workflows/offline-dogfood.yml` + `dogfood/`
+  (`includeBuild`, zéro publication/signature). **Run `41362217647` VERT**.
+- 4 bugs réels corrigés (dépendance Gradle, mot de passe postgres, profil
+  `agent`, assertion d'image pinnée).
+
+== ACADEMY-15 — porte d'accessibilité 🟡
+
+- Domaine `academy.a11y`, inspecteurs vidéo/producteur, auditeur, tâche
+  `auditTrainingAccessibility` opt-in/advisory (`a11yStrict`), rapport JSON
+  avec limites déclarées.
+- Reste : rapports producteurs (`document` socle livré, `capsule`
+  audiodescription) + audit Moodle/opencode.
+
+== Gates
+
+`compileKotlin` / `compileTestKotlin` / `compileFunctionalTestKotlin` /
+`validatePlugins` / `ktlintCheck` / `publishToMavenLocal` VERTS.
+CI `41363625109` **VERTE** (build + tests + ktlint + POM).
+
+== Prochaine session (018)
+
+Vérifier la CI `document` du rapport producteur, puis consommer
+`a11y-report.json` (sortie du `WARNING` `producer-report-missing`), puis
+`GBL-011-4`/`-6`.

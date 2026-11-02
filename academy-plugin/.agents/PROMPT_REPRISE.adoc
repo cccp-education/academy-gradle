@@ -1,72 +1,55 @@
 = PROMPT_REPRISE — academy-gradle
 
-== Mission de la prochaine session
+== Mission de la prochaine session (019)
 
-**Ordre du jour pilote (S-016, à confirmer) — choisir parmi les items restants**
-du backlog, aucun n'étant coddable localement sans prérequis externe :
+**ACADEMY-15 — reste de la porte d'accessibilité** (le socle, la consommation
+producteur, le BDD et le functional sont livrés S-018) :
 
-. **ACADEMY-12-3** — dogfooding environnement Windows réel (`install.bat`,
-   `docker compose config`, parité, images tirées). Exige un **hôte Windows
-   réel** (les runners CI ne fournissent que des conteneurs Windows). À
-   ordonnancer dès qu'un hôte Windows est disponible.
-. **ACADEMY-10** — migration du bridge Ktor → Spring Boot WebFlux + coroutines
-   + R2DBC + PostgreSQL + Jackson 3. **Cadrage/décision pilote requis** ; impose
-   un bump BOM vers Boot 4.1.1 (cross-borough MEMPHIS, Boot 3.4.2 ne livre que
-   Jackson 2.18.2).
-. **ACADEMY-9** — Qualiopi (traces de session : bilan, émoluments, assiduité).
-   Cadrage/décision pilote requis.
-. **BUREAU-3** — transport git du matériel : appartient à un **autre borough**
-   (le bureau). Academy **lit** l'exigence, n'exécute jamais git.
+. **Vérifier la CI** de la session 018 (commit poussé) : `./gradlew build` doit
+   exécuter unit + `functionalTest` + `cucumberTestA11y` + ktlint + POM.
+. **Consommer le vrai matériel FPA** quand il existe (gate corpus MVP0) : le
+   rapport `a11y-report.json` de `document` sur le livre réel + les capsules
+   réelles. Sortir les `WARNING`/`ERROR` et les limites.
+. **ACADEMY-15 côté vidéo — dépend de `GBL-011-4` (capsule)** : academy détecte
+   déjà `foo.audiodesc.*`; le producteur ne la génère pas encore. Ne pas
+   l'implémenter dans academy (un propriétaire par couche).
+. **Audit Moodle/opencode** : hors périmètre de la tâche (navigateur/session),
+   déclaré en limite. À cadrer séparément si le pilote le demande.
+. Restent ouverts : **ACADEMY-12-3** (hôte Windows réel), **ACADEMY-10**
+   (Spring Boot WebFlux, accord pilote + bump BOM possible), **ACADEMY-9**
+   (Qualiopi), **BUREAU-3** (autre borough — transport git).
 
-== Décisions actées S-016 (ne pas les rediscuter)
+== Décisions actées S-018 (ne pas les rediscuter)
 
-* **Service `moodle-material`** : one-shot conditionnel
-  (`moodleMaterialEnabled`, défaut `false`) dans `composeBody()`, pattern
-  `moodle-seed` : `restart: "no"`, `entrypoint` explicite,
-  `depends_on: moodle: service_healthy`.
-* **Volume nommé `moodle-html:/var/www/html`** partagé par `moodle` et
-  `moodle-material` — **indispensable** : `moosh` bootstrappe contre l'install
-  (config.php généré au boot), un frère sans l'arbre partagé échoue.
-* **Garde de rejeu** : marqueur `sha256(plan.json)` dans
-  `/var/www/html/.academy-applied-plan` — `moosh activity-add` **ne
-  dédoublonne pas** (bug réel S-016). Le marqueur vit dans le **volume nommé
-  inscriptible**, jamais dans le bind `/ingest` (uid hôte ≠ `nobody`).
-* **Input tolérant** `GenerateInstallerTask.moodleMaterialFiles`
-  (`@InputFiles @Optional`, pattern CDX-CONTEXT-HARDENING S-221) : un re-run
-  simple ré-rend un plan changé (bug réel de staleness S-016).
-* **Lecture matériel partagée** : `MoodleMaterialReader` (source unique,
-  utilisée par `generateMoodleImport` **et** `buildAllInstallers`).
-* **Source unique partagée** bash/batch (parité structurelle, D-ACADEMY-12-5).
+* **Un rapport producteur ne vérifie que les types qu'il déclare** : nouvelle
+  règle `producer-report-incomplete` (WARNING) par livrable textuel non couvert.
+  Un rapport présent ne vaut pas « vérifié ».
+* **Tous les rapports** `a11y-report.json`/`accessibility-report.json` sous le
+  matériel contribuent (findings + limites) ; un rapport malformé produit une
+  **limite déclarée**, jamais un crash, et ne masque pas un rapport valide.
+* **Pyramide complète** : unit (6 `ProducerReportInspectorTest`), functional
+  (4 `AcademyA11yFunctionalTest` boîte noire), BDD (`@a11y`, 8 scénarios,
+  runner dédié `cucumberTestA11y`).
+* **Dogfooding cross-borough en deux builds** (producteur / consommateur) :
+  les plugins `document` et `academy` ne partagent pas un classpath (pin
+  `org.jetbrains:annotations` de la BOM `document` vs embarqué Kotlin).
+* `AuditTrainingAccessibilityTask` reste **opt-in** (`a11yAuditEnabled=false`)
+  et **advisory** (`a11yStrict=false`). Un matériel absent = rapport `MISSING`.
 
-== État de l'architecture (session 016)
+== État de l'architecture (session 018)
 
-- **ACADEMY-1/4/5/6/7/8/11 TERMINÉS** (S-003→S-013, ACADEMY-11 clos S-016).
-- **ACADEMY-12 3/4 US** (S-014/S-015/S-016 : 12-2 ✅) :
-  - Domaine pur `academy.env` (`HostOs`, `EnvironmentFacts`, `DockerStrategy`
-    sealed, `DockerStrategyDecider`) + port `EnvironmentProbe` + adapter
-    `HostEnvironmentProbe` + task `checkContainerEngine` (verdict rapporté).
-  - Writers `install.sh` (Linux apt / macOS Colima) + `install.bat`
-    (WSL2/Desktop resumable).
-  - **12-3 à faire** (dogfooding Windows réel).
-- **ACADEMY-10/ACADEMY-9** : cadrage/décision pilote requis.
-
-== Autres items ouverts du backlog (pour mémoire)
-
-* ACADEMY-12-3 : exige un hôte Windows réel.
-* ACADEMY-9 (Qualiopi) et ACADEMY-10 (Spring Boot WebFlux) : cadrage.
-* BUREAU-3 (autre borough) : transport git du matériel.
+- **ACADEMY-1/4/5/6/7/8/11/13/14 TERMINÉS**.
+- **ACADEMY-15** : socle + consommation producteur + BDD + functional ✅
+  `document-plugin 0.0.29` produit `a11y-report.json` (GBL-011-3) et academy
+  l'agrège. Reste `GBL-011-4` (audiodescription capsule) + matériel réel.
+- **ACADEMY-12 3/4 US** (12-3 Windows à faire). **ACADEMY-10/9** cadrage requis.
 
 == Rappels des ordres de mission
 
-- BDD/TDD baby-step strict : RED → GREEN → REFACTOR, 1 fichier de test avant le code.
-- Gouvernance d'abord pour toute décision pilote (pattern S-057).
-- **Vérifier la source avant de nommer** toute image/commande/outil (S-007/S-011/S-013/S-016).
-- **Dogfooding = preuve réelle** ; ne pas livrer une branche OS non prouvée
-  (macOS reste vérifié structurellement — pas de Mac à disposition, assumé).
-- Parité cross-plateforme : source unique partagée > doublon asserté.
+- BDD/TDD baby-step strict, 1 fichier de test avant le code ; English only.
+- **Local = Build, Tests = CI** : compiler localement, pousser, prouver par CI.
+- **Vérifier la source avant de nommer** image/commande/outil.
+- **Dogfooding = preuve réelle** (jamais une fixture inventée).
 - DAG N2 : academy importable par N3, jamais N3 → academy.
-- Zéro secret. `publishToMavenLocal` obligatoire après modification de source.
-- Code anglais only (OSS cccp-education), docs gouvernance en français.
+- Zéro secret. `publishToMavenLocal` après toute modification de source.
 - Sur un hôte nu, `./gradlew` doit configurer (P0 S-014 — ne pas régresser).
-- Le dogfooding Linux S-016 est prouvé (`compose up` + preuve base + rejeu
-  no-op). Ne pas le rejouer sans delta source.

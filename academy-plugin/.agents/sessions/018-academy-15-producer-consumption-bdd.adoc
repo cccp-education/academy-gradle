@@ -1,0 +1,128 @@
+= Session 018 — ACADEMY-15 : consommation des rapports producteurs + BDD + functional
+:toc: left
+:date: 2026-11-02
+:statut: ✅ ACADEMY-15 (socle + producteur) — porte opérationnelle ; reste capsule/GBL-011-4
+
+== Objet
+
+Suite de la session 017 (ACADEMY-15 socle). Le producteur `document` a livré
+`a11y-report.json` (GBL-011-3, `document-plugin 0.0.29`). Mission : rendre la
+consommation **réelle et prouvée** — corriger la couverture du rapport
+producteur, compléter la pyramide de tests (unit / functional / Cucumber) et
+dogfooder la chaîne cross-borough.
+
+== Constat d'ouverture (faits vérifiés)
+
+- `academy.a11y` (4 fichiers) et la tâche `auditTrainingAccessibility` existent,
+  mais **seulement 12 tests unitaires** — aucun BDD `@a11y`, aucun functional.
+- `ProducerReportInspector` lisait **un seul** rapport (`firstOrNull`) et, si ce
+  rapport existait, **aucune vérification de couverture** : un livrable HTML/EPUB/PDF
+  non déclaré par le producteur était silencieusement « vérifié ». Contraire à la
+  règle « aucune promesse sans mesure ».
+- `document-plugin 0.0.29` **est disponible en mavenLocal** avec les classes
+  `document.a11y` → le contrat cross-borough est dogfoodable sans réseau.
+
+== BS-1 — TDD RED : couverture et agrégation
+
+Nouveau `ProducerReportInspectorTest` (6 unit) :
+
+- un rapport qui ne couvre que `HTML` laisse un `PDF` **non vérifié** ;
+- **tous** les rapports du matériel contribuent (findings + limites) ;
+- un rapport malformé **ne masque pas** un rapport valide ;
+- un rapport uniquement malformé laisse les livrables textuels non vérifiables ;
+- un `kind` inconnu ne vérifie **jamais** un livrable ;
+- une règle inconnue est conservée, une sévérité inconnue dégrade en `WARNING`.
+
+*RED prouvé par compilation* : `Unresolved reference 'PRODUCER_REPORT_INCOMPLETE'`.
+
+== BS-2 — GREEN : `ProducerReportInspector`
+
+- Nouvelle règle stable `A11yRules.PRODUCER_REPORT_INCOMPLETE`
+  (`producer-report-incomplete`).
+- **Agrégation multi-rapports** : chaque `a11y-report.json` /
+  `accessibility-report.json` sous le matériel est lu ; les rapports malformés
+  produisent une **limite déclarée** (`Malformed producer report: <nom>`), pas un
+  crash.
+- **Couverture par type** : un livrable textuel présent dont le type n'est déclaré
+  par **aucun** rapport reçoit un `WARNING` `producer-report-incomplete`
+  (localisation = chemin relatif du fichier).
+- Tolérance conservée : champs/règles/types inconnus ignorés, sévérité inconnue
+  → `WARNING`.
+- `MaterialA11yAuditor` et la KDoc du contrat mis à jour (pas de changement de
+  verdict : `MISSING` / `DEGRADED` / `VERIFIED`).
+
+== BS-3 — BDD `@a11y` (pattern S-082/S-088)
+
+- `academy_a11y.feature` — **8 scénarios** : matériel vide → `MISSING` ; vidéo sans
+  compagnons → `DEGRADED` + `ERROR` sous-titres ; vidéo complète → `VERIFIED` ;
+  livrable textuel sans rapport → `WARNING` ; rapport couvrant → `VERIFIED` ;
+  rapport incomplet → `producer-report-incomplete` + livrable nommé ; findings et
+  limites producteur agrégés **verbatim** ; rapport malformé → limite déclarée.
+- `AcademyA11ySteps` (glue préfixée `accessibility`, zéro Gradle/tâche) +
+  `AcademyA11yCucumberRunner` (runner dédié) + tâche `cucumberTestA11y` câblée à
+  `check`.
+
+== BS-4 — Functional TestKit (4 tests)
+
+`AcademyA11yFunctionalTest` (vrai build Gradle) :
+
+- **opt-in** : sans `a11yAuditEnabled` la tâche est `SKIPPED` et **aucun rapport**
+  n'est écrit ;
+- **advisory** : matériel dégradé → `SUCCESS` + rapport `DEGRADED` contenant
+  `video-subtitles-missing` ;
+- **strict** : `a11yStrict` → `FAILED` avec message « strict mode » ;
+- **matériel absent** : `SUCCESS` + rapport `MISSING` (la ressource est générée
+  avant le pull).
+
+Le test reste **boîte noire** : le rapport est lu comme le contrat JSON public
+(pas d'import des classes d'implémentation dans `functionalTest`).
+
+== BS-5 — Dogfooding cross-borough réel
+
+Deux builds séparés sous `/tmp/opencode/academy-a11y-dogfood/` (producteur et
+consommateur — les deux plugins ne peuvent pas partager un classpath à cause du
+pin `org.jetbrains:annotations` de la BOM `document` ; séparer est aussi le
+modèle réel) :
+
+. `producer/` applique `education.cccp.document:0.0.29` et exécute
+  `reportDocumentAccessibility` sur un HTML réellement déficient
+  (sans `lang`, `img` sans `alt`, table sans `th`, pas de `h1`) → **4 findings**
+  écrits dans `build/docs/document/a11y-report.json`.
+. `consumer/` applique `education.cccp.academy:0.0.2` (mavenLocal du HEAD) et
+  exécute `auditTrainingAccessibility` sur ce dossier → **8 findings** :
+  4 producteur agrégés + 3 vidéo (`demo.mp4` sans compagnons) +
+  **1 `producer-report-incomplete`** pour `cours.pdf` (présent mais non déclaré).
+. Rapport supprimé → `producer-report-missing` pour chaque livrable textuel
+  (preuve de non-régression du chemin nominal).
+. Rapport restauré → verdict `DEGRADED` de bout en bout, limites déclarées.
+
+*Preuve* : la chaîne producteur → rapport → consommateur fonctionne avec le
+**vrai** artefact `document`, pas avec une fixture inventée.
+
+== Gates locaux (Local = Build, Tests = CI)
+
+- `compileKotlin` / `compileTestKotlin` / `compileFunctionalTestKotlin` VERTS.
+- `ktlintCheck` VERT, `validatePlugins` VERT, `publishToMavenLocal` VERT.
+- `check --dry-run` montre `cucumberTestA11y` + `functionalTest` dans le graphe.
+- Dogfooding cross-borough VERT (voir BS-5).
+- Zéro secret.
+
+== Reste ACADEMY-15
+
+- Audiodescription vidéo produite par `capsule` (`GBL-011-4`) — academy la
+  **détecte** déjà (`foo.audiodesc.*`) mais le producteur ne la génère pas encore.
+- Audit Moodle/opencode (navigateur/session) — **hors périmètre de la tâche**,
+  déclaré en limite du rapport.
+- « Matériel vérifié » sur le corpus FPA réel : dépend du matériel SPG/SPD généré
+  (MVP0 training, gate corpus) et de `GBL-011-4`.
+
+== Leçons
+
+- Un rapport producteur **présent** ne vaut pas vérification : sans contrôle de
+  couverture, la porte d'accessibilité produisait un « vert » non mesuré.
+- Séparer producteur et consommateur en deux builds est le modèle réel et évite
+  un conflit de classpath ; le dogfooding cross-borough reste possible en local
+  (`mavenLocal`).
+- La pyramide complète (unit + functional + Cucumber) trouve des angles morts
+  différents : le functional a validé l'opt-in `SKIPPED` que le test unitaire
+  `ProjectBuilder` ne peut pas prouver.

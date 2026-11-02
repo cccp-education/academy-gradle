@@ -50,7 +50,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-12 | Provisionnement de l'engine conteneurs par OS (Linux natif / Windows Docker Desktop WSL2 / macOS Colima) + Portainer partout | 🟡 EN COURS 3/4 US (S-015) — 12-0/12-1/12-2 ✅ ; 12-3 🟡 À FAIRE
 | ACADEMY-13 | CI de test obligatoire (unit + functionalTest + suites Cucumber) — l'artefact 0.0.2 est publié Central **sans aucun workflow** : 234 `@Test` et 84 `.feature` ne sont jamais exécutés automatiquement | ✅ TERMINÉ (S-017 / S-224) — `.github/workflows/test.yml` + garde `publish` (tag `v*`, `needs: test`)
 | ACADEMY-14 | Bundle hors-ligne de la boîte (images épinglées par digest + `docker save`/`load`, installation sans réseau, vérification de charge) — le compose référence `erseco/alpine-moodle:v5.2.3` par tag, donc la boîte exige le réseau | ✅ TERMINÉ (S-017 / S-224) — bundle + build workspace + `docker save` + pinning digest + installateur + dogfooding CI VERT (run `41362217647`) |
-| ACADEMY-15 | Accessibilité de la boîte : audit Moodle/opencode WCAG 2.1 AA, thème et navigation clavier, matériel accessible vérifié, porte d'acceptation et rapport d'écarts | 🟡 EN COURS (S-017 / S-224) — socle d'audit (domaine, video/producer inspectors, task, tests) ; reste rapports producteurs + audit Moodle |
+| ACADEMY-15 | Accessibilité de la boîte : audit Moodle/opencode WCAG 2.1 AA, thème et navigation clavier, matériel accessible vérifié, porte d'acceptation et rapport d'écarts | 🟡 EN COURS (S-017/S-018) — socle + consommation producteur + BDD/functional/dogfooding ✅ ; reste `GBL-011-4` (audiodescription capsule), matériel FPA réel, audit Moodle/opencode (limite déclarée)
 |===
 
 '''
@@ -475,6 +475,9 @@ décision pilote.
 | 2026-09-21 | S-013 : **EPIC ACADEMY-11 3/4 US** + **ToolExposure (N0) branché** + **frontière runtime actée**. Arbitrage pilote : academy **consomme** la formation (training) et **injecte de la data structurée** AsciiDoc dans Moodle — **pas** de boucle runtime ; puis « on s'appuie sur l'**image préconstruite** et ses **outils natifs** ». **Découverte décisive** : l'image `erseco/alpine-moodle:v5.2.3` embarque `moodle-blueprint` (format Moodle Playground, appliqué auto au boot via `MOODLE_BLUEPRINT`) et **`moosh`** (Moodle Shell : `course-create -r` idempotent, `activity-add`, `section-config-set`) → l'applicateur les **pilote** (zéro PHP maison, zéro SQL/DDL, zéro stack). Domaine pur `academy.moodle` (`MoodleActivityType`/`MoodleActivityMapping` vocabulaire Moodle réel, `MoodleMaterial` path-only, `MoodleActivity`/`MoodleSection`, `MoodleImportPlan`, `MoodlePlanBuilder`, `MoodleIngestionScriptGenerator`) + tâche `generateMoodleImport` (opt-in `moodleImportEnabled` défaut `false`, **dégradée** : matériel vide → rien écrit) + extension +4 properties + BDD `academy_moodle.feature` 10 scénarios + runner `cucumberTestMoodle` (S-082) ; D-ACADEMY-11-1..10. **ToolExposure** : `OpenCodeCatalog.exposure()` lit le contrat N0, le guide dérive le guardrail. **Frontière runtime actée** (D-ACADEMY-11-1) : `FormationRuntimePort` appartient à l'étage privé → ACADEMY-2/3 **CLOS côté academy** ; le TODO `SessionMemoryContract` « zéro implémenteur » est **périmé** (`PgVectorSessionMemory` codex S-094). **Dogfooding réel** Moodle 5.2.3 + PostgreSQL 16 (cours/sections/activités injectés via `moosh`) — **3 bugs réels attrapés** (double-quote shortname, champ `awk` du CSV `course-list`, `--intro` vs `--content`) + 3 tests de régression. Gates : 183 unit + 13 functional + 21 installer + 6 opencode + 8 byok + 6 bridge + 8 material + 10 moodle scénarios 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT, zéro secret. Reste ACADEMY-11-4 (service compose `moodle-material`, non livré faute de preuve `compose up`). |
 | 2026-09-25 | S-014 : **EPIC ACADEMY-12 cadré + ACADEMY-12-1 TERMINÉ** — provisionnement de l'engine conteneurs par OS. Demande pilote (tester l'installation Windows) **recadrée par les faits** : Docker Engine natif Windows ne fait pas tourner les images Linux (`docs.docker.com/engine/install/`), « sans WSL » est impossible (Docker Desktop *gère* WSL2, activation admin + reboot possible), « Engine sans Desktop » sur macOS est impossible (VM → Colima) ; **runner GitHub Windows écarté** (conteneurs Windows only). **Matrice d'engine actée** : Linux natif / Windows Desktop / macOS Colima, **Portainer partout** — **supersede D-ACADEMY-6-12** (erreur de catégorie engine ≠ GUI ; D-ACADEMY-12-1..8). **P0** : `settings.gradle.kts` nmcp conditionnel (un hôte nu configure ; les 25 boroughs partageaient le blocage). Domaine pur `academy.env` (`HostOs`/`EnvironmentFacts`/`DockerStrategy` sealed/`DockerStrategyDecider`) + BDD `academy_env.feature` 7 scénarios `@env` + runner `cucumberTestEnv` (S-082). RED prouvé (30 `Unresolved reference` + 7 `UndefinedStepException`). Gates : 193 unit + 13 functional + 68 scénarios Cucumber 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT, `help -Duser.home=<vide>` VERT, zéro secret. Reste ACADEMY-12-2 (writers + sonde) et ACADEMY-12-3 (dogfooding Windows réel). |
 | 2026-09-25 | S-015 : **ACADEMY-12-2 TERMINÉ** — writers portables + sonde adapter + dogfooding Linux. Constats (faits vérifiés) : les 2 scripts Unix étaient des quasi-doublons (D-ACADEMY-12-5 non appliquée) et **vérifiaient** Docker au lieu de le provisionner ; la procédure officielle est le **dépôt apt** (`docs.docker.com/engine/install/{ubuntu,debian}/`, pas `get.docker.com`) ; Docker Desktop Windows est scriptable **per-user** (`install --user --quiet --accept-license --backend=wsl-2`, sans admin), `wsl --status` sonde WSL2 ; Colima (`brew install colima docker` + `colima start`) pour macOS. **Gouvernance respectée** (matrice D-12-1, portabilité D-12-5, pure/adapter D-12-2, reboot D-12-4) + **ajustement D-12-3** : `checkContainerEngine` **rapporte** le verdict sans jeter (un hôte nu configure/teste — P0). **GREEN** : `unixScript` unique (en-tête Linux apt / macOS Colima, queue commune verbatim) ; `windowsScript` refondu (sonde en faits `IS_ADMIN`, `:bootstrap_wsl2` resumable / `:install_docker_desktop`) ; port `EnvironmentProbe` + adapter `HostEnvironmentProbe` (seul `ProcessBuilder` prod) + `HostOs.fromOsName` pur + task `checkContainerEngine`. **Tests** : +13 unit +1 functional (`bash -n` réel) +3 scénarios BDD (24 installer) ; contrat macOS migré Docker Desktop→Colima (supersede assumé). **Dogfooding Linux réel** : consommateur /tmp, sonde `docker info`, exécution HOME isolé → compose/`.env`/seed/project écrits, `docker compose config` **exit 0** (5 services), idempotence marquée. Gates : 207 unit + 16 functional + 69 Cucumber 0 FAIL, validatePlugins VERT, publishToMavenLocal VERT, P0 hôte nu VERT, zéro secret. Reste ACADEMY-12-3 (dogfooding Windows réel). |
+| 2026-09-25 | S-016 : **ACADEMY-11-4 TERMINÉ + EPIC ACADEMY-11 CLOS** — service compose one-shot `moodle-material` (volume partagé `moodle-html`, `service_healthy`, garde de rejeu `sha256`, input tolérant) ; dogfooding `compose up` réel (contenu en base, rejeu no-op) et **3 bugs réels corrigés** ; 710 unit + 21 functional + 71 Cucumber 0 FAIL. |
+| 2026-11-02 | S-017 : **ACADEMY-13/14 TERMINÉS + ACADEMY-15 socle** — CI obligatoire (`test.yml`), bundle hors-ligne dogfoodé en CI (`41362217647` VERT), domaine `academy.a11y` + tâche `auditTrainingAccessibility` opt-in/advisory. |
+| 2026-11-02 | S-018 : **ACADEMY-15 (socle + producteur)** — `ProducerReportInspector` agrège **tous** les rapports producteurs et vérifie la **couverture** (`producer-report-incomplete`) ; pyramide complète (6 unit, 8 BDD `@a11y`, 4 functional TestKit) ; dogfooding cross-borough réel `document 0.0.29` → `academy 0.0.2` (8 findings agrégés). Reste `GBL-011-4` + matériel FPA réel. |
 |===
 
 '''
@@ -497,6 +500,7 @@ décision pilote.
 [x] ACADEMY-2 : brancher `ToolExposure` (N0) sur `OpenCodeCatalog` — **TERMINÉ S-013** (`OpenCodeCatalog.exposure()` + guide dérivé du contrat)
 [x] ACADEMY-2/3 : implémenter les ports N0 — **CLOS côté academy S-013** (D-ACADEMY-11-1 : la boucle `FormationRuntimePort` appartient à l'étage privé ; `SessionMemoryContract` déjà implémenté par codex `PgVectorSessionMemory` S-094)
 [x] ACADEMY-12-2 : writers `install.sh` unique (Linux apt / macOS Colima, queue commune verbatim) + `install.bat` (sonde admin+WSL2, WSL2/Desktop resumable) + port `EnvironmentProbe` + adapter `HostEnvironmentProbe` + `HostOs.fromOsName` + task `checkContainerEngine` (verdict rapporté) + functional TestKit + dogfooding Linux — **TERMINÉ S-015**
+[x] ACADEMY-15 (socle + producteur) : `academy.a11y`, `auditTrainingAccessibility` opt-in/advisory, agrégation de **tous** les rapports producteurs, couverture par type (`producer-report-incomplete`), 18 unit + 4 functional + 8 scénarios BDD `@a11y`, dogfooding cross-borough `document 0.0.29` → `academy 0.0.2` — **TERMINÉ S-018** (reste `GBL-011-4` audiodescription capsule + matériel FPA réel)
 [ ] ACADEMY-12-3 : dogfooding environnement Windows réel (`install.bat`, `docker compose config`, parité, images tirées) — ne pas livrer sans preuve
 [ ] ACADEMY-10 : migration du bridge Ktor → Spring Boot WebFlux (cadré S-012) — à ordonnancer sur décision pilote ; prérequis probable bump BOM workspace vers Spring Boot 4.1.1 (Jackson 3)
 [ ] ACADEMY-9 : support Qualiopi (bilan de session, traces, conformité) — distinct de l'ingestion (ACADEMY-11)
@@ -609,30 +613,44 @@ image workspace chargée, manifeste téléversé.
 
 === ACADEMY-15 — Accessibilité de la boîte (~4 pts, en cours)
 
-*Statut* : 🟡 EN COURS (S-017 / S-224) — socle d'audit livré, reste la
-consommation des rapports producteurs et l'audit Moodle.
+*Statut* : 🟡 EN COURS (S-017/S-018) — socle **et** consommation producteur
+livrés et dogfoodés ; reste le producteur vidéo (`GBL-011-4`) et le matériel FPA
+réel. La porte est **opérationnelle** : elle mesure et déclare ses limites.
 *Livré* :
 - domaine `academy.a11y` : `A11yFinding`/`A11ySeverity`/`A11yReadiness`,
   `A11yRules`, `MaterialA11yReport` (JSON versionné, **limites déclarées**) ;
 - `VideoA11yInspector` : sous-titres `ERROR`, transcription et audiodescription
   `WARNING` (convention de nommage `foo.mp4` → `foo.vtt/.srt/.ass`,
   `foo.txt/.md`, `foo.audiodesc.*`) ;
-- `ProducerReportInspector` : lit `a11y-report.json` du producteur (tolérant,
-  règles inconnues conservées), absence/malformation = `WARNING`
-  `producer-report-missing` — jamais un « vérifié » silencieux ;
+- `ProducerReportInspector` (**S-018**) : agrège **tous** les
+  `a11y-report.json`/`accessibility-report.json` du matériel (findings +
+  limites), rapport malformé = **limite déclarée** (jamais un crash, jamais un
+  masquage d'un rapport valide) ; **couverture par type** — un livrable
+  HTML/EPUB/PDF non déclaré reçoit `producer-report-incomplete` (WARNING), et
+  l'absence de tout rapport `producer-report-missing` — jamais un « vérifié »
+  silencieux ;
 - `MaterialA11yAuditor` : verdict `MISSING` / `DEGRADED` / `VERIFIED`, limites
   déclarées (PDF non PDF/UA, Moodle/opencode hors périmètre, audiodescription
   étendue non implémentée) ;
 - tâche `auditTrainingAccessibility` opt-in (`a11yAuditEnabled`, défaut `false`),
   **advisory** sauf `a11yStrict` (un `ERROR` échoue), rapport
   `build/academy/a11y/accessibility-report.json` ;
-- tests (CI) : `VideoA11yInspectorTest`, `MaterialA11yAuditorTest`,
-  `MaterialA11yReportTest`, `AuditTrainingAccessibilityTaskTest` ; `ktlintCheck`
-  et `validatePlugins` VERTS.
+- tests (CI, **S-018**) : 18 unit a11y (`VideoA11yInspectorTest`,
+  `MaterialA11yAuditorTest`, `MaterialA11yReportTest`,
+  `AuditTrainingAccessibilityTaskTest`, `ProducerReportInspectorTest`) +
+  **4 functional TestKit** (`AcademyA11yFunctionalTest` : opt-in `SKIPPED`,
+  advisory, strict, matériel absent) + **8 scénarios BDD `@a11y`**
+  (`AcademyA11ySteps`, `AcademyA11yCucumberRunner`, `cucumberTestA11y`) ;
+  `ktlintCheck` et `validatePlugins` VERTS ;
+- **dogfooding cross-borough (S-018)** : `document-plugin 0.0.29` produit un
+  vrai `a11y-report.json` (4 findings) → `academy-plugin 0.0.2` l'agrège
+  (8 findings : 4 producteur + 3 vidéo + 1 `producer-report-incomplete`).
 *Reste* :
-. Le producteur `document` doit écrire `a11y-report.json` (GBL-011-3) et
-  `capsule` doit produire l'audiodescription (GBL-011-4) ; sinon les constats
-  restent des `WARNING`.
+. `capsule` doit produire l'audiodescription (GBL-011-4) ; academy la détecte
+  déjà (`foo.audiodesc.*`), mais tant que le producteur est muet le constat
+  reste un `WARNING` — un propriétaire par couche.
+. « Matériel vérifié » sur le corpus FPA réel : dépend du matériel SPG/SPD
+  généré (gate corpus MVP0) en plus de `GBL-011-3`/`-4`.
 . Audit Moodle/opencode (navigateur/session) — hors périmètre de cette tâche,
   déclaré en limite du rapport.
 *Critère de sortie* : rapport d'audit + limites + **matériel vérifié**

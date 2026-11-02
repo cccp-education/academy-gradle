@@ -36,6 +36,7 @@ object A11yRules {
     const val VIDEO_TRANSCRIPT_MISSING = "video-transcript-missing"
     const val AUDIO_DESCRIPTION_MISSING = "audio-description-missing"
     const val PRODUCER_REPORT_MISSING = "producer-report-missing"
+    const val PRODUCER_REPORT_INCOMPLETE = "producer-report-incomplete"
     const val PRODUCER_FINDING = "producer-finding"
     const val PDF_NOT_TAGGED = "pdf-not-tagged"
 }

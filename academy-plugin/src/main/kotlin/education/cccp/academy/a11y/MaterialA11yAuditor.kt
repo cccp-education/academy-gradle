@@ -7,8 +7,8 @@ import java.io.File
  *
  * What it checks here:
  *  - every video has subtitle, transcript and audio-description companions;
- *  - every text deliverable (HTML/EPUB/PDF) has a producer accessibility report,
- *    or is explicitly reported as unverifiable.
+ *  - every text deliverable (HTML/EPUB/PDF) is covered by a producer
+ *    accessibility report, or is explicitly reported as unverifiable.
  *
  * What it deliberately does not check (declared in [LIMITS]): the Moodle theme
  * and the `opencode` terminal, which require a browser/session, and PDF tagging,
