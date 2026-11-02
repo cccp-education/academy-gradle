@@ -5,8 +5,8 @@
 **ACADEMY-15 — reste de la porte d'accessibilité** (le socle, la consommation
 producteur, le BDD et le functional sont livrés S-018) :
 
-. **Vérifier la CI** de la session 018 (commit poussé) : `./gradlew build` doit
-   exécuter unit + `functionalTest` + `cucumberTestA11y` + ktlint + POM.
+. **CI S-018** : run `41370730778` **VERT** (`Build & Test` success, `Publish`
+   skipped ; 6/6 unit, 4/4 functional, 8/8 `@a11y`). Rien à rejouer sans delta.
 . **Consommer le vrai matériel FPA** quand il existe (gate corpus MVP0) : le
    rapport `a11y-report.json` de `document` sur le livre réel + les capsules
    réelles. Sortir les `WARNING`/`ERROR` et les limites.

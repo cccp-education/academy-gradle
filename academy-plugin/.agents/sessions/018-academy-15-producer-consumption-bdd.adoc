@@ -107,6 +107,24 @@ modèle réel) :
 - Dogfooding cross-borough VERT (voir BS-5).
 - Zéro secret.
 
+== Preuve CI (Local = Build, Tests = CI)
+
+- Run `41370211702` (commit `302ac27`) : **ROUGE** — 3 tests unit en échec,
+  tous `expected: <1> but was: <0>`.
+- Diagnostic **à partir de l'artefact CI** (JUnit XML) : le helper `file()` du
+  test créait le dossier parent mais **n'écrivait pas `content`** → les livrables
+  textuels étaient absents, donc aucune couverture à vérifier. Le code main
+  était correct (prouvé par le dogfooding BS-5) : **bug de test**, pas de
+  production.
+- Amélioration CI (commit `80cdb2d`) : le job téléverse `build/test-results` +
+  `build/reports/tests` — le log ne portait que le nom du test, pas son
+  assertion ; le workflow exige pourtant un run rouge **diagnosticable de
+  l'extérieur**.
+- Correctif de test (commit `2105ceb`) : `writeText(content)` rétabli.
+- Run **`41370730778` VERT** (`Build & Test` success, `Publish` skipped) :
+  `ProducerReportInspectorTest` 6/6, `AcademyA11yFunctionalTest` 4/4,
+  `academy_a11y.feature` **8/8** (runner dédié **et** agrégé), 0 échec.
+
 == Reste ACADEMY-15
 
 - Audiodescription vidéo produite par `capsule` (`GBL-011-4`) — academy la

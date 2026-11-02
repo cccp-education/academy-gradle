@@ -26,5 +26,9 @@ _Session 018 (2026-11-02) — ACADEMY-15 (socle + producteur)_
   producteur + 3 vidéo + 1 couverture manquante PDF).
 - Gates : compiles ×3, `ktlintCheck`, `validatePlugins`, `publishToMavenLocal`
   VERTS ; `check --dry-run` inclut `cucumberTestA11y` + `functionalTest`.
+- **CI `41370730778` VERTE** : 6/6 `ProducerReportInspectorTest`, 4/4
+  `AcademyA11yFunctionalTest`, 8/8 `@a11y`. Le run rouge `41370211702` fut un
+  **bug de test** (helper `file()` sans `writeText`) diagnostiqué par l'artefact
+  JUnit XML ; le workflow téléverse désormais `test-results`/`reports/tests`.
 - Reste : `GBL-011-4` (audiodescription capsule), matériel FPA réel,
   audit Moodle/opencode (limite déclarée).
