@@ -32,3 +32,21 @@ _Session 018 (2026-11-02) — ACADEMY-15 (socle + producteur)_
   JUnit XML ; le workflow téléverse désormais `test-results`/`reports/tests`.
 - Reste : `GBL-011-4` (audiodescription capsule), matériel FPA réel,
   audit Moodle/opencode (limite déclarée).
+
+_Session 019 (2026-11-02) — ACADEMY-15 (Moodle statique) + bug compose `SITE_URL`_
+
+- ACADEMY-15 / GBL-011-5 : audit **statique** de la boîte Moodle —
+  `MoodleAccessibilityInspector` (`lang`, `alt`, nom accessible de contrôle,
+  `th`, `h1`), `MoodleA11yAuditor` (verdict + limites), port
+  `MoodlePageFetcher` + adapter `HttpMoodlePageFetcher`, tâche opt-in/advisory
+  `auditMoodleAccessibility`.
+- Pyramide complète : 25 unit (dont `HttpMoodlePageFetcherTest` avec vrai
+  `HttpServer`), 8 scénarios BDD `@moodle-a11y`, 5 functional TestKit (serveur
+  HTTP local).
+- Dogfooding réel Moodle 5.2.3 + PostgreSQL 16 sur le compose **généré** :
+  **bug P0** `SITE_URL` (l'image fixe `http://localhost`, port 80) → correctif
+  `http://localhost:8080` (Linux + Windows) verrouillé par unit + BDD ; après
+  correctif `wwwroot` correct et audit `VERIFIED` (0 finding).
+- Bump `0.0.2 → 0.0.3` (0.0.2 déjà sur Central) ; `publishToMavenLocal` VERT.
+- Reste : `GBL-011-4` (audiodescription capsule), matériel FPA réel, opencode
+  (limite déclarée).

@@ -33,6 +33,29 @@ class AcademyPlugin : Plugin<Project> {
         registerMoodleImportTask(project, extension)
         registerOfflineBundleTask(project, extension)
         registerA11yTask(project, extension)
+        registerMoodleA11yTask(project, extension)
+    }
+
+    /**
+     * Registers the Moodle accessibility audit (ACADEMY-15 / GBL-011-5) — opt-in
+     * and advisory by default. The task fetches the configured pages over HTTP
+     * and writes the report; only `moodleA11yStrict` turns an `ERROR` finding into
+     * a build failure.
+     */
+    private fun registerMoodleA11yTask(
+        project: Project,
+        extension: AcademyInstallerExtension,
+    ) {
+        project.tasks.register("auditMoodleAccessibility", AuditMoodleAccessibilityTask::class.java) { task ->
+            task.group = "academy"
+            task.description = "Audits the accessibility of the running Moodle box (ACADEMY-15 / GBL-011-5)"
+            task.moodleA11yEnabled.set(extension.moodleA11yEnabled)
+            task.moodleA11yStrict.set(extension.moodleA11yStrict)
+            task.moodleA11yBaseUrl.set(extension.moodleA11yBaseUrl)
+            task.moodleA11yPaths.set(extension.moodleA11yPaths)
+            task.reportFile.set(extension.moodleA11yReportFile)
+            task.onlyIf { extension.moodleA11yEnabled.get() }
+        }
     }
 
     /**
@@ -187,6 +210,13 @@ class AcademyPlugin : Plugin<Project> {
         extension.a11yStrict.convention(false)
         extension.a11yReportFile.convention(
             project.layout.buildDirectory.file("academy/a11y/accessibility-report.json"),
+        )
+        extension.moodleA11yEnabled.convention(false)
+        extension.moodleA11yStrict.convention(false)
+        extension.moodleA11yBaseUrl.convention("http://localhost:8080")
+        extension.moodleA11yPaths.convention(listOf("/login/index.php"))
+        extension.moodleA11yReportFile.convention(
+            project.layout.buildDirectory.file("academy/a11y/moodle-accessibility-report.json"),
         )
     }
 

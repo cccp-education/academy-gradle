@@ -1,55 +1,52 @@
 = PROMPT_REPRISE — academy-gradle
 
-== Mission de la prochaine session (019)
+== Mission de la prochaine session (020)
 
-**ACADEMY-15 — reste de la porte d'accessibilité** (le socle, la consommation
-producteur, le BDD et le functional sont livrés S-018) :
-
-. **CI S-018** : run `41370730778` **VERT** (`Build & Test` success, `Publish`
-   skipped ; 6/6 unit, 4/4 functional, 8/8 `@a11y`). Rien à rejouer sans delta.
-. **Consommer le vrai matériel FPA** quand il existe (gate corpus MVP0) : le
-   rapport `a11y-report.json` de `document` sur le livre réel + les capsules
-   réelles. Sortir les `WARNING`/`ERROR` et les limites.
-. **ACADEMY-15 côté vidéo — dépend de `GBL-011-4` (capsule)** : academy détecte
-   déjà `foo.audiodesc.*`; le producteur ne la génère pas encore. Ne pas
-   l'implémenter dans academy (un propriétaire par couche).
-. **Audit Moodle/opencode** : hors périmètre de la tâche (navigateur/session),
-   déclaré en limite. À cadrer séparément si le pilote le demande.
+. **Vérifier la CI** du commit S-019 (`./gradlew build` doit exécuter unit +
+   `functionalTest` + `cucumberTestMoodleA11y` + `cucumberTestInstaller` + POM).
+. **ACADEMY-15 — reste** : la vidéo dépend de `GBL-011-4` (audiodescription
+   produite par `capsule`) ; academy la **détecte** déjà (`foo.audiodesc.*`), le
+   constat reste un `WARNING` déclaré tant que le producteur est muet.
+   L'audit opencode (TUI) reste une **limite déclarée**.
+. **ACADEMY-15 — matériel réel** : exécuter les deux audits (matériel +
+   Moodle) sur le corpus FPA réel quand il existe (gate MVP0 training).
 . Restent ouverts : **ACADEMY-12-3** (hôte Windows réel), **ACADEMY-10**
-   (Spring Boot WebFlux, accord pilote + bump BOM possible), **ACADEMY-9**
-   (Qualiopi), **BUREAU-3** (autre borough — transport git).
+   (Spring Boot WebFlux — cadrage + décision pilote + bump BOM possible),
+   **ACADEMY-9** (Qualiopi), **BUREAU-3** (autre borough).
 
-== Décisions actées S-018 (ne pas les rediscuter)
+== Décisions actées S-019 (ne pas les rediscuter)
 
-* **Un rapport producteur ne vérifie que les types qu'il déclare** : nouvelle
-  règle `producer-report-incomplete` (WARNING) par livrable textuel non couvert.
-  Un rapport présent ne vaut pas « vérifié ».
-* **Tous les rapports** `a11y-report.json`/`accessibility-report.json` sous le
-  matériel contribuent (findings + limites) ; un rapport malformé produit une
-  **limite déclarée**, jamais un crash, et ne masque pas un rapport valide.
-* **Pyramide complète** : unit (6 `ProducerReportInspectorTest`), functional
-  (4 `AcademyA11yFunctionalTest` boîte noire), BDD (`@a11y`, 8 scénarios,
-  runner dédié `cucumberTestA11y`).
-* **Dogfooding cross-borough en deux builds** (producteur / consommateur) :
-  les plugins `document` et `academy` ne partagent pas un classpath (pin
-  `org.jetbrains:annotations` de la BOM `document` vs embarqué Kotlin).
-* `AuditTrainingAccessibilityTask` reste **opt-in** (`a11yAuditEnabled=false`)
-  et **advisory** (`a11yStrict=false`). Un matériel absent = rapport `MISSING`.
+* **Audit Moodle statique = HTTP + HTML, pas navigateur** : `MoodlePageFetcher`
+  (port) + `HttpMoodlePageFetcher` (JDK HttpClient) + `MoodleAccessibilityInspector`
+  (regex) + `MoodleA11yAuditor`. Règles : `lang`, `alt`, nom accessible de
+  contrôle, `th`, `h1` ; page injoignable = `WARNING`, jamais un crash.
+* **La mesure ne prétend pas plus qu'elle ne mesure** : le rapport déclare
+  « static HTML only », « seuls les chemins configurés », « opencode hors
+  périmètre ».
+* **`SITE_URL: http://localhost:8080` est obligatoire dans le compose** : l'image
+  Moodle fixe `SITE_URL=http://localhost` (port 80) ; sans surcharge, tout
+  redirect interne sort du port publié (bug réel S-019). Source unique
+  Linux/Windows, verrouillé par unit + BDD.
+* **La tâche est opt-in et advisory** (`moodleA11yEnabled=false`,
+  `moodleA11yStrict=false`). L'audit du matériel reste `a11yAuditEnabled`.
+* **Version 0.0.3** : 0.0.2 est publié Central (ne jamais republier) ;
+  `publishToMavenLocal` à jour. Publication Central non faite.
 
-== État de l'architecture (session 018)
+== État de l'architecture (session 019)
 
 - **ACADEMY-1/4/5/6/7/8/11/13/14 TERMINÉS**.
-- **ACADEMY-15** : socle + consommation producteur + BDD + functional ✅
-  `document-plugin 0.0.29` produit `a11y-report.json` (GBL-011-3) et academy
-  l'agrège. Reste `GBL-011-4` (audiodescription capsule) + matériel réel.
+- **ACADEMY-15** : matériel (socle + producteurs + BDD + functional) ✅ ;
+  **Moodle statique ✅ (S-019)** ; reste vidéo (`GBL-011-4`) + matériel FPA réel.
 - **ACADEMY-12 3/4 US** (12-3 Windows à faire). **ACADEMY-10/9** cadrage requis.
 
 == Rappels des ordres de mission
 
 - BDD/TDD baby-step strict, 1 fichier de test avant le code ; English only.
 - **Local = Build, Tests = CI** : compiler localement, pousser, prouver par CI.
-- **Vérifier la source avant de nommer** image/commande/outil.
-- **Dogfooding = preuve réelle** (jamais une fixture inventée).
+  Un run rouge se diagnostique par l'artefact JUnit XML (`test-results`), jamais
+  par une ré-exécution locale.
+- **Vérifier la source avant de nommer** image/commande/outil ; **dogfooding =
+  preuve réelle** (jamais une fixture inventée).
 - DAG N2 : academy importable par N3, jamais N3 → academy.
 - Zéro secret. `publishToMavenLocal` après toute modification de source.
 - Sur un hôte nu, `./gradlew` doit configurer (P0 S-014 — ne pas régresser).

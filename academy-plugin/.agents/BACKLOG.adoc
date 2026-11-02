@@ -50,7 +50,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-12 | Provisionnement de l'engine conteneurs par OS (Linux natif / Windows Docker Desktop WSL2 / macOS Colima) + Portainer partout | 🟡 EN COURS 3/4 US (S-015) — 12-0/12-1/12-2 ✅ ; 12-3 🟡 À FAIRE
 | ACADEMY-13 | CI de test obligatoire (unit + functionalTest + suites Cucumber) — l'artefact 0.0.2 est publié Central **sans aucun workflow** : 234 `@Test` et 84 `.feature` ne sont jamais exécutés automatiquement | ✅ TERMINÉ (S-017 / S-224) — `.github/workflows/test.yml` + garde `publish` (tag `v*`, `needs: test`)
 | ACADEMY-14 | Bundle hors-ligne de la boîte (images épinglées par digest + `docker save`/`load`, installation sans réseau, vérification de charge) — le compose référence `erseco/alpine-moodle:v5.2.3` par tag, donc la boîte exige le réseau | ✅ TERMINÉ (S-017 / S-224) — bundle + build workspace + `docker save` + pinning digest + installateur + dogfooding CI VERT (run `41362217647`) |
-| ACADEMY-15 | Accessibilité de la boîte : audit Moodle/opencode WCAG 2.1 AA, thème et navigation clavier, matériel accessible vérifié, porte d'acceptation et rapport d'écarts | 🟡 EN COURS (S-017/S-018) — socle + consommation producteur + BDD/functional/dogfooding ✅ ; reste `GBL-011-4` (audiodescription capsule), matériel FPA réel, audit Moodle/opencode (limite déclarée)
+| ACADEMY-15 | Accessibilité de la boîte : audit Moodle/opencode WCAG 2.1 AA, thème et navigation clavier, matériel accessible vérifié, porte d'acceptation et rapport d'écarts | 🟡 EN COURS (S-017→S-019) — matériel + **Moodle statique** ✅ ; reste `GBL-011-4` (audiodescription capsule), matériel FPA réel, opencode (limite déclarée)
 |===
 
 '''
@@ -393,6 +393,7 @@ décision pilote.
 | D-ACADEMY-6-16 | `portainer/portainer-ce` (maintenue) ; service `workspace` **retiré du compose actif** tant que `cccp-education/academy-workspace` n'est pas publiée (TODO ACADEMY-5). | S-007
 | D-ACADEMY-6-17 | **Pas de healthcheck Portainer** : image *distroless* (ni `sh` ni `wget`) → sonde `wget` invalide (`unhealthy` alors que HTTP 200). | S-007
 | D-ACADEMY-6-18 | **Application de D-6-10 — contenu OS aligné** : le scaffold ne provisionne plus Java Temurin ni Gradle sur l'hôte (retirés des 3 scripts) ; `JAVA_VERSION`/`GRADLE_VERSION` = pins documentaires de l'image workspace ; Docker = seule exigence hôte (check + exit non-zéro) ; macOS = Homebrew conditionné. ACADEMY-6-1/2/3 CADUQUES. | S-008
+| D-ACADEMY-6-19 | **`SITE_URL: http://localhost:8080` obligatoire dans le compose** : l'image `erseco/alpine-moodle` fixe `SITE_URL=http://localhost` (port 80) ; sans surcharge, `$CFG->wwwroot` pointe sur le port 80 et **tout redirect interne sort du port publié** (bug réel S-019, `303 Location: http://localhost/login/index.php`). La valeur suit le port publié `8080:8080` (boîte mono-utilisateur, `localhost`). Verrouillé par unit Linux/Windows + BDD `@installer`. | S-019
 | D-ACADEMY-5-1 | **Workspace = `Dockerfile` généré sur `gradle:9.7.1-jdk25`** (Ubuntu 26.04 : bash+git+curl+unzip+apt-get+Java 25+Gradle 9.7.1), installant `zsh` + `opencode` (script officiel), utilisateur `learner`, `WORKDIR /workspace`. L'image officielle `ghcr.io/anomalyco/opencode` est Alpine-minimal (ni shell évolué, ni git, ni Java/Gradle) → écartée. Construite par `docker compose build`, zéro registry. | S-009
 | D-ACADEMY-5-2 | **`opencode.json` généré** (rendu pur) : `$schema`, `model` (`ollama/<modèle>`), `provider` (Ollama embarqué `http://ollama:11434/v1`), `instructions` (`AGENTS.md`). Guardrail `foundry/public` porté par le catalogue + documenté, pas par une clé `permission` (ineffective). Zéro secret (BYOK = ACADEMY-7). | S-009
 | D-ACADEMY-5-3 | **Domaine pur `education.cccp.academy.opencode`** (`OpenCodeConfig`/`OpenCodePlugin`/`OpenCodeCatalog`/`OpenCodeConfigGenerator`/`LearnerGuideGenerator`/`WorkspaceDockerfileGenerator`) — JSON par concaténation déterministe, zéro lib de sérialisation. | S-009
@@ -478,6 +479,7 @@ décision pilote.
 | 2026-09-25 | S-016 : **ACADEMY-11-4 TERMINÉ + EPIC ACADEMY-11 CLOS** — service compose one-shot `moodle-material` (volume partagé `moodle-html`, `service_healthy`, garde de rejeu `sha256`, input tolérant) ; dogfooding `compose up` réel (contenu en base, rejeu no-op) et **3 bugs réels corrigés** ; 710 unit + 21 functional + 71 Cucumber 0 FAIL. |
 | 2026-11-02 | S-017 : **ACADEMY-13/14 TERMINÉS + ACADEMY-15 socle** — CI obligatoire (`test.yml`), bundle hors-ligne dogfoodé en CI (`41362217647` VERT), domaine `academy.a11y` + tâche `auditTrainingAccessibility` opt-in/advisory. |
 | 2026-11-02 | S-018 : **ACADEMY-15 (socle + producteur)** — `ProducerReportInspector` agrège **tous** les rapports producteurs et vérifie la **couverture** (`producer-report-incomplete`) ; pyramide complète (6 unit, 8 BDD `@a11y`, 4 functional TestKit) ; dogfooding cross-borough réel `document 0.0.29` → `academy 0.0.2` (8 findings agrégés) ; **CI `41370730778` VERTE** (après un bug de test diagnostiqué par l'artefact JUnit XML et l'ajout de son upload au workflow). Reste `GBL-011-4` + matériel FPA réel. |
+| 2026-11-02 | S-019 : **ACADEMY-15 (Moodle statique) + bug compose `SITE_URL`** — audit HTTP/HTML de la boîte réelle (inspecteur, auditeur, port/adapter, tâche opt-in), 25 unit + 8 BDD `@moodle-a11y` + 5 functional TestKit ; dogfooding Moodle 5.2.3 qui révèle `SITE_URL` (port 80) → correctif `http://localhost:8080` ; bump `0.0.3`. |
 |===
 
 '''
@@ -501,6 +503,7 @@ décision pilote.
 [x] ACADEMY-2/3 : implémenter les ports N0 — **CLOS côté academy S-013** (D-ACADEMY-11-1 : la boucle `FormationRuntimePort` appartient à l'étage privé ; `SessionMemoryContract` déjà implémenté par codex `PgVectorSessionMemory` S-094)
 [x] ACADEMY-12-2 : writers `install.sh` unique (Linux apt / macOS Colima, queue commune verbatim) + `install.bat` (sonde admin+WSL2, WSL2/Desktop resumable) + port `EnvironmentProbe` + adapter `HostEnvironmentProbe` + `HostOs.fromOsName` + task `checkContainerEngine` (verdict rapporté) + functional TestKit + dogfooding Linux — **TERMINÉ S-015**
 [x] ACADEMY-15 (socle + producteur) : `academy.a11y`, `auditTrainingAccessibility` opt-in/advisory, agrégation de **tous** les rapports producteurs, couverture par type (`producer-report-incomplete`), 18 unit + 4 functional + 8 scénarios BDD `@a11y`, dogfooding cross-borough `document 0.0.29` → `academy 0.0.2` — **TERMINÉ S-018** (reste `GBL-011-4` audiodescription capsule + matériel FPA réel)
+[x] ACADEMY-15 (Moodle statique) : `MoodleAccessibilityInspector` + `MoodleA11yAuditor` + port/adapter HTTP + tâche opt-in `auditMoodleAccessibility`, 25 unit + 8 BDD `@moodle-a11y` + 5 functional TestKit, dogfooding réel Moodle 5.2.3, bug compose `SITE_URL` corrigé — **TERMINÉ S-019** (opencode reste une limite déclarée)
 [ ] ACADEMY-12-3 : dogfooding environnement Windows réel (`install.bat`, `docker compose config`, parité, images tirées) — ne pas livrer sans preuve
 [ ] ACADEMY-10 : migration du bridge Ktor → Spring Boot WebFlux (cadré S-012) — à ordonnancer sur décision pilote ; prérequis probable bump BOM workspace vers Spring Boot 4.1.1 (Jackson 3)
 [ ] ACADEMY-9 : support Qualiopi (bilan de session, traces, conformité) — distinct de l'ingestion (ACADEMY-11)
@@ -613,9 +616,10 @@ image workspace chargée, manifeste téléversé.
 
 === ACADEMY-15 — Accessibilité de la boîte (~4 pts, en cours)
 
-*Statut* : 🟡 EN COURS (S-017/S-018) — socle **et** consommation producteur
-livrés et dogfoodés ; reste le producteur vidéo (`GBL-011-4`) et le matériel FPA
-réel. La porte est **opérationnelle** : elle mesure et déclare ses limites.
+*Statut* : 🟡 EN COURS (S-017→S-019) — matériel **et** Moodle statique livrés et
+dogfoodés ; reste le producteur vidéo (`GBL-011-4`), le matériel FPA réel et
+l'audit opencode (limite déclarée). La porte est **opérationnelle** : elle
+mesure et déclare ses limites.
 *Livré* :
 - domaine `academy.a11y` : `A11yFinding`/`A11ySeverity`/`A11yReadiness`,
   `A11yRules`, `MaterialA11yReport` (JSON versionné, **limites déclarées**) ;
@@ -630,8 +634,8 @@ réel. La porte est **opérationnelle** : elle mesure et déclare ses limites.
   l'absence de tout rapport `producer-report-missing` — jamais un « vérifié »
   silencieux ;
 - `MaterialA11yAuditor` : verdict `MISSING` / `DEGRADED` / `VERIFIED`, limites
-  déclarées (PDF non PDF/UA, Moodle/opencode hors périmètre, audiodescription
-  étendue non implémentée) ;
+  déclarées (PDF non PDF/UA, interactif Moodle/opencode hors périmètre,
+  audiodescription étendue non implémentée) ;
 - tâche `auditTrainingAccessibility` opt-in (`a11yAuditEnabled`, défaut `false`),
   **advisory** sauf `a11yStrict` (un `ERROR` échoue), rapport
   `build/academy/a11y/accessibility-report.json` ;
@@ -645,13 +649,25 @@ réel. La porte est **opérationnelle** : elle mesure et déclare ses limites.
 - **dogfooding cross-borough (S-018)** : `document-plugin 0.0.29` produit un
   vrai `a11y-report.json` (4 findings) → `academy-plugin 0.0.2` l'agrège
   (8 findings : 4 producteur + 3 vidéo + 1 `producer-report-incomplete`).
+- **Moodle statique (S-019 / GBL-011-5)** : `MoodleAccessibilityInspector`
+  (`lang`, `alt`, nom accessible de contrôle, `th`, `h1` ; 6 règles stables),
+  `MoodleA11yAuditor` (verdict + limites), port `MoodlePageFetcher` + adapter
+  `HttpMoodlePageFetcher` (JDK HttpClient, `null` jamais de throw), tâche
+  opt-in/advisory `auditMoodleAccessibility` (`moodleA11yEnabled`,
+  `moodleA11yStrict`, `moodleA11yBaseUrl`, `moodleA11yPaths`,
+  `moodleA11yReportFile`) ; 25 unit (dont vrai `HttpServer`), 8 scénarios BDD
+  `@moodle-a11y`, 5 functional TestKit (serveur HTTP local) ; **dogfooding réel**
+  Moodle 5.2.3 + PostgreSQL 16 sur le compose généré → `VERIFIED` 0 finding.
+  Le dogfooding a révélé le **bug compose `SITE_URL`** (image Moodle =
+  `http://localhost`, port 80) corrigé en `http://localhost:8080`.
 *Reste* :
 . `capsule` doit produire l'audiodescription (GBL-011-4) ; academy la détecte
   déjà (`foo.audiodesc.*`), mais tant que le producteur est muet le constat
   reste un `WARNING` — un propriétaire par couche.
 . « Matériel vérifié » sur le corpus FPA réel : dépend du matériel SPG/SPD
   généré (gate corpus MVP0) en plus de `GBL-011-3`/`-4`.
-. Audit Moodle/opencode (navigateur/session) — hors périmètre de cette tâche,
-  déclaré en limite du rapport.
+. Audit **opencode** (TUI) — hors périmètre, déclaré en limite du rapport ; le
+  rendu visuel Moodle (focus, contraste, JavaScript) reste hors de l'audit
+  statique.
 *Critère de sortie* : rapport d'audit + limites + **matériel vérifié**
 (dépend `GBL-011-3`/`-4`/`-6`).

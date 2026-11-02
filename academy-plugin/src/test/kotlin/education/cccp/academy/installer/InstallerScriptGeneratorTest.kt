@@ -90,6 +90,19 @@ class InstallerScriptGeneratorTest {
     }
 
     @Test
+    fun `moodle publishes its links on the host port`() {
+        val linux = InstallerScriptGenerator.render(platform(TargetOs.LINUX)).single().content
+        val windows = InstallerScriptGenerator.render(platform(TargetOs.WINDOWS)).single().content
+
+        listOf(linux, windows).forEach { script ->
+            assertTrue(
+                script.contains("SITE_URL: http://localhost:8080"),
+                "Moodle must generate links on the published host port (dogfooding S-019: the image defaults to port 80)",
+            )
+        }
+    }
+
+    @Test
     fun `windows compose scaffold mirrors the complete linux contract`() {
         val script = InstallerScriptGenerator.render(platform(TargetOs.WINDOWS)).single().content
 

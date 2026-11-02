@@ -246,3 +246,9 @@ Feature: Academy installer generation (ACADEMY-1)
     And the script contains "colima start"
     And the script contains "uname -m"
     And the script does not contain "sudo"
+
+  Scenario: the compose pins the Moodle site URL to the published host port
+    Given a platform targeting "linux"
+    And compose embedding enabled
+    When the installer generator renders the platform
+    Then the script contains "SITE_URL: http://localhost:8080"

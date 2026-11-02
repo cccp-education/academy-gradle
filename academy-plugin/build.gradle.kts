@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "education.cccp"
-version = "0.0.2"
+version = "0.0.3"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_25
@@ -300,6 +300,30 @@ val cucumberTestA11y by tasks.registering(Test::class) {
 }
 
 tasks.check { dependsOn(cucumberTestA11y) }
+
+// ── ACADEMY-15 / GBL-011-5 — Dedicated Cucumber runner for academy_moodle_a11y.feature ──
+// Scoped to AcademyMoodleA11yCucumberRunner so only the Moodle accessibility feature runs.
+val cucumberTestMoodleA11y by tasks.registering(Test::class) {
+    group = "verification"
+    description = "Runs the academy_moodle_a11y.feature Cucumber suite (ACADEMY-15 / GBL-011-5)"
+    testClassesDirs = sourceSets.getByName("test").output.classesDirs
+    classpath = configurations.getByName("testRuntimeClasspath") +
+        sourceSets.getByName("test").output +
+        sourceSets.getByName("main").output
+    useJUnitPlatform {
+        excludeEngines("junit-jupiter")
+    }
+    filter {
+        includeTestsMatching("education.cccp.academy.bdd.AcademyMoodleA11yCucumberRunner")
+    }
+    systemProperty("cucumber.junit-platform.naming-strategy", "long")
+    systemProperty("cucumber.features", "src/test/resources/features/academy_moodle_a11y.feature")
+    systemProperty("cucumber.filter.tags", "@moodle-a11y and not @wip and not @integration")
+    shouldRunAfter(tasks.named("test"))
+    outputs.upToDateWhen { false }
+}
+
+tasks.check { dependsOn(cucumberTestMoodleA11y) }
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()

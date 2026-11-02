@@ -181,4 +181,19 @@ abstract class AcademyInstallerExtension {
 
     /** ACADEMY-15 — the accessibility report written by `auditTrainingAccessibility`. */
     abstract val a11yReportFile: RegularFileProperty
+
+    /** ACADEMY-15 — opt-in Moodle accessibility audit of the running box (default `false`). */
+    abstract val moodleA11yEnabled: Property<Boolean>
+
+    /** ACADEMY-15 — fail the Moodle audit on `ERROR` findings (default `false`: advisory). */
+    abstract val moodleA11yStrict: Property<Boolean>
+
+    /** ACADEMY-15 — base URL of the running Moodle (`http://localhost:8080`). */
+    abstract val moodleA11yBaseUrl: Property<String>
+
+    /** ACADEMY-15 — Moodle page paths audited (`/login/index.php`). */
+    abstract val moodleA11yPaths: ListProperty<String>
+
+    /** ACADEMY-15 — the Moodle report written by `auditMoodleAccessibility`. */
+    abstract val moodleA11yReportFile: RegularFileProperty
 }

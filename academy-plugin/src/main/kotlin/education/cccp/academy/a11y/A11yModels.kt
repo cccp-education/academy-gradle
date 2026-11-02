@@ -39,6 +39,12 @@ object A11yRules {
     const val PRODUCER_REPORT_INCOMPLETE = "producer-report-incomplete"
     const val PRODUCER_FINDING = "producer-finding"
     const val PDF_NOT_TAGGED = "pdf-not-tagged"
+    const val MOODLE_LANG_MISSING = "moodle-lang-missing"
+    const val MOODLE_IMAGE_ALT_MISSING = "moodle-image-alt-missing"
+    const val MOODLE_FORM_CONTROL_LABEL_MISSING = "moodle-form-control-label-missing"
+    const val MOODLE_TABLE_HEADER_MISSING = "moodle-table-header-missing"
+    const val MOODLE_H1_MISSING = "moodle-h1-missing"
+    const val MOODLE_PAGE_UNREACHABLE = "moodle-page-unreachable"
 }
 
 /**

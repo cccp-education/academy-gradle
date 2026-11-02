@@ -1,0 +1,113 @@
+= Session 019 — ACADEMY-15 : audit statique de l'accessibilité Moodle
+:toc: left
+:date: 2026-11-02
+:statut: ✅ ACADEMY-15 (Moodle statique) + bug compose SITE_URL corrigé
+
+== Objet
+
+Suite de la session 018. Le reste de la porte d'accessibilité (GBL-011-5) est
+l'audit **Moodle** (jusqu'ici déclaré hors périmètre faute de navigateur). Mission :
+mesurer l'accessibilité des pages Moodle **réellement servies** par la boîte, sans
+navigateur, et prouver la mesure sur l'image réelle.
+
+== Constat d'ouverture (faits vérifiés)
+
+- `academy.a11y` mesure le matériel (vidéos + rapports producteurs) mais **pas**
+  la boîte elle-même : `MaterialA11yAuditor.LIMITS` déclarait « Moodle theme and
+  opencode terminal audits require a browser/session ».
+- L'image `erseco/alpine-moodle:v5.2.3` est disponible localement, PostgreSQL 16
+  aussi ; Docker est opérationnel → le dogfooding réel est possible.
+- Une lecture des scripts de l'image (`/docker-entrypoint-init.d/02-configure-moodle.sh`)
+  montre que `$CFG->wwwroot` est écrit depuis `SITE_URL`, et que l'image fixe
+  `SITE_URL=http://localhost` **par défaut**.
+
+== BS-1 — RED : inspecteur et auditeur purs
+
+- `MoodleAccessibilityInspectorTest` (10 unit) : `lang` sur `<html>`, `alt` sur
+  chaque `<img>` (`alt=""` accepté), nom accessible de chaque `input`/`select`/
+  `textarea` (`label for`, label enveloppant, `aria-label`, `aria-labelledby`,
+  `title`), `th` si table, `h1`, exclusion des contrôles `hidden`/`submit`/
+  `button`/`reset`/`image`, déterminisme.
+- `MoodleA11yAuditorTest` (6 unit) : aucune page = `MISSING`, page accessible =
+  `VERIFIED`, finding = `DEGRADED`, page injoignable = `WARNING` sans crash,
+  agrégation multi-pages, limites déclarées.
+- **RED prouvé par compilation** : `Unresolved reference 'MoodleAccessibilityInspector'`,
+  `'MoodleA11yAuditor'`, `'MoodlePage'`.
+
+== BS-2 — GREEN : domaine pur
+
+- `MoodleAccessibilityInspector` (regex sur le HTML rendu, zéro DOM, zéro
+  navigateur, zéro I/O) + 6 règles stables ajoutées à `A11yRules`.
+- `MoodleA11yAuditor` : verdict `MISSING`/`DEGRADED`/`VERIFIED`, réutilise
+  `MaterialA11yReport` (contrat JSON unique de la boîte), limites déclarées
+  (statique seulement, chemins configurés seulement, opencode hors périmètre).
+
+== BS-3 — Port HTTP + tâche `auditMoodleAccessibility`
+
+- Port `MoodlePageFetcher` (`fun interface`, `null` = page injoignable) + adapter
+  `HttpMoodlePageFetcher` (JDK `HttpClient`, timeout, redirections `NORMAL`,
+  status hors 2xx/3xx → `null`, jamais de throw).
+- Tâche `auditMoodleAccessibility` (thin wrapper, `@DisableCachingByDefault`) :
+  opt-in `moodleA11yEnabled` (défaut `false`), advisory sauf `moodleA11yStrict`,
+  `moodleA11yBaseUrl`, `moodleA11yPaths`, `moodleA11yReportFile` ; fetcher
+  injectable (`@Internal`) pour les tests.
+- Tests : `HttpMoodlePageFetcherTest` (3 : 200, 500, port fermé, vrai
+  `HttpServer`) + `AuditMoodleAccessibilityTaskTest` (6 : enregistrement,
+  skip, URL résolue, inaccessible, strict, advisory).
+
+== BS-4 — BDD `@moodle-a11y` (pattern S-082/S-088)
+
+`academy_moodle_a11y.feature` — **8 scénarios** (page accessible, `lang`,
+`alt`, nom de contrôle, `th`, injoignable, aucune page, limites) +
+`AcademyMoodleA11ySteps` (glue préfixée `Moodle accessibility`) +
+`AcademyMoodleA11yCucumberRunner` + `cucumberTestMoodleA11y` câblé à `check`.
+
+== BS-5 — Functional TestKit (5 tests)
+
+`AcademyMoodleA11yFunctionalTest` : un **serveur HTTP local** (JDK `HttpServer`)
+tient lieu de Moodle. Opt-in `SKIPPED`, page accessible `VERIFIED`, finding
+advisory, strict `FAILED`, boîte injoignable (port 1) = `WARNING` sans échec.
+
+== BS-6 — Dogfooding réel + bug compose découvert
+
+Mise en place d'un consommateur `/tmp` (academy 0.0.3 en mavenLocal), génération
+de l'installeur Linux, extraction du compose **généré**, `docker compose up -d
+moodle` (PostgreSQL 16 + `erseco/alpine-moodle:v5.2.3` réels).
+
+- **Bug réel P0 découvert** : `GET /course/index.php` répond `303 Location:
+  http://localhost/login/index.php` — l'image fixe `SITE_URL=http://localhost`
+  (port 80), alors que la boîte publie **8080**. Toute navigation Moodle sort du
+  port publié dès qu'un redirect interne est émis. Le compose généré ne
+  surchargeait pas `SITE_URL`.
+- **Correctif** : `composeBody()` déclare `SITE_URL: http://localhost:8080` pour
+  le service `moodle` (source unique Linux/Windows), verrouillé par
+  `InstallerScriptGeneratorTest` (« moodle publishes its links on the host
+  port ») + un scénario BDD `@installer`.
+- **Preuve après correctif** : `config.php` contient `$CFG->wwwroot =
+  'http://localhost:8080'`, `303 → http://localhost:8080/login/index.php`,
+  puis `auditMoodleAccessibility` sur `/login/index.php` + `/course/index.php`
+  → **`VERIFIED`, 0 finding** (les deux pages sont la même page de connexion
+  après redirect). Stack supprimée (`compose down -v`).
+- `capsule` (audiodescription) reste le seul producteur manquant : le constat
+  vidéo reste un `WARNING` déclaré. L'audit opencode (TUI) reste une limite
+  déclarée.
+
+== Version
+
+- Bump `0.0.2 → 0.0.3` (0.0.2 est **déjà sur Central**, ne jamais republier) ;
+  `publishToMavenLocal` VERT. Publication Central **non exécutée** dans cette
+  session (sera faite sur décision/tag ; le POM est vérifié par la CI).
+
+== Gates locaux (Local = Build, Tests = CI)
+
+- `compileKotlin` / `compileTestKotlin` / `compileFunctionalTestKotlin` VERTS.
+- `ktlintCheck` VERT, `validatePlugins` VERT, `publishToMavenLocal` VERT.
+- `check --dry-run` inclut `cucumberTestMoodleA11y` + `functionalTest`.
+- Dogfooding réel VERT (Moodle 5.2.3, `VERIFIED`).
+- Zéro secret.
+
+== Prochaine session (020)
+
+Vérifier la CI du commit poussé ; puis ACADEMY-15 côté vidéo reste dépendant de
+`GBL-011-4` (capsule). Les autres items ouverts restent ACADEMY-12-3 (hôte
+Windows réel), ACADEMY-10 (cadrage Spring Boot WebFlux), ACADEMY-9 (Qualiopi).

@@ -249,6 +249,7 @@ object InstallerScriptGenerator {
                 "      MOODLE_USERNAME: \${MOODLE_USERNAME}",
                 "      MOODLE_PASSWORD: \${MOODLE_PASSWORD}",
                 "      MOODLE_SITENAME: \${MOODLE_SITENAME}",
+                "      SITE_URL: http://localhost:8080",
                 "    depends_on:",
                 "      postgres:",
                 "        condition: service_healthy",
