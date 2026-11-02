@@ -44,6 +44,19 @@ jobs:
         working-directory: academy-plugin
         continue-on-error: true
 
+      # The JUnit XML is the only artefact that carries the assertion message
+      # (the job log only names the failing test). Uploading it makes a red run
+      # diagnosable from the outside, which is the point of the guard below.
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            academy-plugin/build/test-results
+            academy-plugin/build/reports/tests
+          if-no-files-found: ignore
+
       # A red run must be diagnosable from the outside: job logs require admin
       # rights, but check-run annotations are public. One annotation per
       # failing test case, then fail the job.
