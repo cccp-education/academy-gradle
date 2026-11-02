@@ -111,3 +111,11 @@ moodle` (PostgreSQL 16 + `erseco/alpine-moodle:v5.2.3` réels).
 Vérifier la CI du commit poussé ; puis ACADEMY-15 côté vidéo reste dépendant de
 `GBL-011-4` (capsule). Les autres items ouverts restent ACADEMY-12-3 (hôte
 Windows réel), ACADEMY-10 (cadrage Spring Boot WebFlux), ACADEMY-9 (Qualiopi).
+
+== Preuve CI
+
+Run **`41372413668` VERT** (commit `527db9e`, `Build & Test` success, `Publish`
+skipped) : `MoodleAccessibilityInspectorTest` 10/10, `MoodleA11yAuditorTest`
+6/6, `HttpMoodlePageFetcherTest` 3/3, `AuditMoodleAccessibilityTaskTest` 6/6,
+`AcademyMoodleA11yFunctionalTest` 5/5, `academy_moodle_a11y.feature` **8/8**,
+`academy_installer.feature` **25/25** (dont le scénario `SITE_URL`), 0 échec.

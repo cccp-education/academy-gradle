@@ -50,3 +50,5 @@ _Session 019 (2026-11-02) — ACADEMY-15 (Moodle statique) + bug compose `SITE_U
 - Bump `0.0.2 → 0.0.3` (0.0.2 déjà sur Central) ; `publishToMavenLocal` VERT.
 - Reste : `GBL-011-4` (audiodescription capsule), matériel FPA réel, opencode
   (limite déclarée).
+- **CI `41372413668` VERTE** (commit `527db9e`) : 25 unit a11y-Moodle,
+  8/8 `@moodle-a11y`, 5/5 functional, 25/25 `@installer`, 0 échec.

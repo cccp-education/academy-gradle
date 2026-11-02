@@ -2,8 +2,9 @@
 
 == Mission de la prochaine session (020)
 
-. **Vérifier la CI** du commit S-019 (`./gradlew build` doit exécuter unit +
-   `functionalTest` + `cucumberTestMoodleA11y` + `cucumberTestInstaller` + POM).
+. **CI S-019** : run `41372413668` **VERT** (commit `527db9e` ; 25 unit
+   a11y-Moodle, 8/8 `@moodle-a11y`, 5/5 functional, 25/25 `@installer`). Rien à
+   rejouer sans delta.
 . **ACADEMY-15 — reste** : la vidéo dépend de `GBL-011-4` (audiodescription
    produite par `capsule`) ; academy la **détecte** déjà (`foo.audiodesc.*`), le
    constat reste un `WARNING` déclaré tant que le producteur est muet.
