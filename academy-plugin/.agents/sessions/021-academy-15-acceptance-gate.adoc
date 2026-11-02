@@ -103,3 +103,10 @@ Run **`41374808984` VERT** (commit `d6e41ff`, `Build & Test` success, `Publish`
 skipped) : `AcademyA11yAcceptanceTest` 9/9, `AcademyA11yReportTest` 1/1,
 `AuditAcademyAcceptanceTaskTest` 6/6, `AcademyAcceptanceFunctionalTest` 5/5,
 `academy_acceptance.feature` **6/6**, 0 échec.
+
+== Amendement S-022
+
+La mention « ACADEMY-9 (Qualiopi, cadrage) » dans la prochaine session est
+**caduque** : ACADEMY-9 est transféré à **training** (TRN-13). FPA/Qualiopi ne
+sont pas des sujets academy ; l'academy expose des rapports d'accessibilité que
+training peut consommer, sans porter de traces de conformité. Voir la session 022.

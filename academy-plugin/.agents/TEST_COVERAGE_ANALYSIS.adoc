@@ -1,6 +1,6 @@
 = TEST_COVERAGE_ANALYSIS — academy-gradle
 
-_Dernière mise à jour_ : 2026-11-02 (session 021)
+_Dernière mise à jour_ : 2026-11-02 (session 022)
 
 == État des tests
 
@@ -31,6 +31,8 @@ Session 019 : **ACADEMY-15 (Moodle statique) + bug compose `SITE_URL`** — l'au
 Session 020 : **ACADEMY-10-0 cadrage Spring Boot WebFlux** — aucun test modifié (décision pilote). La pile est prouvée par un **spike hors dépôt** (Boot 4.1.2 + Kotlin 2.4.10 + WebFlux + coroutines + Jackson 3, `GET /health` 200). Les tests de la migration (10-1→10-4) seront écrits au GO.
 
 Session 021 : **ACADEMY-15-5 porte d'acceptation agrégée** — 16 unit (rapport + agrégateur 10 + tâche 6), 6 scénarios BDD `@acceptance`, 5 functional TestKit. Le dogfooding réel sur les rapports S-018/S-019 produit un `DEGRADED` attendu (2 couches, 8 findings) et a révélé une limite de matériel périmée, corrigée.
+
+Session 022 : **Frontière FPA/Qualiopi = training** — aucun test modifié. ACADEMY-9 transféré à training (TRN-13) ; les fixtures de test qui citent la formation FPA restent de **simples exemples de matériel de training consommé**, pas une propriété academy.
 
 ## Ce qui est couvert
 

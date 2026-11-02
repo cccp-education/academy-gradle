@@ -16,6 +16,12 @@ décision : faits vérifiés au 2026-11-02, conséquences sur le catalogue, opti
 *Aucune décision n'est actée par ce document seul* : les choix structurants
 (D-ACADEMY-10-1..12) restent à confirmer par le pilote (pattern S-057).
 
+*Amendement S-022 — frontière corrigée* : **FPA et Qualiopi relèvent de
+training** (Newark). ACADEMY-9 (support Qualiopi) est transféré à **TRN-13** ;
+l'academy ne porte ni traces de conformité, ni revendication de certification.
+La persistance `bridge_events` évoquée ci-dessous n'est donc qu'une **traçabilité
+technique locale**, jamais un support de conformité.
+
 == 1. Constats vérifiés (source, pas supposition)
 
 [cols="2,4,2", options="header"]
@@ -136,9 +142,10 @@ décision : faits vérifiés au 2026-11-02, conséquences sur le catalogue, opti
 | D-ACADEMY-10-6
 | **Persistance R2DBC différée derrière un flag** : US séparée
   (`ACADEMY-10-5`, opt-in, défaut off), table `bridge_events`, DDL co-localisé.
-| Le bridge doit d'abord migrer **iso-comportement**. La persistance sert
-  Qualiopi (ACADEMY-9) et ne doit pas bloquer la migration. Les événements
-  peuvent être journalisés plus tard sans changer la surface HTTP.
+| Le bridge doit d'abord migrer **iso-comportement**. La persistance n'est
+  qu'une **traçabilité technique locale** ; la conformité Qualiopi appartient à
+  **training** (TRN-13, transféré d'ACADEMY-9 S-022). Elle ne doit pas bloquer
+  la migration et peut être journalisée plus tard sans changer la surface HTTP.
 
 | D-ACADEMY-10-7
 | **Réutiliser le PostgreSQL du compose** (`postgres:16`, ACADEMY-6), jamais un
@@ -210,8 +217,9 @@ décision : faits vérifiés au 2026-11-02, conséquences sur le catalogue, opti
 
 | O-6
 | **Persister les événements dès la migration**
-| Couple la migration à ACADEMY-9 et ajoute un flag/DDL avant d'avoir prouvé
-  l'iso-comportement ; US séparée.
+| Couple la migration à un besoin de conformité qui appartient à **training**
+  (TRN-13) et ajoute un flag/DDL avant d'avoir prouvé l'iso-comportement ;
+  US séparée, purement technique.
 
 | O-7
 | **Auth/JWT/Thymeleaf/mail/Arrow**
@@ -259,7 +267,8 @@ décision : faits vérifiés au 2026-11-02, conséquences sur le catalogue, opti
 | ACADEMY-10-5
 | **Persistance optionnelle `bridge_events`** (opt-in, défaut off) : DDL
   co-localisé, `DatabaseClient` + `suspend`, réutilisation du PostgreSQL du
-  compose, tests testcontainers ; sert ACADEMY-9 | 5
+  compose, tests testcontainers ; **traçabilité technique locale** (Qualiopi =
+  training, TRN-13) | 5
 | 🟡 À FAIRE (conditionnelle)
 
 | ACADEMY-10-6
@@ -270,8 +279,9 @@ décision : faits vérifiés au 2026-11-02, conséquences sur le catalogue, opti
 |===
 
 _Total_ : 6 US, ~24 pts (dont une conditionnelle). Ordre :
-10-0 ✅ → 10-1 → 10-2 → 10-3 → 10-4 → 10-6 ; 10-5 seulement si ACADEMY-9 le
-demande.
+10-0 ✅ → 10-1 → 10-2 → 10-3 → 10-4 → 10-6 ; 10-5 seulement si un besoin
+technique local le justifie (jamais pour revendiquer une conformité Qualiopi —
+celle-ci appartient à training).
 
 == 6. Plan de migration (fichiers)
 
@@ -370,7 +380,8 @@ demande.
 == 9. Questions ouvertes au pilote
 
 . **Jackson 3 ou garder kotlinx** pour `BridgeWire` ? (D-10-5 vs O-4)
-. **Persistance `bridge_events` maintenant** (couplée à ACADEMY-9) ou plus tard ?
+. **Persistance `bridge_events` maintenant** (traçabilité technique locale ; pas
+  une conformité Qualiopi — training/TRN-13) ou plus tard ?
 . **Bump `workspace-bom` vers Boot 4.1.2/Jackson 3** (cross-borough MEMPHIS) :
    maintenant, plus tard, ou jamais (l'academy n'en dépend pas) ?
 . **Verdict sur Boot 4.2.0-RC1** : on attend la GA (proposé) ou on anticipe ?

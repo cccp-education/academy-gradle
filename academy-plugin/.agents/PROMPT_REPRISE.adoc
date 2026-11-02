@@ -1,18 +1,27 @@
 = PROMPT_REPRISE — academy-gradle
 
-== Mission de la prochaine session (022)
+== Frontière (S-022, actée)
 
-. **CI S-021** : run `41374808984` **VERT** (commit `d6e41ff` ; 16 unit,
-   6/6 `@acceptance`, 5/5 functional). Rien à rejouer sans delta.
-. **Décision pilote ACADEMY-10** (dossier `.agents/CADRAGE_EPIC_ACADEMY_10_SPRING_BOOT.adoc`,
-   S-020) — 4 questions : Jackson 3 vs kotlinx, persistance `bridge_events`
-   maintenant/plus tard, bump `workspace-bom` MEMPHIS ou non, Boot 4.2 GA ou non.
-   **Si GO** : ACADEMY-10-1 → 10-2 → 10-3 → 10-4 → 10-6.
+**FPA et Qualiopi appartiennent à training (Newark).** Academy consomme le
+matériel produit par training et mesure l'accessibilité de la boîte ; elle ne
+porte **aucune** trace de conformité (bilan, assiduité, émoluments) ni
+revendication de certification. ACADEMY-9 est **transféré à training (TRN-13)**.
+La persistance `bridge_events` n'est qu'une traçabilité technique locale.
+
+== Mission de la prochaine session (023)
+
+. **Vérifier la CI** du commit S-022 (gouvernance pure, run attendu vert).
+. **Décision pilote ACADEMY-10** (dossier
+   `.agents/CADRAGE_EPIC_ACADEMY_10_SPRING_BOOT.adoc`, S-020) — 4 questions :
+   Jackson 3 vs kotlinx, persistance `bridge_events` maintenant/plus tard, bump
+   `workspace-bom` MEMPHIS ou non, Boot 4.2 GA ou non. **Si GO** : ACADEMY-10-1
+   → 10-2 → 10-3 → 10-4 → 10-6.
 . **ACADEMY-15 — reste** : la vidéo dépend de `GBL-011-4` (audiodescription
    produite par `capsule`) ; l'opencode (TUI) reste une **limite déclarée** ; le
-   « matériel vérifié » dépend du corpus FPA réel (gate MVP0).
-. Restent ouverts : **ACADEMY-9** (Qualiopi — cadrage), **ACADEMY-12-3** (hôte
-   Windows réel), **BUREAU-3** (autre borough).
+   « matériel vérifié » dépend du **matériel de formation réel produit par
+   training** (gate MVP0).
+. Restent ouverts : **ACADEMY-12-3** (hôte Windows réel), **BUREAU-3** (autre
+   borough). **ACADEMY-9 est hors périmètre** (transféré à training, TRN-13).
 
 == Décisions actées S-021 (ne pas les rediscuter)
 
@@ -26,19 +35,18 @@
 * **Le rapport agrégé** porte les limites de couche **et** les limites non
   levables (usage test avec une personne concernée, opencode) ; une seule
   mention opencode dans l'agrégat.
-* **La limite du matériel a été corrigée** : « Moodle theme requires a
-  browser/session » était périmé depuis l'audit Moodle statique S-019.
 * **Version 0.0.3** (0.0.2 déjà Central) ; `publishToMavenLocal` à jour ;
   publication Central non faite.
 
-== État de l'architecture (session 021)
+== État de l'architecture (session 022)
 
 - **ACADEMY-1/4/5/6/7/8/11/13/14 TERMINÉS**.
-- **ACADEMY-15** : matériel ✅ (S-018), Moodle statique ✅ (S-019),
-  **porte d'acceptation agrégée ✅ (S-021)** ; reste vidéo (`GBL-011-4`) +
-  matériel FPA réel + opencode (limite déclarée).
+- **ACADEMY-15** : matériel ✅ (S-018), Moodle statique ✅ (S-019), porte
+  d'acceptation agrégée ✅ (S-021) ; reste vidéo (`GBL-011-4`) + matériel réel
+  training + opencode (limite déclarée).
 - **ACADEMY-10** : cadrage détaillé ✅ S-020, **décision pilote attendue**.
-- **ACADEMY-12 3/4 US** (12-3 Windows à faire). **ACADEMY-9** cadrage requis.
+- **ACADEMY-12 3/4 US** (12-3 Windows à faire).
+- **ACADEMY-9** : transféré à training (TRN-13), hors academy.
 
 == Rappels des ordres de mission
 

@@ -76,3 +76,11 @@ Sur décision pilote : **ACADEMY-10-1** (plateforme + alignement Kotlin), puis
 10-2 (serveur WebFlux), 10-3 (Jackson 3), 10-4 (tests), 10-6 (docs/dogfooding).
 Sinon : ACADEMY-9 (Qualiopi, cadrage), ACADEMY-12-3 (hôte Windows réel),
 ACADEMY-15 (reste vidéo `GBL-011-4` / matériel FPA réel).
+
+== Amendement S-022
+
+La justification « traçabilité Qualiopi » du volet persistance `bridge_events`
+(US 10-5) est **reclassée** : FPA/Qualiopi appartiennent à **training** (TRN-13) ;
+la persistance éventuelle de l'academy n'est qu'une **traçabilité technique
+locale**. L'academy ne porte aucune conformité et ne revendique aucune
+certification. Voir la session 022.

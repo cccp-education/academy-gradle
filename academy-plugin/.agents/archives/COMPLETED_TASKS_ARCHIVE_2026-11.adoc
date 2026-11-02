@@ -78,3 +78,15 @@ _Session 021 (2026-11-02) — ACADEMY-15-5 porte d'acceptation agrégée_
 - Reste : `GBL-011-4`, matériel FPA réel, opencode (limite déclarée).
 - **CI `41374808984` VERTE** (commit `d6e41ff`) : 16 unit, 6/6 `@acceptance`,
   5/5 functional, 0 échec.
+
+_Session 022 (2026-11-02) — Frontière FPA/Qualiopi = training_
+
+- Décision pilote : FPA et Qualiopi appartiennent à training (Newark).
+- ACADEMY-9 (support Qualiopi) **transféré à training (TRN-13)** ; retiré de la
+  roadmap et des TODO academy.
+- Persistance `bridge_events` reclassée en **traçabilité technique locale**
+  (cadrage ACADEMY-10 amendé) ; « matériel FPA réel » → « matériel de formation
+  réel produit par training ».
+- Academy ne porte ni traces de conformité, ni revendication de certification ;
+  elle expose des preuves d'accessibilité consommables par training.
+- Aucun code/test modifié.

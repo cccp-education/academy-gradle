@@ -2,7 +2,7 @@
 :toc:
 :toclevels: 2
 
-_Dernière mise à jour_ : 2026-09-25 — **ACADEMY-11-4 TERMINÉ + EPIC ACADEMY-11 CLOS (S-016)** — service compose one-shot `moodle-material` : il **applique** le plan stagé après le schéma Moodle, en pilotant les outils natifs de l'image (`moosh`). **Volume nommé `moodle-html:/var/www/html`** partagé par `moodle` et `moodle-material` (indispensable : `moosh` bootstrappe contre l'install). **Garde de rejeu** `sha256(plan.json)` → marqueur `.academy-applied-plan` dans le volume inscriptible (`moosh activity-add` **ne dédoublonne pas**). **Input tolérant** `GenerateInstallerTask.moodleMaterialFiles` (`@InputFiles @Optional`) : un re-run simple ré-rend un plan changé (fin de la staleness silencieuse). Lecture matériel partagée (`MoodleMaterialReader`). **Dogfooding réel `compose up`** : cours `formation-fpa` + sections + activités, contenu AsciiDoc en base, rejeu no-op — **3 bugs réels attrapés**. Gates 710 unit + 21 functional + 71 Cucumber 0 FAIL. **Ordre du jour pilote : ACADEMY-12-3** (dogfooding Windows réel, hôte requis), puis ACADEMY-9/ACADEMY-10 (cadrage/décision pilote).
+_Dernière mise à jour_ : 2026-11-02 (session 022) — **frontière corrigée : FPA/Qualiopi = training**. ACADEMY-9 (support Qualiopi) est **transféré à training (TRN-13)** ; academy ne porte aucune trace de conformité et se limite à mesurer l'accessibilité de la boîte. Rappel historique S-016 : **ACADEMY-11-4 TERMINÉ + EPIC ACADEMY-11 CLOS (S-016)** — service compose one-shot `moodle-material` : il **applique** le plan stagé après le schéma Moodle, en pilotant les outils natifs de l'image (`moosh`). **Volume nommé `moodle-html:/var/www/html`** partagé par `moodle` et `moodle-material` (indispensable : `moosh` bootstrappe contre l'install). **Garde de rejeu** `sha256(plan.json)` → marqueur `.academy-applied-plan` dans le volume inscriptible (`moosh activity-add` **ne dédoublonne pas**). **Input tolérant** `GenerateInstallerTask.moodleMaterialFiles` (`@InputFiles @Optional`) : un re-run simple ré-rend un plan changé (fin de la staleness silencieuse). Lecture matériel partagée (`MoodleMaterialReader`). **Dogfooding réel `compose up`** : cours `formation-fpa` + sections + activités, contenu AsciiDoc en base, rejeu no-op — **3 bugs réels attrapés**. Gates 710 unit + 21 functional + 71 Cucumber 0 FAIL. **Ordre du jour pilote : ACADEMY-12-3** (dogfooding Windows réel, hôte requis), puis ACADEMY-10 (cadrage/décision pilote) ; ACADEMY-9 transféré à training.
 
 '''
 == Vision actée (S-002, arbitrage pilote)
@@ -44,7 +44,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-2 | Intégration du contrat FormationRuntimePort (boucle d'assistance startSession/executeTurn/endSession) | ✅ CLOS (S-013) — academy **ne porte pas** la boucle runtime (D-ACADEMY-11-1) : l'orchestration agentique est l'étage **privé** (workspace-gradle/edster). `ToolExposure` (N0) est en revanche **branché** (`OpenCodeCatalog.exposure()`)
 | ACADEMY-3 | Intégration du contrat SessionMemoryContract (suivi apprenant : progression, comprehension, weakPoints, annotations) | ✅ CLOS (S-013) — implémenté hors academy par `PgVectorSessionMemory` (codex N2, S-094/CDX-RC-04) ; le TODO « zéro implémenteur » était **périmé**
 | ACADEMY-8 | Webhooks Moodle + bridge opencode (avec Ktor, conformément à la décision D4 du VISION_PIPELINE_FORMATION.adoc) | ✅ TERMINÉ (S-011) — 8-0 cadrage, 8-1 domaine `academy.bridge` + serveur Ktor, 8-2 tâche opt-in + scaffold, 8-3 BDD + dogfooding
-| ACADEMY-9 | Support Qualiopi (bilan de session, traces, conformité aux critères) | 🟡 À FAIRE
+| ACADEMY-9 | Support Qualiopi (bilan de session, traces, conformité aux critères) | ✅ TRANSFÉRÉ à training (TRN-13) — S-022 : Qualiopi = domaine formation, pas academy
 | ACADEMY-10 | Migration du bridge Ktor → Spring Boot WebFlux + coroutines Kotlin + R2DBC + PostgreSQL (Docker) + Jackson 3 | 🟡 À FAIRE (cadrage détaillé S-020 — décision pilote attendue)
 | ACADEMY-11 | Injection du matériel pédagogique dans Moodle (data structurée AsciiDoc → plan + applicateur natif) | ✅ TERMINÉ 4/4 US (S-016) — 11-0/11-1/11-2/11-3 ✅ S-013 ; 11-4 ✅ S-016 (service compose one-shot `moodle-material` + dogfooding `compose up`)
 | ACADEMY-12 | Provisionnement de l'engine conteneurs par OS (Linux natif / Windows Docker Desktop WSL2 / macOS Colima) + Portainer partout | 🟡 EN COURS 3/4 US (S-015) — 12-0/12-1/12-2 ✅ ; 12-3 🟡 À FAIRE
@@ -181,7 +181,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-4-1 | Domaine pur `academy.material` (lecture N0 + pivot EPIC K + verdict sealed + guide) ✅ S-012
 | ACADEMY-4-2 | Extension +4 properties + tâche `inspectTrainingMaterial` + `MATERIAL.md` conditionnel ✅ S-012
 | ACADEMY-4-3 | BDD `academy_material.feature` `@material` 8 scénarios + runner dédié + dogfooding réel ✅ S-012
-| ACADEMY-4-2* | Alimenter le cours Moodle seedé depuis le matériel reçu — **DIFFÉRÉE (D-ACADEMY-4-12)** : exige le contrat SPG/SPD canonique (MVP0 training). À renuméroter en `ACADEMY-9`-adjacent lors du cadrage Qualiopi
+| ACADEMY-4-2* | Alimenter le cours Moodle seedé depuis le matériel reçu — **DIFFÉRÉE (D-ACADEMY-4-12)** : exige le contrat SPG/SPD canonique (MVP0 training). À renuméroter lors d'un cadrage de l'ingestion (training)
 |===
 
 === ACADEMY-2 : Intégration du contrat FormationRuntimePort
@@ -326,9 +326,10 @@ imposée par Boot vs compilateur 2.4.10 → alignement explicite requis.
   vers **Jackson 3** : le bridge devient cohérent avec le reste de l'écosystème
   JVM (codebase/codex utilisent Jackson).
 - Persistance optionnelle en PostgreSQL (Docker) : les événements routés
-  peuvent être **journalisés** (traçabilité Qualiopi ACADEMY-9). Le choix
-  « journaliser ou non » et le schéma (table `bridge_events`) restent à
-  trancher — c'est le volet R2DBC de l'EPIC.
+  peuvent être **journalisés** à des fins de **diagnostic technique local**
+  (jamais une revendication de conformité : Qualiopi appartient à training,
+  TRN-13). Le choix « journaliser ou non » et le schéma (table `bridge_events`)
+  restent à trancher — c'est le volet R2DBC de l'EPIC.
 - Le bridge reste **opt-in, local, mono-utilisateur** (D-ACADEMY-8-2/8-7) :
   la migration change la pile, pas la doctrine.
 
@@ -390,9 +391,9 @@ Spring Boot 3.5.9/Jackson 2.18.3, donc **antérieur à l'exigence jackson3**) :
 
 *Note* : cet EPIC n'est **pas** dans le chemin critique MVP0. Il se justifie
 par la cohérence de pile (un seul sérialiseur Jackson dans l'écosystème, un
-seul modèle de concurrence coroutines) et par la traçabilité Qualiopi
-(ACADEMY-9) qu'une persistance PostgreSQL rend possible. À ordonnancer sur
-décision pilote.
+seul modèle de concurrence coroutines). La **conformité Qualiopi appartient à
+training** (TRN-13) ; une éventuelle persistance locale n'est qu'un outil de
+diagnostic. À ordonnancer sur décision pilote.
 
 '''
 == Décisions structurantes
@@ -497,6 +498,7 @@ décision pilote.
 | 2026-11-02 | S-019 : **ACADEMY-15 (Moodle statique) + bug compose `SITE_URL`** — audit HTTP/HTML de la boîte réelle (inspecteur, auditeur, port/adapter, tâche opt-in), 25 unit + 8 BDD `@moodle-a11y` + 5 functional TestKit ; dogfooding Moodle 5.2.3 qui révèle `SITE_URL` (port 80) → correctif `http://localhost:8080` ; bump `0.0.3` ; **CI `41372413668` VERTE** (25 unit a11y-Moodle, 8/8 BDD, 5/5 functional, 25/25 installer). |
 | 2026-11-02 | S-020 : **ACADEMY-10-0 cadrage détaillé** Spring Boot WebFlux — faits vérifiés (Boot 4.1.2 GA, Jackson 3.1.7/3.2.4, r2dbc-postgresql 1.1.3, catalogue academy autonome → **pas de bump BOM requis**), **spike exécuté** (Boot 4.1.2 + Kotlin 2.4.10 + WebFlux + coroutines + Jackson 3, `GET /health` 200), 12 décisions proposées, 7 options écartées, 6 US ~24 pts, plan fichier par fichier, risques. Décision pilote attendue. |
 | 2026-11-02 | S-021 : **ACADEMY-15-5 porte d'acceptation agrégée** — `AcademyA11yReport` + `AcademyA11yAcceptance` (conjonction des couches, gap déclaré, limites non levables), tâche `auditAcademyAcceptance` opt-in/advisory ; 16 unit + 6 BDD `@acceptance` + 5 functional TestKit ; dogfooding réel S-018/S-019 → `DEGRADED` (2 couches, Moodle `VERIFIED`), limite périmée du matériel corrigée ; **CI `41374808984` VERTE**. |
+| 2026-11-02 | S-022 : **Frontière corrigée — FPA/Qualiopi = training** (décision pilote). **ACADEMY-9 (Qualiopi) transféré à training (TRN-13)** ; les mentions « traçabilité Qualiopi » justifiant la persistance `bridge_events` deviennent une **traçabilité technique locale** ; « matériel FPA réel » → « matériel de formation réel produit par training ». Academy ne porte aucune trace de conformité ni revendication de certification ; elle expose des preuves d'accessibilité consommables. Aucun code modifié. |
 |===
 
 '''
@@ -525,7 +527,7 @@ décision pilote.
 [ ] ACADEMY-12-3 : dogfooding environnement Windows réel (`install.bat`, `docker compose config`, parité, images tirées) — ne pas livrer sans preuve
 [x] ACADEMY-10-0 : cadrage détaillé Spring Boot WebFlux — `CADRAGE_EPIC_ACADEMY_10_SPRING_BOOT.adoc` (faits vérifiés 2026-11-02, spike Boot 4.1.2 exécuté, 12 décisions, 7 options écartées, 6 US, plan fichier par fichier) — **TERMINÉ S-020**, décision pilote attendue pour 10-1→10-6
 [ ] ACADEMY-10 : migration du bridge Ktor → Spring Boot WebFlux (cadrage détaillé S-020) — à ordonnancer sur décision pilote ; **pas de bump BOM requis pour compiler** (catalogue academy autonome), alignement MEMPHIS = décision séparée ; Boot 4.1.2 GA + Jackson 3
-[ ] ACADEMY-9 : support Qualiopi (bilan de session, traces, conformité) — distinct de l'ingestion (ACADEMY-11)
+[x] ACADEMY-9 : support Qualiopi — **TRANSFÉRÉ à training (TRN-13) S-022** : Qualiopi = domaine formation ; academy ne porte pas de traces de conformité (elle expose seulement ses rapports d'accessibilité)
 [ ] Vérifier la conformité avec les décisions actées dans VISION_PIPELINE_FORMATION.adoc (sections 3.3, 9.2, 8.2) — **corrigée S-013** : § 6 (academy n'implémente pas la boucle)
 [ ] Définir précisément les dépendances nécessaires pour les runtime-contracts (N0, quand ACADEMY-4/2/3)
 '''
@@ -550,8 +552,8 @@ _Constat mesuré sur disque et sur Maven Central, pas sur l'INDEX._
 | Ajouter une tâche `auditTrainingAccessibility` (rapport versionné) et une **porte d'acceptation** : un livrable n'est déclaré accessible qu'avec rapport + limites + test d'usage consigné.
 
 | O-4
-| `ACADEMY-9` (Qualiopi) est ouvert sans lien avec l'accessibilité, alors que l'adaptation aux personnes en situation de handicap fait partie des exigences qualité.
-| Renforcer `ACADEMY-9` : rattacher la porte d'accessibilité (ACADEMY-15) aux traces Qualiopi (bilan de session, adaptations réalisées).
+| La conformité **Qualiopi** relève de **training** (TRN-13, transféré d'ACADEMY-9 S-022) : academy ne porte ni traces de bilan, ni assiduité, ni revendication de certification. La porte d'accessibilité (ACADEMY-15) peut **fournir une preuve** consommable par training, mais ne l'administre pas.
+| Conserver la séparation : training authorise et trace la conformité ; academy mesure l'accessibilité de la boîte et expose ses rapports.
 |===
 
 === ACADEMY-13 — CI de test obligatoire (~3 pts)
@@ -637,8 +639,9 @@ image workspace chargée, manifeste téléversé.
 
 *Statut* : 🟡 EN COURS (S-017→S-021) — matériel, Moodle statique **et** porte
 d'acceptation agrégée livrés et dogfoodés ; reste le producteur vidéo
-(`GBL-011-4`), le matériel FPA réel et l'audit opencode (limite déclarée). La
-porte est **opérationnelle** : elle mesure et déclare ses limites.
+(`GBL-011-4`), le **matériel de formation réel produit par training** et l'audit
+opencode (limite déclarée). La porte est **opérationnelle** : elle mesure et
+déclare ses limites.
 *Livré* :
 - domaine `academy.a11y` : `A11yFinding`/`A11ySeverity`/`A11yReadiness`,
   `A11yRules`, `MaterialA11yReport` (JSON versionné, **limites déclarées**) ;
@@ -704,8 +707,9 @@ porte est **opérationnelle** : elle mesure et déclare ses limites.
 . `capsule` doit produire l'audiodescription (GBL-011-4) ; academy la détecte
   déjà (`foo.audiodesc.*`), mais tant que le producteur est muet le constat
   reste un `WARNING` — un propriétaire par couche.
-. « Matériel vérifié » sur le corpus FPA réel : dépend du matériel SPG/SPD
-  généré (gate corpus MVP0) en plus de `GBL-011-3`/`-4`.
+. « Matériel vérifié » sur le **matériel de formation réel produit par
+  training** : dépend du matériel SPG/SPD généré (gate corpus MVP0) en plus de
+  `GBL-011-3`/`-4`.
 . Audit **opencode** (TUI) — hors périmètre, déclaré en limite du rapport ; le
   rendu visuel Moodle (focus, contraste, JavaScript) reste hors de l'audit
   statique.

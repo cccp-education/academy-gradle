@@ -1,0 +1,52 @@
+= Session 022 — Frontière corrigée : FPA/Qualiopi appartiennent à training
+:toc: left
+:date: 2026-11-02
+:statut: ✅ Gouvernance pure (aucun code modifié)
+
+== Décision pilote
+
+**FPA et Qualiopi ne doivent pas être mélangés à academy : cela relève de
+training (Newark).** Academy consomme le matériel de formation produit par
+training et mesure l'accessibilité de la boîte. Elle ne porte ni traces de
+conformité (bilan de session, assiduité, émoluments, adaptations administratives)
+ni revendication de certification.
+
+== Corrections appliquées (academy)
+
+- `BACKLOG.adoc` :
+  - **ACADEMY-9 (support Qualiopi)** → `✅ TRANSFÉRÉ à training (TRN-13) — S-022` ;
+    retiré des TODO ouverts et de l'ordre du jour.
+  - les mentions « traçabilité Qualiopi » justifiant la persistance
+    `bridge_events` (cadrage ACADEMY-10) sont reclassées en **traçabilité
+    technique locale** ;
+  - « matériel FPA réel » → « **matériel de formation réel produit par
+    training** » ;
+  - l'observation O-4 est réécrite : Qualiopi = training (TRN-13) ; la porte
+    d'accessibilité ACADEMY-15 peut fournir une **preuve consommable**, pas
+    administrer la conformité.
+- `CADRAGE_EPIC_ACADEMY_10_SPRING_BOOT.adoc` : amendement en tête + US 10-5,
+  O-6, ordre des US et question pilote reclassés (persistance = technique
+  locale ; Qualiopi = training).
+- `INDEX.adoc` : frontière explicite en tête ; prochaine session sans
+  ACADEMY-9 ; session 022 au tableau.
+- `PROMPT_REPRISE.adoc` : frontière actée ; mission 023 sans ACADEMY-9.
+- Rapports S-020/S-021 : la justification « Qualiopi » de la persistance est
+  amendée par renvoi à cette session (l'historique des faits reste intact).
+
+== Hors périmètre academy (rappel)
+
+- Les traces de conformité Qualiopi, le bilan de session, l'assiduité et les
+  adaptations administratives → **training**.
+- L'accessibilité du livrable (matériel, Moodle, poste, vitrine) reste mesurée
+  par les boroughs propriétaires ; academy **agrège** et **déclare ses limites**
+  (S-021), elle ne certifie rien.
+
+== Gates
+
+- Aucun code, aucun test modifié.
+- Zéro secret.
+
+== Prochaine session (023)
+
+Vérifier la CI du commit S-022 ; décision pilote ACADEMY-10 ; ACADEMY-15 (reste
+vidéo `GBL-011-4` + matériel réel training) ; ACADEMY-12-3 (Windows).
