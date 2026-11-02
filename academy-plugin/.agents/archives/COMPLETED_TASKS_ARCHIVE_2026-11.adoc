@@ -76,3 +76,5 @@ _Session 021 (2026-11-02) — ACADEMY-15-5 porte d'acceptation agrégée_
   8 findings, Moodle `VERIFIED`) ; limite périmée du matériel corrigée
   (« Moodle theme requires a browser/session »).
 - Reste : `GBL-011-4`, matériel FPA réel, opencode (limite déclarée).
+- **CI `41374808984` VERTE** (commit `d6e41ff`) : 16 unit, 6/6 `@acceptance`,
+  5/5 functional, 0 échec.

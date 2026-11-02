@@ -2,8 +2,8 @@
 
 == Mission de la prochaine session (022)
 
-. **Vérifier la CI** du commit S-021 (`./gradlew build` : unit +
-   `functionalTest` + `cucumberTestAcceptance` + ktlint + POM).
+. **CI S-021** : run `41374808984` **VERT** (commit `d6e41ff` ; 16 unit,
+   6/6 `@acceptance`, 5/5 functional). Rien à rejouer sans delta.
 . **Décision pilote ACADEMY-10** (dossier `.agents/CADRAGE_EPIC_ACADEMY_10_SPRING_BOOT.adoc`,
    S-020) — 4 questions : Jackson 3 vs kotlinx, persistance `bridge_events`
    maintenant/plus tard, bump `workspace-bom` MEMPHIS ou non, Boot 4.2 GA ou non.

@@ -96,3 +96,10 @@ deux audits `VERIFIED` → rapport agrégé (2 couches), couche absente → `DEG
 Vérifier la CI du commit poussé. Puis : **décision pilote ACADEMY-10** (questions
 ouvertes du cadrage S-020), **ACADEMY-9** (Qualiopi, cadrage), **ACADEMY-12-3**
 (hôte Windows réel), **ACADEMY-15** (reste vidéo `GBL-011-4`, matériel FPA réel).
+
+== Preuve CI
+
+Run **`41374808984` VERT** (commit `d6e41ff`, `Build & Test` success, `Publish`
+skipped) : `AcademyA11yAcceptanceTest` 9/9, `AcademyA11yReportTest` 1/1,
+`AuditAcademyAcceptanceTaskTest` 6/6, `AcademyAcceptanceFunctionalTest` 5/5,
+`academy_acceptance.feature` **6/6**, 0 échec.
