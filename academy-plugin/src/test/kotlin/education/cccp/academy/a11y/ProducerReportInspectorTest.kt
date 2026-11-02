@@ -23,7 +23,11 @@ class ProducerReportInspectorTest {
     private fun file(
         relative: String,
         content: String = "x",
-    ): File = File(dir, relative).apply { parentFile.mkdirs() }
+    ): File =
+        File(dir, relative).apply {
+            parentFile.mkdirs()
+            writeText(content)
+        }
 
     private fun report(
         relative: String,
