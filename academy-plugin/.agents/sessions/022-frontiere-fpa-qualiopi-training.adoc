@@ -50,3 +50,9 @@ ni revendication de certification.
 
 Vérifier la CI du commit S-022 ; décision pilote ACADEMY-10 ; ACADEMY-15 (reste
 vidéo `GBL-011-4` + matériel réel training) ; ACADEMY-12-3 (Windows).
+
+== Preuve CI
+
+Run **`41376316058` VERT** (commit `0db9065`, `Build & Test` success, `Publish`
+skipped). Côté training, le transfert TRN-13 est couvert par le run
+`41376326302` (Build & Test success).

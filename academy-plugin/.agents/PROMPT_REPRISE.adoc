@@ -10,7 +10,8 @@ La persistance `bridge_events` n'est qu'une traçabilité technique locale.
 
 == Mission de la prochaine session (023)
 
-. **Vérifier la CI** du commit S-022 (gouvernance pure, run attendu vert).
+. **CI S-022** : run `41376316058` **VERT** (commit `0db9065`, gouvernance
+   pure). Rien à rejouer sans delta.
 . **Décision pilote ACADEMY-10** (dossier
    `.agents/CADRAGE_EPIC_ACADEMY_10_SPRING_BOOT.adoc`, S-020) — 4 questions :
    Jackson 3 vs kotlinx, persistance `bridge_events` maintenant/plus tard, bump
