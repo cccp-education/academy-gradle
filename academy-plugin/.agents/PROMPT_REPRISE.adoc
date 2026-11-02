@@ -1,53 +1,57 @@
 = PROMPT_REPRISE — academy-gradle
 
-== Mission de la prochaine session (020)
+== Mission de la prochaine session (021)
 
-. **CI S-019** : run `41372413668` **VERT** (commit `527db9e` ; 25 unit
-   a11y-Moodle, 8/8 `@moodle-a11y`, 5/5 functional, 25/25 `@installer`). Rien à
-   rejouer sans delta.
-. **ACADEMY-15 — reste** : la vidéo dépend de `GBL-011-4` (audiodescription
-   produite par `capsule`) ; academy la **détecte** déjà (`foo.audiodesc.*`), le
-   constat reste un `WARNING` déclaré tant que le producteur est muet.
-   L'audit opencode (TUI) reste une **limite déclarée**.
-. **ACADEMY-15 — matériel réel** : exécuter les deux audits (matériel +
-   Moodle) sur le corpus FPA réel quand il existe (gate MVP0 training).
-. Restent ouverts : **ACADEMY-12-3** (hôte Windows réel), **ACADEMY-10**
-   (Spring Boot WebFlux — cadrage + décision pilote + bump BOM possible),
-   **ACADEMY-9** (Qualiopi), **BUREAU-3** (autre borough).
+**Décision pilote attendue sur ACADEMY-10** (cadrage détaillé S-020,
+`.agents/CADRAGE_EPIC_ACADEMY_10_SPRING_BOOT.adoc`) :
 
-== Décisions actées S-019 (ne pas les rediscuter)
+. **4 questions ouvertes** : (a) `BridgeWire` Jackson 3 ou garder kotlinx ?
+   (b) persistance `bridge_events` maintenant (couplée à ACADEMY-9) ou plus tard ?
+   (c) bump `workspace-bom` Boot 4.1.2/Jackson 3 (cross-borough MEMPHIS) :
+   maintenant, plus tard, ou jamais ? (d) attendre Boot 4.2 GA ?
+. **Si décision = GO** : démarrer **ACADEMY-10-1** (plateforme Boot 4.1.2 +
+   alignement `kotlin-stdlib` 2.4.10 + retrait Ktor), puis 10-2 (serveur WebFlux),
+   10-3 (Jackson 3), 10-4 (tests), 10-6 (docs/dogfooding). 10-5 seulement si
+   Qualiopi le demande.
+. **Sinon** : **ACADEMY-9** (Qualiopi — cadrage), **ACADEMY-12-3** (hôte Windows
+   réel), **ACADEMY-15** (reste vidéo `GBL-011-4` + matériel FPA réel).
 
-* **Audit Moodle statique = HTTP + HTML, pas navigateur** : `MoodlePageFetcher`
-  (port) + `HttpMoodlePageFetcher` (JDK HttpClient) + `MoodleAccessibilityInspector`
-  (regex) + `MoodleA11yAuditor`. Règles : `lang`, `alt`, nom accessible de
-  contrôle, `th`, `h1` ; page injoignable = `WARNING`, jamais un crash.
-* **La mesure ne prétend pas plus qu'elle ne mesure** : le rapport déclare
-  « static HTML only », « seuls les chemins configurés », « opencode hors
-  périmètre ».
-* **`SITE_URL: http://localhost:8080` est obligatoire dans le compose** : l'image
-  Moodle fixe `SITE_URL=http://localhost` (port 80) ; sans surcharge, tout
-  redirect interne sort du port publié (bug réel S-019). Source unique
-  Linux/Windows, verrouillé par unit + BDD.
-* **La tâche est opt-in et advisory** (`moodleA11yEnabled=false`,
-  `moodleA11yStrict=false`). L'audit du matériel reste `a11yAuditEnabled`.
-* **Version 0.0.3** : 0.0.2 est publié Central (ne jamais republier) ;
-  `publishToMavenLocal` à jour. Publication Central non faite.
+== Décisions actées S-020 (ne pas les rediscuter)
 
-== État de l'architecture (session 019)
+* **Boot 4.1.2 GA** (4.2.0-RC1 est une RC, pas une base de production).
+* **Pas de plugin Gradle Spring Boot** : `platform("spring-boot-dependencies:4.1.2")`
+  + starters en `implementation`, lancement par `runApplication` dans la tâche
+  Gradle (le spike le prouve).
+* **Le catalogue de l'academy est autonome** : `workspace-bom` n'est pas importé
+  → **aucun bump MEMPHIS n'est requis pour compiler** ; l'alignement cross-borough
+  est une décision séparée (D-10-11).
+* **Alignement `kotlin-stdlib` 2.4.10 obligatoire** après import du BOM Boot
+  (Boot gère 2.3.21 ; spike OK mais risque silencieux).
+* **Coroutines `suspend`** aux handlers WebFlux ; le domaine `academy.bridge`
+  reste pur et transport-agnostique (229 lignes inchangées).
+* **Persistance R2DBC différée** (US 10-5 opt-in) ; PostgreSQL du compose
+  réutilisé, pas de second service.
+* **Preuve** = `WebTestClient`/`@SpringBootTest` + BDD `@bridge` inchangée +
+  functional TestKit + dogfooding réel `curl` ; Local = Build, Tests = CI.
+
+== État de l'architecture (session 020)
 
 - **ACADEMY-1/4/5/6/7/8/11/13/14 TERMINÉS**.
-- **ACADEMY-15** : matériel (socle + producteurs + BDD + functional) ✅ ;
-  **Moodle statique ✅ (S-019)** ; reste vidéo (`GBL-011-4`) + matériel FPA réel.
-- **ACADEMY-12 3/4 US** (12-3 Windows à faire). **ACADEMY-10/9** cadrage requis.
+- **ACADEMY-15** : matériel + Moodle statique ✅ (S-018/S-019) ; reste vidéo
+  (`GBL-011-4`) + matériel FPA réel + opencode (limite déclarée).
+- **ACADEMY-10** : cadrage détaillé ✅ S-020, **décision pilote attendue**.
+- **ACADEMY-12 3/4 US** (12-3 Windows à faire). **ACADEMY-9** cadrage requis.
+- Version locale **0.0.3** (0.0.2 déjà sur Central) ; publication Central à
+  décider.
 
 == Rappels des ordres de mission
 
+- Gouvernance d'abord pour toute décision pilote (pattern S-057).
 - BDD/TDD baby-step strict, 1 fichier de test avant le code ; English only.
-- **Local = Build, Tests = CI** : compiler localement, pousser, prouver par CI.
-  Un run rouge se diagnostique par l'artefact JUnit XML (`test-results`), jamais
-  par une ré-exécution locale.
-- **Vérifier la source avant de nommer** image/commande/outil ; **dogfooding =
-  preuve réelle** (jamais une fixture inventée).
+- **Local = Build, Tests = CI** : compiler localement, pousser, prouver par CI ;
+  un run rouge se diagnostique par l'artefact JUnit XML (`test-results`).
+- **Vérifier la source avant de nommer** version/image/commande ; **dogfooding =
+  preuve réelle**.
 - DAG N2 : academy importable par N3, jamais N3 → academy.
 - Zéro secret. `publishToMavenLocal` après toute modification de source.
 - Sur un hôte nu, `./gradlew` doit configurer (P0 S-014 — ne pas régresser).

@@ -1,0 +1,394 @@
+= CADRAGE — EPIC ACADEMY-10 : migration du bridge Ktor → Spring Boot WebFlux
+:toc: left
+:toclevels: 2
+:date: 2026-11-02
+:statut: 🟡 CADRÉ DÉTAILLÉ — décision pilote attendue (aucun code modifié)
+:session: 020
+
+== Objet
+
+L'EPIC ACADEMY-10 (cadré S-012) migre le bridge HTTP local livré en ACADEMY-8
+(Ktor 3.2.0 Netty) vers **Spring Boot WebFlux + coroutines + R2DBC/PostgreSQL +
+Jackson 3**. Ce document remplace les notes de cadrage S-012 par un dossier de
+décision : faits vérifiés au 2026-11-02, conséquences sur le catalogue, options
+écartées, découpage US et plan de migration fichier par fichier.
+
+*Aucune décision n'est actée par ce document seul* : les choix structurants
+(D-ACADEMY-10-1..12) restent à confirmer par le pilote (pattern S-057).
+
+== 1. Constats vérifiés (source, pas supposition)
+
+[cols="2,4,2", options="header"]
+|===
+| # | Fait mesuré | Preuve
+
+| C-1
+| Le bridge est **petit et isolé** : domaine pur 229 lignes (6 fichiers) +
+  `WebhookBridgeServer` 124 lignes + `ServeWebhookBridgeTask` 71 lignes = **424
+  lignes**. Le domaine est déjà transport-agnostique (D-ACADEMY-8-4).
+| `wc -l` sur `src/main/kotlin/education/cccp/academy/{bridge/*,ServeWebhookBridgeTask}.kt`
+
+| C-2
+| Le catalogue de l'academy est **autonome** (`academy-plugin/gradle/libs.versions.toml`,
+  Kotlin 2.4.10, Ktor 3.2.0) et **n'importe pas** `workspace-bom`. La migration
+  ne force donc **pas** un bump MEMPHIS pour que l'academy compile.
+| `cat academy-plugin/gradle/libs.versions.toml` ; zéro `platform("education.cccp:workspace-bom")`
+
+| C-3
+| Le `workspace-bom` partagé pinne encore **Spring Boot 3.4.2** + **Jackson
+  2.21.2** (et `r2dbc-postgresql 1.0.7`). Un alignement cross-borough serait une
+  décision MEMPHIS distincte, pas un prérequis technique de l'academy.
+| `foundry/public/workspace-bom/gradle/libs.versions.toml:11,17,102`
+
+| C-4
+| Dernière **GA** Spring Boot sur Central : **4.1.2** (4.2.0-RC1 est une RC).
+  4.1.2 gère `jackson-bom 3.1.7`, `kotlin 2.3.21`, `kotlinx-coroutines 1.10.2`,
+  `r2dbc-postgresql 1.1.3.RELEASE`.
+| `repo1.maven.org/maven2/org/springframework/boot/spring-boot/maven-metadata.xml`
+  (`lastUpdated 2026-10-22`) et POM `spring-boot-dependencies:4.1.2`
+
+| C-5
+| Jackson 3 est **GA** (`tools.jackson.core:jackson-databind 3.2.4`) et son
+  module Kotlin est `tools.jackson.module:jackson-module-kotlin 3.2.4`.
+| `maven-metadata.xml` des deux artefacts (Central, 2026-10-18)
+
+| C-6
+| `org.postgresql:r2dbc-postgresql` est à **1.1.3.RELEASE** (dernière).
+| `maven-metadata.xml` (Central, 2026-09-21)
+
+| C-7
+| **Spike compilé et exécuté** : Boot 4.1.2 + Kotlin 2.4.10 + `spring-boot-starter-webflux`
+  + `kotlinx-coroutines-reactor` + `jackson-module-kotlin` (3) → Netty démarre
+  en 3,6 s, un `@RestController` avec `suspend fun` répond
+  `200 {"status":"up","provider":"ollama"}` (sérialisation Jackson 3).
+| `/tmp/opencode/boot-spike` (JVM 25, Gradle 9.8.1) ; log `Started SpikeKt in 3.579 seconds`
+
+| C-8
+| Contrainte réelle : Boot 4.1.2 **gère `kotlin-stdlib 2.3.21`** alors que le
+  compilateur de l'academy est **2.4.10**. Le spike compile, mais un alignement
+  explicite est nécessaire pour éviter une régression silencieuse de stdlib.
+| POM `spring-boot-dependencies:4.1.2` (`kotlin.version`) + `libs.versions.toml`
+
+| C-9
+| Ktor courant est **3.6.1** ; Ktor 3.2.0 est déjà en retard. La migration
+  supprime la dépendance Ktor (Netty, content-negotiation, kotlinx-json).
+| `maven-metadata.xml` de `io.ktor:ktor-server-core` (2026-10-29)
+|===
+
+== 2. Ce qui ne change pas (invariants)
+
+. **Le domaine pur `academy.bridge` reste verbatim** : `MoodleEvent`,
+  `BridgeEventTranslator`, `BridgeRoutes`, `BridgeServerConfig`,
+  `ByokBridgeSupport` ne connaissent ni Ktor ni Spring (D-ACADEMY-8-4). Seules la
+  couche serveur et la tâche migrent.
+. **Le bridge route et acquitte — il ne pense pas** (D-ACADEMY-8-6) : zéro LLM,
+  zéro tâche Gradle, zéro écriture de fichier.
+. **Anti-corruption `BridgeWire`** : les contrats N0 (`contracts.session.*`)
+  restent purs ; le bridge mappe sa propre vue `@Serializable` au bord
+  (D-ACADEMY-8-11).
+. **Opt-in et local** (`bridgeEnabled=false`, host `127.0.0.1`, port `8765`,
+  D-ACADEMY-8-2/8-7) ; aucun VPS, mono-utilisateur.
+. **Surface HTTP** : `GET /health`, `POST /events/moodle`, `POST /session`
+  (D-ACADEMY-8-6/9). Les schémas d'entrée/sortie ne changent pas.
+. **Un seul chemin de code** entre production et tests (D-ACADEMY-8-10).
+
+== 3. Décisions proposées (à acter)
+
+[cols="1,4,2", options="header"]
+|===
+| ID | Décision proposée | Justification
+
+| D-ACADEMY-10-1
+| **Migrer vers Spring Boot 4.1.2** (dernière GA), pas 4.1.1 ni 4.2.0-RC1.
+| C-4 : 4.1.2 = GA la plus récente, correctifs inclusifs ; une RC n'est pas une
+  base de production. 4.1.1 est déjà dépassé.
+
+| D-ACADEMY-10-2
+| **Pas de plugin Gradle `org.springframework.boot`** : importer
+  `platform("org.springframework.boot:spring-boot-dependencies:4.1.2")` dans le
+  catalogue de l'academy et déclarer les starters. Le lancement reste
+  `runApplication<AcademyBridgeApplication>(*args)` dans la tâche Gradle.
+| Le plugin Boot veut un `bootJar`, un main class et un packaging applicatif :
+  incompatible avec un **plugin Gradle** publié. Le spike prouve que le BOM +
+  `runApplication` suffisent (C-7).
+
+| D-ACADEMY-10-3
+| **Aligner explicitement `kotlin-stdlib` sur 2.4.10** après l'import du BOM Boot
+  (contrainte de résolution ou `kotlin.version` surchargé).
+| C-8 : Boot gère 2.3.21, le compilateur est 2.4.10 ; sans alignement le stdlib
+  peut régresser sous le compilateur.
+
+| D-ACADEMY-10-4
+| **Coroutines `suspend` pour les handlers** (`@RestController` +
+  `suspend fun`), `kotlinx-coroutines-reactor` fourni par le BOM Boot.
+| L'écosystème cccp est coroutine-first (koog/langchain4j adapters) ; WebFlux
+  supporte nativement `suspend` (prouvé C-7). Les `Mono`/`Flux` restent au
+  transport, pas dans le domaine.
+
+| D-ACADEMY-10-5
+| **`BridgeWire` migre de kotlinx-serialization à Jackson 3**
+  (`tools.jackson.module:jackson-module-kotlin`), et `kotlinx-serialization-json`
+  quitte le plugin si plus aucun code ne l'utilise.
+| Le reste de l'écosystème JVM (codebase/codex) sérialise en Jackson ; un seul
+  sérialiseur réduit la dette. Si le pilote préfère le statu quo, kotlinx reste
+  possible (option écartée O-4).
+
+| D-ACADEMY-10-6
+| **Persistance R2DBC différée derrière un flag** : US séparée
+  (`ACADEMY-10-5`, opt-in, défaut off), table `bridge_events`, DDL co-localisé.
+| Le bridge doit d'abord migrer **iso-comportement**. La persistance sert
+  Qualiopi (ACADEMY-9) et ne doit pas bloquer la migration. Les événements
+  peuvent être journalisés plus tard sans changer la surface HTTP.
+
+| D-ACADEMY-10-7
+| **Réutiliser le PostgreSQL du compose** (`postgres:16`, ACADEMY-6), jamais un
+  second service.
+| La boîte a déjà PostgreSQL (D-ACADEMY-6-13) ; un doublon violerait l'économie
+  d'encre et compliquerait l'installeur.
+
+| D-ACADEMY-10-8
+| **La tâche Gradle reste le lanceur** (`serveWebhookBridge`, daemon bloquant),
+  avec un seam `serverLauncher` conservé. Un `main()` CLI peut être ajouté mais
+  n'est pas la voie par défaut.
+| D-ACADEMY-8-2 (artisan de build mono-utilisateur) ; la tâche est déjà testée
+  (SKIPPED par défaut) et l'installeur/guide la documentent.
+
+| D-ACADEMY-10-9
+| **Pas d'authentification, pas de Spring Security, pas de Thymeleaf, pas de
+  mail, pas d'Arrow** : hors périmètre (local, mono-utilisateur).
+| D-ACADEMY-8-2 ; le draft `sources/draft/api` les avait, mais la vision academy
+  les exclut.
+
+| D-ACADEMY-10-10
+| **Le POM publié n'embarque pas Spring Boot en dépendance transitive lourde
+  côté consommateur** : les starters sont `implementation`, pas `api`.
+| Un consommateur du plugin n'a pas à hériter de WebFlux ; le bridge est une
+  fonctionnalité interne de la tâche.
+
+| D-ACADEMY-10-11
+| **Bump BOM MEMPHIS = décision séparée** (si et seulement si le pilote veut
+  aligner le catalogue partagé sur Boot 4.1.2/Jackson 3). L'academy n'en dépend
+  pas pour compiler.
+| C-2/C-3 ; ne pas coupler une migration locale à 10+ boroughs.
+
+| D-ACADEMY-10-12
+| **Preuve = tests existants + nouveaux tests Spring** : `testApplication` Ktor
+  est remplacé par `WebTestClient`/`@SpringBootTest` (ou un vrai `HttpServer`
+  pour le functional), plus le dogfooding `curl` réel.
+| D-ACADEMY-8-10 (un seul chemin) et Local = Build/Tests = CI.
+|===
+
+== 4. Options écartées
+
+[cols="1,3,3", options="header"]
+|===
+| ID | Option | Raison de l'écart
+
+| O-1
+| **Conserver Ktor** (statu quo)
+| Ne répond ni à l'exigence « Jackson 3 / un seul sérialiseur », ni à la
+  cohérence coroutine-first ; Ktor 3.2.0 est déjà en retard (3.6.1). Le coût de
+  migration est faible (424 lignes, domaine inchangé).
+
+| O-2
+| **Spring Boot 3.4.2** (celui du BOM partagé)
+| Livre Jackson 2.18/2.21 et non Jackson 3 ; contredit l'exigence actée S-012.
+
+| O-3
+| **Spring Boot 4.2.0-RC1**
+| Une RC n'est pas une base de production pour un artefact publié.
+
+| O-4
+| **Garder kotlinx-serialization pour `BridgeWire`**
+| Possible, mais deux sérialiseurs dans le même plugin et un écart avec
+  codebase/codex ; à rouvrir seulement si Jackson 3 pose un problème au spike.
+
+| O-5
+| **Appliquer le plugin Gradle Spring Boot**
+| Packaging applicatif incompatible avec un plugin Gradle publié ; le spike
+  prouve que le BOM suffit.
+
+| O-6
+| **Persister les événements dès la migration**
+| Couple la migration à ACADEMY-9 et ajoute un flag/DDL avant d'avoir prouvé
+  l'iso-comportement ; US séparée.
+
+| O-7
+| **Auth/JWT/Thymeleaf/mail/Arrow**
+| Hors périmètre local mono-utilisateur (D-ACADEMY-8-2).
+|===
+
+== 5. Découpage US (proposé)
+
+[cols="1,4,1,1", options="header"]
+|===
+| US | Contenu | Pts | Statut
+
+| ACADEMY-10-0
+| Cadrage détaillé (ce document) : faits vérifiés, décisions, options, plan,
+  risques, spike Boot 4.1.2 exécuté | 3
+| ✅ S-020
+
+| ACADEMY-10-1
+| **Plateforme + alignement Kotlin** : catalogue (Boot 4.1.2, Jackson 3,
+  coroutines), `kotlin-stdlib` aligné 2.4.10, retrait progressif de Ktor ;
+  garde de version (pas de `4.2.0-RC`) et compile | 3
+| 🟡 À FAIRE
+
+| ACADEMY-10-2
+| **Couche serveur WebFlux** : `AcademyBridgeApplication`
+  (`@SpringBootApplication`), `BridgeConfiguration` (`@ConfigurationProperties`
+  depuis `BridgeServerConfig`), `BridgeController` (`suspend fun`, `ProblemDetail`
+  RFC 7807), `installBridge` remplacé, `startBridge` via `runApplication` ;
+  suppression `WebhookBridgeServer` Ktor | 5
+| 🟡 À FAIRE
+
+| ACADEMY-10-3
+| **`BridgeWire` Jackson 3** : `SessionRequest`/`BridgeAck` en data classes
+  Kotlin (module Kotlin Jackson), mapping N0 inchangé, retrait
+  `kotlinx-serialization-json` si plus utilisé | 3
+| 🟡 À FAIRE
+
+| ACADEMY-10-4
+| **Tâche + tests de la nouvelle pile** : `serveWebhookBridge` conserve son
+  opt-in et son seam ; `WebTestClient`/`@SpringBootTest` pour les routes
+  (200/400/404, JSON), functional TestKit avec `curl`/`HttpServer`, adaptation
+  des 6 scénarios BDD `@bridge` (mêmes phrases, autre pile) | 5
+| 🟡 À FAIRE
+
+| ACADEMY-10-5
+| **Persistance optionnelle `bridge_events`** (opt-in, défaut off) : DDL
+  co-localisé, `DatabaseClient` + `suspend`, réutilisation du PostgreSQL du
+  compose, tests testcontainers ; sert ACADEMY-9 | 5
+| 🟡 À FAIRE (conditionnelle)
+
+| ACADEMY-10-6
+| **Documentation + dogfooding réel + release** : guide (`AGENTS.md`/README),
+  dogfooding serveur + `curl`, `publishToMavenLocal`, publication Central sur
+  décision/tag | 3
+| 🟡 À FAIRE
+|===
+
+_Total_ : 6 US, ~24 pts (dont une conditionnelle). Ordre :
+10-0 ✅ → 10-1 → 10-2 → 10-3 → 10-4 → 10-6 ; 10-5 seulement si ACADEMY-9 le
+demande.
+
+== 6. Plan de migration (fichiers)
+
+[cols="2,3,3", options="header"]
+|===
+| Fichier | Action | Détail
+
+| `gradle/libs.versions.toml`
+| Modifier
+| Ajouter la plateforme Boot 4.1.2 + aliases (webflux, data-r2dbc, r2dbc-postgresql,
+  jackson-kotlin 3, coroutines-reactor), retirer Ktor et `kotlinx-serialization`
+  quand ils ne servent plus ; garder Kotlin 2.4.10.
+
+| `build.gradle.kts`
+| Modifier
+| `implementation(platform(libs.spring.boot.bom))` + starters en
+  `implementation` (pas `api`) ; retirer `ktor-*` ; garder `runtime-contracts` et
+  `opencode-session-contracts`.
+
+| `academy/bridge/WebhookBridgeServer.kt`
+| Supprimer
+| Remplacé par `bridge/AcademyBridgeApplication.kt` + `bridge/BridgeController.kt`.
+
+| `academy/bridge/BridgeWire.kt`
+| Modifier
+| Annotations Jackson 3 (ou data classes sans annotations + module Kotlin) ;
+  mapping `toSessionPrompt()` inchangé.
+
+| `academy/ServeWebhookBridgeTask.kt`
+| Modifier
+| `startBridge` lance `runApplication<AcademyBridgeApplication>("--server.address=…",
+  "--server.port=…")` ; le seam `serverLauncher` reste.
+
+| `academy/bridge/{MoodleEvent,BridgeEventTranslator,BridgeRoutes,BridgeServerConfig,ByokBridgeSupport}.kt`
+| Inchangés
+| Domaine pur (C-1), aucun import de framework.
+
+| `src/test/.../bridge/*`
+| Modifier
+| `BridgeServerConfigTest` inchangé ; remplacer `testApplication` par
+  `WebTestClient`/`@SpringBootTest` ; conserver `BridgeRoutesTest`,
+  `BridgeEventTranslatorTest`, `MoodleEventTest`, `BridgeWire` round-trip.
+
+| `src/test/scenarios/.../AcademyBridgeSteps.kt` + `academy_bridge.feature`
+| Modifier / inchangé
+| Les 6 scénarios restent valides (domaine) ; ajouter si utile un scénario de
+  route HTTP via WebTestClient.
+
+| `src/functionalTest/.../AcademyBridgeFunctionalTest` (nouveau)
+| Ajouter
+| TestKit opt-in : `SKIPPED` par défaut, serveur réel + `curl`-équivalent.
+|===
+
+== 7. Risques et parades
+
+[cols="2,4,3", options="header"]
+|===
+| Risque | Impact | Parade
+
+| `kotlin-stdlib` 2.3.21 imposé par Boot 4.1.2 vs compilateur 2.4.10 | Moyen
+| Alignement explicite (D-10-3) + test qui imprime la version de stdlib résolue ;
+  `compileKotlin`/`compileTestKotlin`/`compileFunctionalTestKotlin` verts.
+
+| Réactivité/Netty change le comportement des routes | Faible
+| Mêmes status codes et corps JSON ; BDD + functional ; le domaine reste pur.
+
+| Jackson 3 change les noms de modules/paquets | Faible
+| Spike validé (C-7) ; round-trip `BridgeWire` testé.
+
+| `WebFlux` ajoute un gros graphe de dépendances au plugin | Moyen
+| `implementation` (pas `api`) ; mesurer le POM publié et le jar ; si le poids
+  est excessif, isoler le serveur dans un sous-module (option future).
+
+| Le mode daemon `runApplication` bloque la tâche | Faible
+| Le seam `serverLauncher` est conservé ; `onlyIf { bridgeEnabled }` ; test
+  TestKit `SKIPPED` par défaut.
+
+| Bump BOM cross-borough mal ordonnancé | Moyen
+| Décision séparée (D-10-11) ; l'academy ne l'exige pas.
+
+| Perte des tests Ktor existants | Faible
+| Les mêmes contrats sont testés via `WebTestClient` ; ne pas supprimer un test
+  sans son équivalent GREEN.
+|===
+
+== 8. Critères de sortie (porte de l'US)
+
+. `./gradlew build` VERT en CI (unit + functional + BDD + ktlint + validatePlugins).
+. Les **3 routes** répondent avec les mêmes codes/JSON qu'avant (200/400/404).
+. `serveWebhookBridge` est **SKIPPED** par défaut (TestKit).
+. Le dogfooding réel (serveur lancé, `curl /health`, `POST /events/moodle`,
+  400/404, arrêt propre) est consigné.
+. `publishToMavenLocal` VERT ; publication Central sur décision/tag.
+. Zéro secret ; `grep` Ktor = 0 dans le code prod ; zéro `@Serializable` N0.
+
+== 9. Questions ouvertes au pilote
+
+. **Jackson 3 ou garder kotlinx** pour `BridgeWire` ? (D-10-5 vs O-4)
+. **Persistance `bridge_events` maintenant** (couplée à ACADEMY-9) ou plus tard ?
+. **Bump `workspace-bom` vers Boot 4.1.2/Jackson 3** (cross-borough MEMPHIS) :
+   maintenant, plus tard, ou jamais (l'academy n'en dépend pas) ?
+. **Verdict sur Boot 4.2.0-RC1** : on attend la GA (proposé) ou on anticipe ?
+
+== 10. Preuves (commandes reproductibles)
+
+[source,shell]
+----
+# Dernières versions (2026-11-02)
+curl -s https://repo1.maven.org/maven2/org/springframework/boot/spring-boot/maven-metadata.xml
+curl -s https://repo1.maven.org/maven2/org/postgresql/r2dbc-postgresql/maven-metadata.xml
+curl -s https://repo1.maven.org/maven2/tools/jackson/core/jackson-databind/maven-metadata.xml
+
+# Contraintes du BOM Boot 4.1.2
+curl -s https://repo1.maven.org/maven2/org/springframework/boot/spring-boot-dependencies/4.1.2/spring-boot-dependencies-4.1.2.pom \
+  | grep -E 'kotlin.version|jackson-bom.version|r2dbc-postgresql.version'
+
+# Spike exécuté (hors dépôt)
+# /tmp/opencode/boot-spike : Boot 4.1.2 + Kotlin 2.4.10 + WebFlux + coroutines + Jackson 3
+# -> Netty 18080, GET /health = 200 {"status":"up","provider":"ollama"}
+----

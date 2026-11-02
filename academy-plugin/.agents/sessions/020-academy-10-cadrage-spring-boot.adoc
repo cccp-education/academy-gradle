@@ -1,0 +1,78 @@
+= Session 020 — ACADEMY-10-0 : cadrage détaillé Spring Boot WebFlux
+:toc: left
+:date: 2026-11-02
+:statut: ✅ ACADEMY-10-0 (cadrage) — décision pilote attendue pour 10-1→10-6
+
+== Objet
+
+Suite de la session 019. La mission suivante du backlog est **ACADEMY-10**
+(migration du bridge Ktor → Spring Boot WebFlux). Le cadrage S-012 était une
+note ; cette session produit le **dossier de décision** et **vérifie la pile par
+un spike exécuté**, sans modifier le code du borough.
+
+== Faits vérifiés (2026-11-02, source)
+
+- `academy.bridge` = 229 lignes pures (6 fichiers) ; `WebhookBridgeServer` 124
+  lignes ; `ServeWebhookBridgeTask` 71 lignes → **424 lignes**, domaine déjà
+  transport-agnostique.
+- Le catalogue de l'academy est **autonome** (Kotlin 2.4.10, Ktor 3.2.0) : il
+  n'importe pas `workspace-bom`. **Aucun bump MEMPHIS n'est requis pour que
+  l'academy compile** ; l'alignement du BOM partagé (Boot 3.4.2 / Jackson 2.21.2)
+  est une décision cross-borough séparée.
+- Dernière **GA** Spring Boot : **4.1.2** (4.2.0-RC1 = RC). Le POM 4.1.2 gère
+  `jackson-bom 3.1.7`, `kotlin 2.3.21`, `kotlinx-coroutines 1.10.2`,
+  `r2dbc-postgresql 1.1.3.RELEASE`.
+- Jackson 3 GA : `tools.jackson.core:jackson-databind 3.2.4` + module Kotlin
+  `tools.jackson.module:jackson-module-kotlin 3.2.4`.
+- Ktor courant : 3.6.1 (la version 3.2.0 du bridge est déjà en retard).
+
+== Spike exécuté (preuve de pile)
+
+`/tmp/opencode/boot-spike` (hors dépôt, Gradle 9.8.1, JDK 25) :
+
+- `platform("org.springframework.boot:spring-boot-dependencies:4.1.2")` +
+  `spring-boot-starter-webflux` + `kotlinx-coroutines-reactor` +
+  `tools.jackson.module:jackson-module-kotlin` + Kotlin 2.4.10.
+- `compileKotlin` VERT ; `runApplication` démarre **Netty sur 18080 en 3,6 s** ;
+  `GET /health` (`suspend fun` + data class) → **`200 {"status":"up","provider":"ollama"}`**
+  (sérialisation Jackson 3).
+- **Contrainte découverte** : Boot gère `kotlin-stdlib 2.3.21` alors que le
+  compilateur de l'academy est 2.4.10 → alignement explicite requis (D-10-3).
+
+== Livrable
+
+`.agents/CADRAGE_EPIC_ACADEMY_10_SPRING_BOOT.adoc` :
+
+- 9 constats mesurés (C-1..C-9) ;
+- 12 décisions proposées (D-ACADEMY-10-1..12), dont : **Boot 4.1.2 GA**,
+  **pas de plugin Gradle Spring Boot** (BOM + `runApplication`), coroutines
+  `suspend`, `BridgeWire` Jackson 3, persistance R2DBC **différée et opt-in**,
+  PostgreSQL du compose réutilisé, tâche Gradle conservée, **pas de bump BOM
+  requis**, preuve par `WebTestClient` + BDD + functional ;
+- 7 options écartées (Ktor statu quo, Boot 3.4.2, Boot 4.2.0-RC1, kotlinx
+  conservé, plugin Boot, persistance immédiate, auth/JWT/Thymeleaf/Arrow) ;
+- 6 US (~24 pts) avec ordre : 10-0 ✅ → 10-1 → 10-2 → 10-3 → 10-4 → 10-6 ;
+  10-5 conditionnelle (Qualiopi) ;
+- plan de migration **fichier par fichier** (modifier/supprimer/inchangé) ;
+- risques + parades ; critères de sortie ; **4 questions ouvertes au pilote**.
+
+== Ce qui n'a pas été fait (volontairement)
+
+- **Aucune ligne de code** : la migration change la pile du bridge et un
+  éventuel alignement BOM cross-borough ; elle exige la décision pilote
+  (pattern S-057). Le spike est hors dépôt.
+- **Aucune publication** : version `0.0.3` inchangée, `0.0.3` non publiée.
+
+== Gates
+
+- Aucun test modifié ; `compileKotlin`/`compileTestKotlin`/`validatePlugins` non
+  requis par un delta source (zéro delta).
+- Spike compilé/exécuté (preuve C-7).
+- Zéro secret.
+
+== Prochaine session (021)
+
+Sur décision pilote : **ACADEMY-10-1** (plateforme + alignement Kotlin), puis
+10-2 (serveur WebFlux), 10-3 (Jackson 3), 10-4 (tests), 10-6 (docs/dogfooding).
+Sinon : ACADEMY-9 (Qualiopi, cadrage), ACADEMY-12-3 (hôte Windows réel),
+ACADEMY-15 (reste vidéo `GBL-011-4` / matériel FPA réel).

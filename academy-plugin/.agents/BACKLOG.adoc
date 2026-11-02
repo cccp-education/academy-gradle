@@ -45,7 +45,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-3 | Intégration du contrat SessionMemoryContract (suivi apprenant : progression, comprehension, weakPoints, annotations) | ✅ CLOS (S-013) — implémenté hors academy par `PgVectorSessionMemory` (codex N2, S-094/CDX-RC-04) ; le TODO « zéro implémenteur » était **périmé**
 | ACADEMY-8 | Webhooks Moodle + bridge opencode (avec Ktor, conformément à la décision D4 du VISION_PIPELINE_FORMATION.adoc) | ✅ TERMINÉ (S-011) — 8-0 cadrage, 8-1 domaine `academy.bridge` + serveur Ktor, 8-2 tâche opt-in + scaffold, 8-3 BDD + dogfooding
 | ACADEMY-9 | Support Qualiopi (bilan de session, traces, conformité aux critères) | 🟡 À FAIRE
-| ACADEMY-10 | Migration du bridge Ktor → Spring Boot WebFlux + coroutines Kotlin + R2DBC + PostgreSQL (Docker) + Jackson 3 | 🟡 À FAIRE (cadré S-012)
+| ACADEMY-10 | Migration du bridge Ktor → Spring Boot WebFlux + coroutines Kotlin + R2DBC + PostgreSQL (Docker) + Jackson 3 | 🟡 À FAIRE (cadrage détaillé S-020 — décision pilote attendue)
 | ACADEMY-11 | Injection du matériel pédagogique dans Moodle (data structurée AsciiDoc → plan + applicateur natif) | ✅ TERMINÉ 4/4 US (S-016) — 11-0/11-1/11-2/11-3 ✅ S-013 ; 11-4 ✅ S-016 (service compose one-shot `moodle-material` + dogfooding `compose up`)
 | ACADEMY-12 | Provisionnement de l'engine conteneurs par OS (Linux natif / Windows Docker Desktop WSL2 / macOS Colima) + Portainer partout | 🟡 EN COURS 3/4 US (S-015) — 12-0/12-1/12-2 ✅ ; 12-3 🟡 À FAIRE
 | ACADEMY-13 | CI de test obligatoire (unit + functionalTest + suites Cucumber) — l'artefact 0.0.2 est publié Central **sans aucun workflow** : 234 `@Test` et 84 `.feature` ne sont jamais exécutés automatiquement | ✅ TERMINÉ (S-017 / S-224) — `.github/workflows/test.yml` + garde `publish` (tag `v*`, `needs: test`)
@@ -281,29 +281,43 @@ frontière de test explicite ; **P0 `settings.gradle.kts` tolérant** ; `HostOs`
 | ACADEMY-12-3 | 🟡 Dogfooding environnement Windows réel (`install.bat`, `docker compose config`, parité, images tirées) — jamais livré sans preuve
 |===
 
-=== ACADEMY-10 : Migration du bridge Ktor → Spring Boot WebFlux (cadré S-012)
+=== ACADEMY-10 : Migration du bridge Ktor → Spring Boot WebFlux (cadrage détaillé S-020)
 
-*Statut* : 🟡 CADRÉ (S-012) — **décision pilote 2026-09-21** : le bridge
-livré en ACADEMY-8 (Ktor 3.2.0 Netty) migre vers la pile
-**Spring Boot WebFlux + kotlinx-coroutines + R2DBC + PostgreSQL (Docker) +
-Jackson 3**.
+*Statut* : 🟡 CADRÉ DÉTAILLÉ (S-020) — **décision pilote attendue**.
+Dossier : `.agents/CADRAGE_EPIC_ACADEMY_10_SPRING_BOOT.adoc` (faits vérifiés
+2026-11-02, spike Boot 4.1.2 exécuté, 12 décisions proposées, 7 options écartées,
+6 US ~24 pts, plan fichier par fichier, risques). Le bridge livré en ACADEMY-8
+(Ktor 3.2.0 Netty) migre vers la pile **Spring Boot WebFlux +
+kotlinx-coroutines + R2DBC + PostgreSQL (Docker) + Jackson 3**.
 
-*Source vérifiée S-012 (jamais supposée)* :
+*Faits vérifiés S-020* : dernière GA **Boot 4.1.2** (4.2.0-RC1 = RC) ; POM
+4.1.2 gère **Jackson 3.1.7**, `kotlin 2.3.21`, `coroutines 1.10.2`,
+`r2dbc-postgresql 1.1.3` ; Jackson 3 GA 3.2.4 (`tools.jackson.*`) ; le
+**catalogue de l'academy est autonome** (il n'importe pas `workspace-bom`) →
+**pas de bump MEMPHIS requis pour compiler** (le BOM partagé reste Boot 3.4.2 /
+Jackson 2.21.2 ; alignement = décision séparée) ; **spike exécuté** Boot 4.1.2
++ Kotlin 2.4.10 + WebFlux + coroutines + Jackson 3 → Netty 18080, `GET /health`
+= `200 {"status":"up","provider":"ollama"}` ; contrainte `kotlin-stdlib 2.3.21`
+imposée par Boot vs compilateur 2.4.10 → alignement explicite requis.
 
-- Spring Boot **4.1.1** est la dernière GA (Maven Central) ; `4.1.1` embarque
-  **Jackson 3.1.5** comme `jackson-bom` par défaut — **Jackson 3 est la
-  condition de la pile** : Spring Boot 3.4.2 (déjà dans le BOM workspace)
-  livre Jackson **2.18.2**, incompatible avec l'exigence « jackson3 ».
+*Source vérifiée S-012 (jamais supposée, conservée pour l'historique)* :
+
+- Spring Boot **4.1.1** était la dernière GA au moment du cadrage S-012 ; la
+  dernière GA vérifiée S-020 est **4.1.2** (`4.1.1` embarque Jackson 3.1.5,
+  `4.1.2` Jackson 3.1.7) — **Jackson 3 est la condition de la pile** : Spring
+  Boot 3.4.2 (déjà dans le BOM workspace) livre Jackson **2.21.2**,
+  incompatible avec l'exigence « jackson3 ».
 - Jackson 3 = changement de coordonnées : `tools.jackson.core:jackson-databind`
-  (et non `com.fasterxml.jackson`) — vérifié Central (3.2.2 latest).
+  (et non `com.fasterxml.jackson`) — vérifié Central (S-020 : 3.2.4 latest).
 - R2DBC : `spring-boot-starter-data-r2dbc` + `org.postgresql:r2dbc-postgresql`
-  (4.1.1 pin `1.1.2.RELEASE`) + `io.r2dbc:r2dbc-pool`.
-- Le bridge actuel est **342 lignes de domaine pur** (`academy.bridge` : 7
-  fichiers) + `WebhookBridgeServer` (114 lignes Ktor) + `ServeWebhookBridgeTask`
-  (72 lignes). Le domaine est **déjà transport-agnostique** (D-ACADEMY-8-4) :
-  il survit tel quel à la migration.
+  (S-012 : `4.1.1` pin `1.1.2.RELEASE` ; S-020 : `4.1.2` pin `1.1.3.RELEASE`,
+  dernière) + `io.r2dbc:r2dbc-pool`.
+- Le bridge actuel (mesuré S-020) est **229 lignes de domaine pur**
+  (`academy.bridge` : 6 fichiers) + `WebhookBridgeServer` (124 lignes Ktor) +
+  `ServeWebhookBridgeTask` (71 lignes) = **424 lignes**. Le domaine est **déjà
+  transport-agnostique** (D-ACADEMY-8-4) : il survit tel quel à la migration.
 
-*Décisions à acter au cadrage (à confirmer en session de cadrage dédiée)* :
+*Décisions proposées par le cadrage S-020 (à acter par le pilote)* :
 
 - Le **domaine pur** (`MoodleEvent`, `BridgeEventTranslator`, `BridgeRoutes`,
   `BridgeServerConfig`, `ByokBridgeSupport`) est **conservé verbatim** —
@@ -318,7 +332,7 @@ Jackson 3**.
 - Le bridge reste **opt-in, local, mono-utilisateur** (D-ACADEMY-8-2/8-7) :
   la migration change la pile, pas la doctrine.
 
-*Options à évaluer au cadrage* :
+*Options évaluées (cadrage S-020 — voir le dossier pour les 7 options écartées)* :
 
 - Remplacer `serveWebhookBridge` (tâche Gradle daemon) par un `main()`
   Spring Boot classique, ou conserver la tâche Gradle lançant le contexte
@@ -329,9 +343,10 @@ Jackson 3**.
   (koog/langchain4j adapters), ce qui pèse pour `suspend`.
 
 *Dépendances* : ACADEMY-8 (bridge Ktor) ✅ — l'EPIC est une **migration**, pas
-une création. `spring-boot` 3.4.2 est déjà déclaré dans le BOM workspace
-(MEMPHIS), mais **insuffisant** (Jackson 2) : un bump BOM vers Boot 4.1.1
-sera probablement requis (cross-borough MEMPHIS).
+une création. `spring-boot` 3.4.2 est déclaré dans le BOM workspace (MEMPHIS),
+mais **l'academy ne l'importe pas** : son catalogue est autonome. **Aucun bump
+BOM n'est requis pour que l'academy compile** ; un alignement cross-borough vers
+Boot 4.1.2/Jackson 3 est une **décision MEMPHIS séparée** (D-ACADEMY-10-11).
 
 *Référence de code vérifiée S-012* — `/home/cheroliv/sources/draft/api`
 (draft personnel, **pattern source, pas source de version** — il tourne en
@@ -480,6 +495,7 @@ décision pilote.
 | 2026-11-02 | S-017 : **ACADEMY-13/14 TERMINÉS + ACADEMY-15 socle** — CI obligatoire (`test.yml`), bundle hors-ligne dogfoodé en CI (`41362217647` VERT), domaine `academy.a11y` + tâche `auditTrainingAccessibility` opt-in/advisory. |
 | 2026-11-02 | S-018 : **ACADEMY-15 (socle + producteur)** — `ProducerReportInspector` agrège **tous** les rapports producteurs et vérifie la **couverture** (`producer-report-incomplete`) ; pyramide complète (6 unit, 8 BDD `@a11y`, 4 functional TestKit) ; dogfooding cross-borough réel `document 0.0.29` → `academy 0.0.2` (8 findings agrégés) ; **CI `41370730778` VERTE** (après un bug de test diagnostiqué par l'artefact JUnit XML et l'ajout de son upload au workflow). Reste `GBL-011-4` + matériel FPA réel. |
 | 2026-11-02 | S-019 : **ACADEMY-15 (Moodle statique) + bug compose `SITE_URL`** — audit HTTP/HTML de la boîte réelle (inspecteur, auditeur, port/adapter, tâche opt-in), 25 unit + 8 BDD `@moodle-a11y` + 5 functional TestKit ; dogfooding Moodle 5.2.3 qui révèle `SITE_URL` (port 80) → correctif `http://localhost:8080` ; bump `0.0.3` ; **CI `41372413668` VERTE** (25 unit a11y-Moodle, 8/8 BDD, 5/5 functional, 25/25 installer). |
+| 2026-11-02 | S-020 : **ACADEMY-10-0 cadrage détaillé** Spring Boot WebFlux — faits vérifiés (Boot 4.1.2 GA, Jackson 3.1.7/3.2.4, r2dbc-postgresql 1.1.3, catalogue academy autonome → **pas de bump BOM requis**), **spike exécuté** (Boot 4.1.2 + Kotlin 2.4.10 + WebFlux + coroutines + Jackson 3, `GET /health` 200), 12 décisions proposées, 7 options écartées, 6 US ~24 pts, plan fichier par fichier, risques. Décision pilote attendue. |
 |===
 
 '''
@@ -505,7 +521,8 @@ décision pilote.
 [x] ACADEMY-15 (socle + producteur) : `academy.a11y`, `auditTrainingAccessibility` opt-in/advisory, agrégation de **tous** les rapports producteurs, couverture par type (`producer-report-incomplete`), 18 unit + 4 functional + 8 scénarios BDD `@a11y`, dogfooding cross-borough `document 0.0.29` → `academy 0.0.2` — **TERMINÉ S-018** (reste `GBL-011-4` audiodescription capsule + matériel FPA réel)
 [x] ACADEMY-15 (Moodle statique) : `MoodleAccessibilityInspector` + `MoodleA11yAuditor` + port/adapter HTTP + tâche opt-in `auditMoodleAccessibility`, 25 unit + 8 BDD `@moodle-a11y` + 5 functional TestKit, dogfooding réel Moodle 5.2.3, bug compose `SITE_URL` corrigé — **TERMINÉ S-019** (opencode reste une limite déclarée)
 [ ] ACADEMY-12-3 : dogfooding environnement Windows réel (`install.bat`, `docker compose config`, parité, images tirées) — ne pas livrer sans preuve
-[ ] ACADEMY-10 : migration du bridge Ktor → Spring Boot WebFlux (cadré S-012) — à ordonnancer sur décision pilote ; prérequis probable bump BOM workspace vers Spring Boot 4.1.1 (Jackson 3)
+[x] ACADEMY-10-0 : cadrage détaillé Spring Boot WebFlux — `CADRAGE_EPIC_ACADEMY_10_SPRING_BOOT.adoc` (faits vérifiés 2026-11-02, spike Boot 4.1.2 exécuté, 12 décisions, 7 options écartées, 6 US, plan fichier par fichier) — **TERMINÉ S-020**, décision pilote attendue pour 10-1→10-6
+[ ] ACADEMY-10 : migration du bridge Ktor → Spring Boot WebFlux (cadrage détaillé S-020) — à ordonnancer sur décision pilote ; **pas de bump BOM requis pour compiler** (catalogue academy autonome), alignement MEMPHIS = décision séparée ; Boot 4.1.2 GA + Jackson 3
 [ ] ACADEMY-9 : support Qualiopi (bilan de session, traces, conformité) — distinct de l'ingestion (ACADEMY-11)
 [ ] Vérifier la conformité avec les décisions actées dans VISION_PIPELINE_FORMATION.adoc (sections 3.3, 9.2, 8.2) — **corrigée S-013** : § 6 (academy n'implémente pas la boucle)
 [ ] Définir précisément les dépendances nécessaires pour les runtime-contracts (N0, quand ACADEMY-4/2/3)

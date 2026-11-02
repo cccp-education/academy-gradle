@@ -52,3 +52,13 @@ _Session 019 (2026-11-02) — ACADEMY-15 (Moodle statique) + bug compose `SITE_U
   (limite déclarée).
 - **CI `41372413668` VERTE** (commit `527db9e`) : 25 unit a11y-Moodle,
   8/8 `@moodle-a11y`, 5/5 functional, 25/25 `@installer`, 0 échec.
+
+_Session 020 (2026-11-02) — ACADEMY-10-0 cadrage Spring Boot WebFlux_
+
+- Dossier de décision `.agents/CADRAGE_EPIC_ACADEMY_10_SPRING_BOOT.adoc` :
+  9 constats mesurés, spike Boot 4.1.2 exécuté (WebFlux + coroutines + Jackson 3,
+  `GET /health` 200), 12 décisions proposées, 7 options écartées, 6 US ~24 pts,
+  plan fichier par fichier, risques, 4 questions au pilote.
+- Découverte : catalogue academy autonome → **aucun bump MEMPHIS requis pour
+  compiler** ; alignement BOM cross-borough = décision séparée.
+- Aucun code/test modifié ; décision pilote attendue pour 10-1→10-6.

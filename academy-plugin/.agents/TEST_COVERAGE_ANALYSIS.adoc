@@ -1,6 +1,6 @@
 = TEST_COVERAGE_ANALYSIS — academy-gradle
 
-_Dernière mise à jour_ : 2026-11-02 (session 019)
+_Dernière mise à jour_ : 2026-11-02 (session 020)
 
 == État des tests
 
@@ -27,6 +27,8 @@ Session 017 : **ACADEMY-13/14 + ACADEMY-15 socle** — CI obligatoire (`test.yml
 Session 018 : **ACADEMY-15 (socle + producteur)** — la consommation producteur est rendue mesurable : `ProducerReportInspector` agrège tous les rapports et vérifie la couverture (`producer-report-incomplete`). Pyramide complète : 6 unit supplémentaires, 8 scénarios BDD `@a11y` (runner dédié), 4 functional TestKit boîte noire. Dogfooding cross-borough réel `document 0.0.29` → `academy 0.0.2` (4 findings producteur agrégés dans 8 findings).
 
 Session 019 : **ACADEMY-15 (Moodle statique) + bug compose `SITE_URL`** — l'audit Moodle est désormais mesuré sur le HTML réellement servi (HTTP, zéro navigateur) : 25 unit (inspecteur, auditeur, adapter HTTP avec vrai `HttpServer`, tâche), 8 scénarios BDD `@moodle-a11y`, 5 functional TestKit avec serveur HTTP local. Le dogfooding réel Moodle 5.2.3 a révélé le bug compose `SITE_URL` (l'image fixe `http://localhost`, port 80) → correctif `http://localhost:8080` verrouillé par unit + BDD `@installer`.
+
+Session 020 : **ACADEMY-10-0 cadrage Spring Boot WebFlux** — aucun test modifié (décision pilote). La pile est prouvée par un **spike hors dépôt** (Boot 4.1.2 + Kotlin 2.4.10 + WebFlux + coroutines + Jackson 3, `GET /health` 200). Les tests de la migration (10-1→10-4) seront écrits au GO.
 
 ## Ce qui est couvert
 
@@ -68,7 +70,7 @@ Session 019 : **ACADEMY-15 (Moodle statique) + bug compose `SITE_URL`** — l'au
 
 - ACADEMY-15 : l'audiodescription vidéo reste produite par `capsule` (`GBL-011-4`) — academy la détecte déjà (`foo.audiodesc.*`) mais le producteur ne la génère pas ; « matériel vérifié » sur le corpus FPA réel dépend du matériel SPG/SPD (gate MVP0). L'audit **opencode** (TUI) est une **limite déclarée** du rapport, hors périmètre de la tâche. L'audit **Moodle statique** est couvert S-019 (HTTP + HTML) ; le rendu visuel (focus, contraste, JavaScript) reste hors périmètre.
 - ACADEMY-12-3 : dogfooding Windows réel (`install.bat`, `docker compose config`, parité, images tirées) — non livré (exige une machine Windows réelle ; les runners CI ne fournissent que des conteneurs Windows, aucune preuve). Le domaine et les writers sont testés ; seule l'exécution Windows reste à prouver.
-- ACADEMY-9 (Qualiopi) et ACADEMY-10 (Spring Boot WebFlux) : pas de tests tant que non implémentés.
+- ACADEMY-9 (Qualiopi) et ACADEMY-10 (Spring Boot WebFlux) : ACADEMY-10-0 est **cadré** (S-020) mais non implémenté — les tests (unit `WebTestClient`, functional TestKit, BDD `@bridge` inchangée) seront écrits au GO pilote. ACADEMY-9 reste à cadrer.
 - ACADEMY-2/3 : **CLOS côté academy** (frontière runtime actée S-013) — la boucle appartient à l'étage privé.
 - ACADEMY-10 : migration Spring Boot WebFlux — tests à définir au cadrage dédié.
 - ACADEMY-6-1/2/3 : **CADUQUES (S-008)**.
