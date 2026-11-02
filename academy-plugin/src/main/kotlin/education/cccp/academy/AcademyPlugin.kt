@@ -34,6 +34,29 @@ class AcademyPlugin : Plugin<Project> {
         registerOfflineBundleTask(project, extension)
         registerA11yTask(project, extension)
         registerMoodleA11yTask(project, extension)
+        registerAcceptanceTask(project, extension)
+    }
+
+    /**
+     * Registers the box acceptance gate (ACADEMY-15 / GBL-011-5) — opt-in and
+     * advisory by default. It aggregates the material and Moodle reports; an
+     * absent or malformed report is a declared gap, and only `acceptanceStrict`
+     * turns an `ERROR` finding into a build failure.
+     */
+    private fun registerAcceptanceTask(
+        project: Project,
+        extension: AcademyInstallerExtension,
+    ) {
+        project.tasks.register("auditAcademyAcceptance", AuditAcademyAcceptanceTask::class.java) { task ->
+            task.group = "academy"
+            task.description = "Aggregates the material and Moodle audits into the box acceptance report (ACADEMY-15)"
+            task.acceptanceEnabled.set(extension.acceptanceEnabled)
+            task.acceptanceStrict.set(extension.acceptanceStrict)
+            task.materialReports.from(extension.a11yReportFile)
+            task.moodleReports.from(extension.moodleA11yReportFile)
+            task.reportFile.set(extension.acceptanceReportFile)
+            task.onlyIf { extension.acceptanceEnabled.get() }
+        }
     }
 
     /**
@@ -217,6 +240,11 @@ class AcademyPlugin : Plugin<Project> {
         extension.moodleA11yPaths.convention(listOf("/login/index.php"))
         extension.moodleA11yReportFile.convention(
             project.layout.buildDirectory.file("academy/a11y/moodle-accessibility-report.json"),
+        )
+        extension.acceptanceEnabled.convention(false)
+        extension.acceptanceStrict.convention(false)
+        extension.acceptanceReportFile.convention(
+            project.layout.buildDirectory.file("academy/a11y/acceptance-report.json"),
         )
     }
 

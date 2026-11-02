@@ -1,0 +1,98 @@
+= Session 021 — ACADEMY-15 : porte d'acceptation agrégée de la boîte
+:toc: left
+:date: 2026-11-02
+:statut: ✅ ACADEMY-15-5 (gate agrégé) — matériel + Moodle dans un seul verdict
+
+== Objet
+
+Suite de la session 020 (cadrage ACADEMY-10, décision pilote en attente). Le
+backlog ACADEMY-15 portait encore « porte d'acceptation et rapport d'écarts » :
+les deux audits (matériel S-018, Moodle S-019) écrivaient chacun leur rapport,
+mais le pilote n'avait **pas de verdict unique** de la boîte. Mission : livrer
+cette porte, en méthode baby-step DDD/TDD/BDD.
+
+== BS-1 — RED : rapport et agrégateur purs
+
+- `AcademyA11yReportTest` (1 unit) : contrat JSON versionné (`layers`,
+  `limits`, `readiness`) round-trip.
+- `AcademyA11yAcceptanceTest` (9 unit) : aucun rapport → `MISSING` ; deux audits
+  vérifiés → `VERIFIED` (2 couches) ; finding `ERROR` **ou** `WARNING` →
+  `DEGRADED` ; couche absente → `DEGRADED` + **limite de gap déclarée** ; limites
+  de couche reportées ; limites non levables toujours présentes (test d'usage
+  avec une personne concernée, opencode) ; **opencode déclaré une seule fois**
+  dans l'agrégat ; déterminisme et déduplication.
+- *RED prouvé par compilation* : `Unresolved reference 'AcademyA11yReport'`,
+  `'A11yLayerReport'`, `'AcademyA11yAcceptance'`.
+
+== BS-2 — GREEN : domaine pur
+
+- `A11yLayerReport` + `AcademyA11yReport` (`academy.a11y`, JSON versionné).
+- `AcademyA11yAcceptance.accept(material, moodle)` : conjonction des couches
+  disponibles ; une couche absente est un **gap déclaré** (`material/moodle audit
+  report not provided`), jamais un « vérifié » silencieux ; les limites de couche
+  mentionnant opencode sont remplacées par la limite agrégée (une seule mention) ;
+  les limites non levables (usage test, opencode) sont **toujours** présentes.
+
+== BS-3 — Tâche `auditAcademyAcceptance`
+
+- Thin wrapper (pattern `CollectPageProvenanceTask`), opt-in
+  (`acceptanceEnabled=false`), advisory sauf `acceptanceStrict` (un `ERROR`
+  échoue). Inputs tolérants `@InputFiles @Optional` sur les deux rapports
+  (`a11yReportFile`, `moodleA11yReportFile`) : rapport absent **ou** malformé =
+  gap déclaré, pas de crash. Rapport
+  `build/academy/a11y/acceptance-report.json`.
+- Extension +3 properties, wiring, `@DisableCachingByDefault`.
+- `AuditAcademyAcceptanceTaskTest` (6 unit) : enregistrement, skip, deux rapports
+  vérifiés, couche absente, rapport malformé, strict.
+
+== BS-4 — BDD `@acceptance` (pattern S-082/S-088)
+
+`academy_acceptance.feature` — **6 scénarios** (deux audits vérifiés, aucun
+rapport, couche absente, finding `ERROR`, limites de couche reportées et
+dédupliquées, limites non levables) + `AcademyAcceptanceSteps` +
+`AcademyAcceptanceCucumberRunner` + `cucumberTestAcceptance` câblé à `check`.
+
+== BS-5 — Functional TestKit (5 tests)
+
+`AcademyAcceptanceFunctionalTest` (vrai build) : opt-in `SKIPPED` sans rapport,
+deux audits `VERIFIED` → rapport agrégé (2 couches), couche absente → `DEGRADED`
++ gap, strict `FAILED` sur `ERROR`, aucun rapport → `MISSING`.
+
+== BS-6 — Dogfooding réel (rapports réels S-018/S-019)
+
+`/tmp/opencode/academy-acceptance-dogfood` (academy 0.0.3 mavenLocal) :
+
+- entrées : rapport **matériel réel** S-018 (document 0.0.29 + vidéo/pdf :
+  8 findings) + rapport **Moodle réel** S-019 (`VERIFIED`) ;
+- sortie : **`DEGRADED`** (2 couches, 8 findings), couche `material` `DEGRADED`,
+  couche `moodle` `VERIFIED`, limites agrégées ;
+- **découverte d'une incohérence** : la limite du matériel disait encore « Moodle
+  theme and opencode terminal audits require a browser/session » alors que
+  l'audit Moodle existe depuis S-019 → **corrigé** en « Interactive Moodle theme
+  checks (JavaScript, focus order, contrast) and the opencode terminal are out of
+  scope of this material audit » ; les limites opencode des couches sont
+  remplacées par la limite agrégée (une seule mention dans l'agrégat).
+
+== Décisions actées
+
+|===
+| ID | Décision
+| D-ACADEMY-15-1 | L'acceptation = **conjonction** des couches disponibles (`MISSING` si aucune, `DEGRADED` si finding/couche absente/non-`VERIFIED`, `VERIFIED` sinon). Une couche absente est un **gap déclaré**.
+| D-ACADEMY-15-2 | `acceptanceStrict` échoue sur **`ERROR` seulement** ; les `WARNING` restent visibles mais advisory (un matériel non généré ou un thème Moodle non mesuré n'est pas une faute).
+| D-ACADEMY-15-3 | Le rapport agrégé porte **les limites de couche + les limites non levables** (usage test avec une personne concernée, opencode). Les limites de couche mentionnant opencode sont remplacées par la limite agrégée (une seule mention).
+| D-ACADEMY-15-4 | La couche Moodle est mesurée en **statique HTTP** (S-019) ; l'opencode (TUI) reste une limite déclarée, jamais une promesse.
+|===
+
+== Gates locaux (Local = Build, Tests = CI)
+
+- `compileKotlin` / `compileTestKotlin` / `compileFunctionalTestKotlin` VERTS.
+- `ktlintCheck` VERT, `validatePlugins` VERT, `publishToMavenLocal` VERT.
+- `check --dry-run` inclut `cucumberTestAcceptance` + `functionalTest`.
+- Dogfooding réel VERT (`DEGRADED` attendu : le matériel a des findings).
+- Zéro secret.
+
+== Prochaine session (022)
+
+Vérifier la CI du commit poussé. Puis : **décision pilote ACADEMY-10** (questions
+ouvertes du cadrage S-020), **ACADEMY-9** (Qualiopi, cadrage), **ACADEMY-12-3**
+(hôte Windows réel), **ACADEMY-15** (reste vidéo `GBL-011-4`, matériel FPA réel).

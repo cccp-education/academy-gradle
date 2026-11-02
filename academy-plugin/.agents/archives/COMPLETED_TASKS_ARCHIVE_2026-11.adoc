@@ -62,3 +62,17 @@ _Session 020 (2026-11-02) — ACADEMY-10-0 cadrage Spring Boot WebFlux_
 - Découverte : catalogue academy autonome → **aucun bump MEMPHIS requis pour
   compiler** ; alignement BOM cross-borough = décision séparée.
 - Aucun code/test modifié ; décision pilote attendue pour 10-1→10-6.
+
+_Session 021 (2026-11-02) — ACADEMY-15-5 porte d'acceptation agrégée_
+
+- `A11yLayerReport` + `AcademyA11yReport` (JSON versionné) et
+  `AcademyA11yAcceptance` : conjonction des couches (matériel + Moodle),
+  couche absente = **gap déclaré**, limites non levables toujours présentes
+  (usage test avec une personne concernée, opencode — une seule mention).
+- Tâche `auditAcademyAcceptance` opt-in/advisory, inputs tolérants (rapport
+  absent ou malformé = gap), strict sur `ERROR` ; extension +3 properties.
+- Pyramide : 16 unit, 6 scénarios BDD `@acceptance`, 5 functional TestKit.
+- Dogfooding réel sur les rapports S-018/S-019 → `DEGRADED` (2 couches,
+  8 findings, Moodle `VERIFIED`) ; limite périmée du matériel corrigée
+  (« Moodle theme requires a browser/session »).
+- Reste : `GBL-011-4`, matériel FPA réel, opencode (limite déclarée).

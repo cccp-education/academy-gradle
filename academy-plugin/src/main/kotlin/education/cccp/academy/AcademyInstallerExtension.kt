@@ -196,4 +196,13 @@ abstract class AcademyInstallerExtension {
 
     /** ACADEMY-15 — the Moodle report written by `auditMoodleAccessibility`. */
     abstract val moodleA11yReportFile: RegularFileProperty
+
+    /** ACADEMY-15 — opt-in box acceptance gate aggregating both audits (default `false`). */
+    abstract val acceptanceEnabled: Property<Boolean>
+
+    /** ACADEMY-15 — fail the acceptance on any `ERROR` finding (default `false`: advisory). */
+    abstract val acceptanceStrict: Property<Boolean>
+
+    /** ACADEMY-15 — the acceptance report written by `auditAcademyAcceptance`. */
+    abstract val acceptanceReportFile: RegularFileProperty
 }

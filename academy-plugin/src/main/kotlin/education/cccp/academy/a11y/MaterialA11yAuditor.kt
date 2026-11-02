@@ -22,7 +22,7 @@ object MaterialA11yAuditor {
     val LIMITS =
         listOf(
             "PDF is not PDF/UA; the accessible text deliverable is HTML/EPUB",
-            "Moodle theme and opencode terminal audits require a browser/session and are out of scope of this task",
+            "Interactive Moodle theme checks (JavaScript, focus order, contrast) and the opencode terminal are out of scope of this material audit",
             "Extended audio description (pausing the video) is not implemented",
         )
 

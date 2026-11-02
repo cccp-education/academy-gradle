@@ -50,7 +50,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-12 | Provisionnement de l'engine conteneurs par OS (Linux natif / Windows Docker Desktop WSL2 / macOS Colima) + Portainer partout | 🟡 EN COURS 3/4 US (S-015) — 12-0/12-1/12-2 ✅ ; 12-3 🟡 À FAIRE
 | ACADEMY-13 | CI de test obligatoire (unit + functionalTest + suites Cucumber) — l'artefact 0.0.2 est publié Central **sans aucun workflow** : 234 `@Test` et 84 `.feature` ne sont jamais exécutés automatiquement | ✅ TERMINÉ (S-017 / S-224) — `.github/workflows/test.yml` + garde `publish` (tag `v*`, `needs: test`)
 | ACADEMY-14 | Bundle hors-ligne de la boîte (images épinglées par digest + `docker save`/`load`, installation sans réseau, vérification de charge) — le compose référence `erseco/alpine-moodle:v5.2.3` par tag, donc la boîte exige le réseau | ✅ TERMINÉ (S-017 / S-224) — bundle + build workspace + `docker save` + pinning digest + installateur + dogfooding CI VERT (run `41362217647`) |
-| ACADEMY-15 | Accessibilité de la boîte : audit Moodle/opencode WCAG 2.1 AA, thème et navigation clavier, matériel accessible vérifié, porte d'acceptation et rapport d'écarts | 🟡 EN COURS (S-017→S-019) — matériel + **Moodle statique** ✅ ; reste `GBL-011-4` (audiodescription capsule), matériel FPA réel, opencode (limite déclarée)
+| ACADEMY-15 | Accessibilité de la boîte : audit Moodle/opencode WCAG 2.1 AA, thème et navigation clavier, matériel accessible vérifié, porte d'acceptation et rapport d'écarts | 🟡 EN COURS (S-017→S-021) — matériel + Moodle statique + **porte d'acceptation agrégée** ✅ ; reste `GBL-011-4` (audiodescription capsule), matériel FPA réel, opencode (limite déclarée)
 |===
 
 '''
@@ -496,6 +496,7 @@ décision pilote.
 | 2026-11-02 | S-018 : **ACADEMY-15 (socle + producteur)** — `ProducerReportInspector` agrège **tous** les rapports producteurs et vérifie la **couverture** (`producer-report-incomplete`) ; pyramide complète (6 unit, 8 BDD `@a11y`, 4 functional TestKit) ; dogfooding cross-borough réel `document 0.0.29` → `academy 0.0.2` (8 findings agrégés) ; **CI `41370730778` VERTE** (après un bug de test diagnostiqué par l'artefact JUnit XML et l'ajout de son upload au workflow). Reste `GBL-011-4` + matériel FPA réel. |
 | 2026-11-02 | S-019 : **ACADEMY-15 (Moodle statique) + bug compose `SITE_URL`** — audit HTTP/HTML de la boîte réelle (inspecteur, auditeur, port/adapter, tâche opt-in), 25 unit + 8 BDD `@moodle-a11y` + 5 functional TestKit ; dogfooding Moodle 5.2.3 qui révèle `SITE_URL` (port 80) → correctif `http://localhost:8080` ; bump `0.0.3` ; **CI `41372413668` VERTE** (25 unit a11y-Moodle, 8/8 BDD, 5/5 functional, 25/25 installer). |
 | 2026-11-02 | S-020 : **ACADEMY-10-0 cadrage détaillé** Spring Boot WebFlux — faits vérifiés (Boot 4.1.2 GA, Jackson 3.1.7/3.2.4, r2dbc-postgresql 1.1.3, catalogue academy autonome → **pas de bump BOM requis**), **spike exécuté** (Boot 4.1.2 + Kotlin 2.4.10 + WebFlux + coroutines + Jackson 3, `GET /health` 200), 12 décisions proposées, 7 options écartées, 6 US ~24 pts, plan fichier par fichier, risques. Décision pilote attendue. |
+| 2026-11-02 | S-021 : **ACADEMY-15-5 porte d'acceptation agrégée** — `AcademyA11yReport` + `AcademyA11yAcceptance` (conjonction des couches, gap déclaré, limites non levables), tâche `auditAcademyAcceptance` opt-in/advisory ; 16 unit + 6 BDD `@acceptance` + 5 functional TestKit ; dogfooding réel S-018/S-019 → `DEGRADED` (2 couches, Moodle `VERIFIED`), limite périmée du matériel corrigée. |
 |===
 
 '''
@@ -520,6 +521,7 @@ décision pilote.
 [x] ACADEMY-12-2 : writers `install.sh` unique (Linux apt / macOS Colima, queue commune verbatim) + `install.bat` (sonde admin+WSL2, WSL2/Desktop resumable) + port `EnvironmentProbe` + adapter `HostEnvironmentProbe` + `HostOs.fromOsName` + task `checkContainerEngine` (verdict rapporté) + functional TestKit + dogfooding Linux — **TERMINÉ S-015**
 [x] ACADEMY-15 (socle + producteur) : `academy.a11y`, `auditTrainingAccessibility` opt-in/advisory, agrégation de **tous** les rapports producteurs, couverture par type (`producer-report-incomplete`), 18 unit + 4 functional + 8 scénarios BDD `@a11y`, dogfooding cross-borough `document 0.0.29` → `academy 0.0.2` — **TERMINÉ S-018** (reste `GBL-011-4` audiodescription capsule + matériel FPA réel)
 [x] ACADEMY-15 (Moodle statique) : `MoodleAccessibilityInspector` + `MoodleA11yAuditor` + port/adapter HTTP + tâche opt-in `auditMoodleAccessibility`, 25 unit + 8 BDD `@moodle-a11y` + 5 functional TestKit, dogfooding réel Moodle 5.2.3, bug compose `SITE_URL` corrigé — **TERMINÉ S-019** (opencode reste une limite déclarée)
+[x] ACADEMY-15-5 (porte d'acceptation agrégée) : `AcademyA11yReport` + `AcademyA11yAcceptance` (conjonction, gap déclaré, limites non levables), tâche `auditAcademyAcceptance` opt-in/advisory, 16 unit + 6 BDD `@acceptance` + 5 functional TestKit, dogfooding réel S-018/S-019 — **TERMINÉ S-021**
 [ ] ACADEMY-12-3 : dogfooding environnement Windows réel (`install.bat`, `docker compose config`, parité, images tirées) — ne pas livrer sans preuve
 [x] ACADEMY-10-0 : cadrage détaillé Spring Boot WebFlux — `CADRAGE_EPIC_ACADEMY_10_SPRING_BOOT.adoc` (faits vérifiés 2026-11-02, spike Boot 4.1.2 exécuté, 12 décisions, 7 options écartées, 6 US, plan fichier par fichier) — **TERMINÉ S-020**, décision pilote attendue pour 10-1→10-6
 [ ] ACADEMY-10 : migration du bridge Ktor → Spring Boot WebFlux (cadrage détaillé S-020) — à ordonnancer sur décision pilote ; **pas de bump BOM requis pour compiler** (catalogue academy autonome), alignement MEMPHIS = décision séparée ; Boot 4.1.2 GA + Jackson 3
@@ -633,10 +635,10 @@ image workspace chargée, manifeste téléversé.
 
 === ACADEMY-15 — Accessibilité de la boîte (~4 pts, en cours)
 
-*Statut* : 🟡 EN COURS (S-017→S-019) — matériel **et** Moodle statique livrés et
-dogfoodés ; reste le producteur vidéo (`GBL-011-4`), le matériel FPA réel et
-l'audit opencode (limite déclarée). La porte est **opérationnelle** : elle
-mesure et déclare ses limites.
+*Statut* : 🟡 EN COURS (S-017→S-021) — matériel, Moodle statique **et** porte
+d'acceptation agrégée livrés et dogfoodés ; reste le producteur vidéo
+(`GBL-011-4`), le matériel FPA réel et l'audit opencode (limite déclarée). La
+porte est **opérationnelle** : elle mesure et déclare ses limites.
 *Livré* :
 - domaine `academy.a11y` : `A11yFinding`/`A11ySeverity`/`A11yReadiness`,
   `A11yRules`, `MaterialA11yReport` (JSON versionné, **limites déclarées**) ;
@@ -677,6 +679,27 @@ mesure et déclare ses limites.
   Moodle 5.2.3 + PostgreSQL 16 sur le compose généré → `VERIFIED` 0 finding.
   Le dogfooding a révélé le **bug compose `SITE_URL`** (image Moodle =
   `http://localhost`, port 80) corrigé en `http://localhost:8080`.
+- **Porte d'acceptation agrégée (S-021 / GBL-011-5)** : `A11yLayerReport` +
+  `AcademyA11yReport` (JSON versionné) + `AcademyA11yAcceptance` (conjonction des
+  couches ; couche absente = **gap déclaré** ; `MISSING`/`DEGRADED`/`VERIFIED` ;
+  limites non levables : usage test avec une personne concernée + opencode, une
+  seule mention opencode) + tâche opt-in/advisory `auditAcademyAcceptance`
+  (`acceptanceEnabled`, `acceptanceStrict`, `acceptanceReportFile` ; inputs
+  `@InputFiles @Optional` tolérants : rapport absent/malformé = gap) ; 16 unit +
+  6 scénarios BDD `@acceptance` + 5 functional TestKit ; **dogfooding réel** sur
+  les rapports S-018/S-019 → `DEGRADED` (2 couches, 8 findings, Moodle
+  `VERIFIED`), limite périmée du matériel corrigée.
+
+*Décisions ACADEMY-15 (S-021)* :
+
+|===
+| ID | Décision
+| D-ACADEMY-15-1 | Acceptation = **conjonction** des couches disponibles : `MISSING` si aucun rapport, `DEGRADED` si finding / couche absente / couche non-`VERIFIED`, `VERIFIED` sinon. Une couche absente est un **gap déclaré**.
+| D-ACADEMY-15-2 | `acceptanceStrict` échoue sur **`ERROR` seulement** ; les `WARNING` restent visibles (advisory).
+| D-ACADEMY-15-3 | Le rapport agrégé porte les limites de couche + les limites non levables (usage test, opencode) ; les limites de couche mentionnant opencode sont remplacées par la limite agrégée (une seule mention).
+| D-ACADEMY-15-4 | La couche Moodle est mesurée en **statique HTTP** (S-019) ; l'opencode (TUI) reste une limite déclarée, jamais une promesse.
+|===
+
 *Reste* :
 . `capsule` doit produire l'audiodescription (GBL-011-4) ; academy la détecte
   déjà (`foo.audiodesc.*`), mais tant que le producteur est muet le constat

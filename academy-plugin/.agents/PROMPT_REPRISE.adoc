@@ -1,48 +1,44 @@
 = PROMPT_REPRISE — academy-gradle
 
-== Mission de la prochaine session (021)
+== Mission de la prochaine session (022)
 
-**Décision pilote attendue sur ACADEMY-10** (cadrage détaillé S-020,
-`.agents/CADRAGE_EPIC_ACADEMY_10_SPRING_BOOT.adoc`) :
+. **Vérifier la CI** du commit S-021 (`./gradlew build` : unit +
+   `functionalTest` + `cucumberTestAcceptance` + ktlint + POM).
+. **Décision pilote ACADEMY-10** (dossier `.agents/CADRAGE_EPIC_ACADEMY_10_SPRING_BOOT.adoc`,
+   S-020) — 4 questions : Jackson 3 vs kotlinx, persistance `bridge_events`
+   maintenant/plus tard, bump `workspace-bom` MEMPHIS ou non, Boot 4.2 GA ou non.
+   **Si GO** : ACADEMY-10-1 → 10-2 → 10-3 → 10-4 → 10-6.
+. **ACADEMY-15 — reste** : la vidéo dépend de `GBL-011-4` (audiodescription
+   produite par `capsule`) ; l'opencode (TUI) reste une **limite déclarée** ; le
+   « matériel vérifié » dépend du corpus FPA réel (gate MVP0).
+. Restent ouverts : **ACADEMY-9** (Qualiopi — cadrage), **ACADEMY-12-3** (hôte
+   Windows réel), **BUREAU-3** (autre borough).
 
-. **4 questions ouvertes** : (a) `BridgeWire` Jackson 3 ou garder kotlinx ?
-   (b) persistance `bridge_events` maintenant (couplée à ACADEMY-9) ou plus tard ?
-   (c) bump `workspace-bom` Boot 4.1.2/Jackson 3 (cross-borough MEMPHIS) :
-   maintenant, plus tard, ou jamais ? (d) attendre Boot 4.2 GA ?
-. **Si décision = GO** : démarrer **ACADEMY-10-1** (plateforme Boot 4.1.2 +
-   alignement `kotlin-stdlib` 2.4.10 + retrait Ktor), puis 10-2 (serveur WebFlux),
-   10-3 (Jackson 3), 10-4 (tests), 10-6 (docs/dogfooding). 10-5 seulement si
-   Qualiopi le demande.
-. **Sinon** : **ACADEMY-9** (Qualiopi — cadrage), **ACADEMY-12-3** (hôte Windows
-   réel), **ACADEMY-15** (reste vidéo `GBL-011-4` + matériel FPA réel).
+== Décisions actées S-021 (ne pas les rediscuter)
 
-== Décisions actées S-020 (ne pas les rediscuter)
+* **Porte d'acceptation = conjonction des couches** : `MISSING` si aucun rapport,
+  `DEGRADED` si finding / couche absente / couche non-`VERIFIED`, `VERIFIED`
+  sinon. Une couche absente est un **gap déclaré**, jamais un « vérifié »
+  silencieux.
+* **`auditAcademyAcceptance`** : opt-in (`acceptanceEnabled=false`), advisory
+  sauf `acceptanceStrict` (échoue sur `ERROR` seulement), inputs tolérants
+  (`@InputFiles @Optional` : rapport absent **ou** malformé = gap).
+* **Le rapport agrégé** porte les limites de couche **et** les limites non
+  levables (usage test avec une personne concernée, opencode) ; une seule
+  mention opencode dans l'agrégat.
+* **La limite du matériel a été corrigée** : « Moodle theme requires a
+  browser/session » était périmé depuis l'audit Moodle statique S-019.
+* **Version 0.0.3** (0.0.2 déjà Central) ; `publishToMavenLocal` à jour ;
+  publication Central non faite.
 
-* **Boot 4.1.2 GA** (4.2.0-RC1 est une RC, pas une base de production).
-* **Pas de plugin Gradle Spring Boot** : `platform("spring-boot-dependencies:4.1.2")`
-  + starters en `implementation`, lancement par `runApplication` dans la tâche
-  Gradle (le spike le prouve).
-* **Le catalogue de l'academy est autonome** : `workspace-bom` n'est pas importé
-  → **aucun bump MEMPHIS n'est requis pour compiler** ; l'alignement cross-borough
-  est une décision séparée (D-10-11).
-* **Alignement `kotlin-stdlib` 2.4.10 obligatoire** après import du BOM Boot
-  (Boot gère 2.3.21 ; spike OK mais risque silencieux).
-* **Coroutines `suspend`** aux handlers WebFlux ; le domaine `academy.bridge`
-  reste pur et transport-agnostique (229 lignes inchangées).
-* **Persistance R2DBC différée** (US 10-5 opt-in) ; PostgreSQL du compose
-  réutilisé, pas de second service.
-* **Preuve** = `WebTestClient`/`@SpringBootTest` + BDD `@bridge` inchangée +
-  functional TestKit + dogfooding réel `curl` ; Local = Build, Tests = CI.
-
-== État de l'architecture (session 020)
+== État de l'architecture (session 021)
 
 - **ACADEMY-1/4/5/6/7/8/11/13/14 TERMINÉS**.
-- **ACADEMY-15** : matériel + Moodle statique ✅ (S-018/S-019) ; reste vidéo
-  (`GBL-011-4`) + matériel FPA réel + opencode (limite déclarée).
+- **ACADEMY-15** : matériel ✅ (S-018), Moodle statique ✅ (S-019),
+  **porte d'acceptation agrégée ✅ (S-021)** ; reste vidéo (`GBL-011-4`) +
+  matériel FPA réel + opencode (limite déclarée).
 - **ACADEMY-10** : cadrage détaillé ✅ S-020, **décision pilote attendue**.
 - **ACADEMY-12 3/4 US** (12-3 Windows à faire). **ACADEMY-9** cadrage requis.
-- Version locale **0.0.3** (0.0.2 déjà sur Central) ; publication Central à
-  décider.
 
 == Rappels des ordres de mission
 

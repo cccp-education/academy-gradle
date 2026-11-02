@@ -325,6 +325,30 @@ val cucumberTestMoodleA11y by tasks.registering(Test::class) {
 
 tasks.check { dependsOn(cucumberTestMoodleA11y) }
 
+// ── ACADEMY-15 / GBL-011-5 — Dedicated Cucumber runner for academy_acceptance.feature ──
+// Scoped to AcademyAcceptanceCucumberRunner so only the box acceptance feature runs.
+val cucumberTestAcceptance by tasks.registering(Test::class) {
+    group = "verification"
+    description = "Runs the academy_acceptance.feature Cucumber suite (ACADEMY-15 / GBL-011-5)"
+    testClassesDirs = sourceSets.getByName("test").output.classesDirs
+    classpath = configurations.getByName("testRuntimeClasspath") +
+        sourceSets.getByName("test").output +
+        sourceSets.getByName("main").output
+    useJUnitPlatform {
+        excludeEngines("junit-jupiter")
+    }
+    filter {
+        includeTestsMatching("education.cccp.academy.bdd.AcademyAcceptanceCucumberRunner")
+    }
+    systemProperty("cucumber.junit-platform.naming-strategy", "long")
+    systemProperty("cucumber.features", "src/test/resources/features/academy_acceptance.feature")
+    systemProperty("cucumber.filter.tags", "@acceptance and not @wip and not @integration")
+    shouldRunAfter(tasks.named("test"))
+    outputs.upToDateWhen { false }
+}
+
+tasks.check { dependsOn(cucumberTestAcceptance) }
+
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     testLogging {
