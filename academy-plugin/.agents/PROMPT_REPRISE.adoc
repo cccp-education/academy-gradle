@@ -29,7 +29,12 @@ paiement, livraison) appartient à **talaria.school**.
   - **Dogfooding build** `/tmp` : manifeste `CLOUD_BYOK`, `opencode.json`
     `ollama-cloud` + `{env:OLLAMA_API_KEY}`, installeur sans Ollama.
   - Gates : compiles/validatePlugins/ktlintCheck/publishToMavenLocal VERTS ;
-    **preuve CI à obtenir par le push**.
+    **CI `42071295416` VERTE** (Build & Test 2m14s).
+  - **Publication Gradle Plugin Portal** : `academy-plugin 0.0.3` accepté
+    (compte `cccp-education`, credentials `~/.gradle/gradle.properties`) le
+    2026-11-05 17:10:39 ; page publique en attente de revue du Portal.
+    **Ne pas utiliser** les env `GRADLE_PUBLISH_KEY`/`SECRET` de la session
+    (autre compte : `You are not the owner of group education.cccp`).
 - S-024 — US-1/US-2 ✅ : manifeste `sha256`, zip `buildLearnerWorkstation`,
   boroughs publics = outils opencode (`.opencode/tools/cccp.ts`), projet Gradle
   généré, installeur câblé Linux/Windows.

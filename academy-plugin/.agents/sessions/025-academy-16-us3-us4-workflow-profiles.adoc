@@ -81,8 +81,21 @@ Vérifié :
 * `ktlintCheck` **VERT**.
 * `publishToMavenLocal` **VERT** (`academy-plugin 0.0.3`).
 * Dogfooding build `buildLearnerWorkstation` **VERT**.
-* Tests **non exécutés localement** (Local = Build, Tests = CI) ; la preuve de
-  la suite est le run CI du commit poussé (à obtenir).
+* Tests **non exécutés localement** ; **CI `42071295416` VERTE** (Build & Test 2m14s).
+
+== Publication Gradle Plugin Portal (2026-11-05)
+
+* Compte **`cccp-education`** (credentials de `~/.gradle/gradle.properties`). Les variables
+  d'environnement `GRADLE_PUBLISH_KEY`/`SECRET` de la session appartiennent à un **autre
+  compte** (`You are not the owner of group education.cccp`) — elles ne doivent pas être
+  utilisées pour ce plugin.
+* `./gradlew publishPlugins` (env désactivé) → **version `0.0.3` acceptée** par le Portal
+  (créée `2026-11-05 17:10:39`). Le second passage le confirme :
+  `version: '0.0.3' exists already`.
+* **Page publique** `https://plugins.gradle.org/plugin/education.cccp.academy` : encore
+  `Plugin Not Found` à la clôture → **revue/modération du Portal en attente** (première
+  publication du groupe). Le compte propriétaire recevra la notification d'approbation.
+* **Maven Central non utilisé** (restriction Sonatype jusqu'au 2026-12-01).
 
 == Reste (EPIC ACADEMY-16)
 
