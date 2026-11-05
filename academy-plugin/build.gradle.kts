@@ -1,3 +1,5 @@
+import org.gradle.plugin.compatibility.compatibility
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
@@ -376,6 +378,15 @@ gradlePlugin {
             description = "Learner experience as a Gradle plugin — Moodle LMS archive (no VPS), opencode agent, BYOK LLM. Single-user build artefact."
             implementationClass = "education.cccp.academy.AcademyPlugin"
             tags = listOf("cccp", "academy", "education", "learning", "lms", "opencode")
+            // ACADEMY-16 — Gradle Plugin Portal compatibility metadata.
+            // Declared false until the plugin's tasks are proven with the
+            // feature enabled (honest declaration, no badge claim).
+            compatibility {
+                features {
+                    configurationCache.set(false)
+                    isolatedProjects.set(false)
+                }
+            }
         }
     }
 }
