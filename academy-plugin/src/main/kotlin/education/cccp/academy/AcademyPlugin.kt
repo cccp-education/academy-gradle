@@ -6,6 +6,7 @@ import education.cccp.academy.installer.HostEnvironmentProbe
 import education.cccp.academy.installer.TargetOs
 import education.cccp.academy.installer.offline.OfflineImageCatalog
 import education.cccp.academy.installer.offline.ProcessDockerImageRunner
+import education.cccp.academy.workstation.WorkstationProfile
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -59,16 +60,9 @@ class AcademyPlugin : Plugin<Project> {
             )
             task.moduleId.set(extension.workstationModuleId)
             task.moduleVersion.set(extension.workstationModuleVersion)
-            task.profile.set(
-                project.provider {
-                    if (extension.openCodeProvider.get() == LlmProviderKind.OLLAMA_LOCAL) {
-                        education.cccp.academy.workstation.WorkstationProfile.LOCAL_OLLAMA
-                    } else {
-                        education.cccp.academy.workstation.WorkstationProfile.CLOUD_BYOK
-                    }
-                },
-            )
+            task.profile.set(extension.workstationProfile)
             task.openCodeModel.set(extension.openCodeModel)
+            task.openCodeProvider.set(extension.openCodeProvider)
             task.openCodeProviderUrl.set(extension.openCodeProviderUrl)
             task.openCodeApiKeyEnvVar.set(extension.openCodeApiKeyEnvVar)
             task.outputDir.set(extension.workstationOutputDir)
@@ -285,6 +279,7 @@ class AcademyPlugin : Plugin<Project> {
         extension.acceptanceReportFile.convention(
             project.layout.buildDirectory.file("academy/a11y/acceptance-report.json"),
         )
+        extension.workstationProfile.convention(WorkstationProfile.CLOUD_BYOK)
         extension.workstationModuleId.convention("pilot")
         extension.workstationModuleVersion.convention("0.0.1")
         extension.workstationOutputDir.convention(

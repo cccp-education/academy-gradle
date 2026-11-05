@@ -107,8 +107,8 @@ install.sh
 | US-0 | **Cadrage** — décisions D-LWA-1..12, schéma, options écartées, risques (ce document) | 2 | ✅ TERMINÉ (S-023)
 | US-1 | **`LearnerWorkstationManifest`** — domaine pur (version workstation/academy, module id, version matériel, profils, `sha256`), sérialisation JSON, tests de contrat | 3 | ✅ TERMINÉ (S-024)
 | US-2 | **Tâche `buildLearnerWorkstation`** — agrège installateurs + `project/` + `material/` + bundle hors-ligne + README + manifeste → zip ; `@InputFiles @Optional` tolérants ; idempotente | 4 | ✅ TERMINÉ (S-024) — inclut l'intégration des boroughs publics comme **outils opencode** (`.opencode/tools/cccp.ts`) + projet Gradle généré
-| US-3 | **`WorkflowGuideGenerator`** — parcours de certification (SPG → SPD → slides → capsule → dossier PDF) + `AGENTS.md` + `README-apprenant` ; tâches exactes issues de `OpenCodeCatalog` | 3 | 🟡 À FAIRE
-| US-4 | **Profils BYOK** — `cloud` (défaut) / `local-ollama` (opt-in) ; `.env` nom-seul, compose conditionnel | 2 | 🟡 À FAIRE
+| US-3 | **`WorkflowGuideGenerator`** — parcours de certification (SPG → SPD → slides → capsule → dossier PDF) + `AGENTS.md` + `README-apprenant` ; tâches exactes issues de `OpenCodeCatalog` | 3 | ✅ TERMINÉ (S-025)
+| US-4 | **Profils BYOK** — `cloud` (défaut) / `local-ollama` (opt-in) ; `.env` nom-seul, compose conditionnel | 2 | ✅ TERMINÉ (S-025)
 | US-5 | **`AcademyProgressExport`** — `academy-report.json` opt-in (progression, modules, artefacts produits), aucune télémétrie | 2 | 🟡 À FAIRE
 | US-6 | **BDD + functional TestKit** — zip produit, manifeste cohérent, README présent, profil respecté, absence de secret | 2 | 🟡 À FAIRE
 | US-7 | **Dogfooding « machine vierge »** — 1 commande + 1 clé → Moodle up + module visible + production SPG/slides/capsule/PDF réelle | 3 | 🟡 À FAIRE
@@ -127,6 +127,17 @@ _Total_ : 9 US, ~24 pts. _Méthode_ : baby-step DDD/TDD/BDD, English only sur le
 * **Dogfooding réel** : consommateur `/tmp`, `buildLearnerWorkstation` → `academy-workstation-0.0.3+fpa-pilot-0.0.1.zip` (11 entrées), manifeste `sha256` vérifié, `build.gradle.kts` à 11 plugins, `install.sh`/`install.bat` câblés.
 * **Correctif révélé** : le guide apprenant citait `./gradlew` alors que le workspace n'a **pas** de wrapper (l'image porte `gradle`) → `gradle` partout (guide + material guide).
 * Gates : `compileKotlin`/`compileTestKotlin`/`validatePlugins`/`publishToMavenLocal` VERTS ; zéro test local (CI).
+
+== Mise en œuvre S-025 (US-3 + US-4)
+
+* `WorkflowGuideGenerator` : parcours FPA en 5 étapes (SPG/SPD **écrits par le candidat**, slides, storyboard+capsule, dossier PDF, diagrammes), outils `cccp_<borough>` et tâches exactes lues au catalogue ; le borough privé `training` est explicitement **non exposé**.
+* `LearnerGuideGenerator` inclut le parcours dans `AGENTS.md` ; le README apprenant porte un résumé FR + pointe vers la section.
+* `WorkstationProfileResolver` : `CLOUD_BYOK` (défaut) coupe Ollama et bascule sur **Ollama Cloud** si le provider configuré est encore le local ; `LOCAL_OLLAMA` conserve le runtime.
+* `InstallerPlatform.ollamaEnabled` : `composeBody`/`envBody` conditionnels (service, volume, `OLLAMA_HOST`), parité Linux/Windows.
+* `GenerateInstallerTask` et `buildLearnerWorkstation` utilisent le résolveur ; `OpenCodeConfig.localRuntimeEnabled` aligne le guide sur la pile réelle.
+* **Dogfooding build** `/tmp` : zip `academy-workstation-0.0.3+fpa-pilot-0.0.1.zip`, manifeste `CLOUD_BYOK`, `opencode.json` `ollama-cloud` + `{env:OLLAMA_API_KEY}`, installeur sans aucune référence Ollama, `.env` `OLLAMA_API_KEY=`.
+* **Changement de comportement assumé** : le profil par défaut passe à `CLOUD_BYOK` (D-LWA-5) → l'installeur n'embarque plus Ollama par défaut ; `workstationProfile.set(LOCAL_OLLAMA)` restaure ACADEMY-6.
+* Gates : compiles/validatePlugins/ktlintCheck/publishToMavenLocal VERTS ; **CI à obtenir par le push**.
 
 == Options écartées
 

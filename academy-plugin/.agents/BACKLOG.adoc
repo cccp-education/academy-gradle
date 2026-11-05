@@ -2,7 +2,7 @@
 :toc:
 :toclevels: 2
 
-_Dernière mise à jour_ : 2026-11-05 (session 024) — **ACADEMY-16 US-1/US-2 TERMINÉS** : manifeste `sha256`, tâche `buildLearnerWorkstation` (zip distribué), boroughs publics exposés comme **outils opencode** (`.opencode/tools/cccp.ts`) + projet Gradle généré. Dogfooding réel `/tmp` → `academy-workstation-0.0.3+fpa-pilot-0.0.1.zip` (11 entrées). Rappel S-022 : **frontière FPA/Qualiopi = training**. ACADEMY-9 (support Qualiopi) est **transféré à training (TRN-13)** ; academy ne porte aucune trace de conformité et se limite à mesurer l'accessibilité de la boîte. Rappel historique S-016 : **ACADEMY-11-4 TERMINÉ + EPIC ACADEMY-11 CLOS (S-016)** — service compose one-shot `moodle-material` : il **applique** le plan stagé après le schéma Moodle, en pilotant les outils natifs de l'image (`moosh`). **Volume nommé `moodle-html:/var/www/html`** partagé par `moodle` et `moodle-material` (indispensable : `moosh` bootstrappe contre l'install). **Garde de rejeu** `sha256(plan.json)` → marqueur `.academy-applied-plan` dans le volume inscriptible (`moosh activity-add` **ne dédoublonne pas**). **Input tolérant** `GenerateInstallerTask.moodleMaterialFiles` (`@InputFiles @Optional`) : un re-run simple ré-rend un plan changé (fin de la staleness silencieuse). Lecture matériel partagée (`MoodleMaterialReader`). **Dogfooding réel `compose up`** : cours `formation-fpa` + sections + activités, contenu AsciiDoc en base, rejeu no-op — **3 bugs réels attrapés**. Gates 710 unit + 21 functional + 71 Cucumber 0 FAIL. **Ordre du jour pilote : ACADEMY-12-3** (dogfooding Windows réel, hôte requis), puis ACADEMY-10 (cadrage/décision pilote) ; ACADEMY-9 transféré à training.
+_Dernière mise à jour_ : 2026-11-05 (session 025) — **ACADEMY-16 US-3/US-4 TERMINÉS** : parcours de certification FPA (SPG/SPD écrits par le candidat → slides → capsule → dossier PDF) injecté dans `AGENTS.md` + README ; profil **`CLOUD_BYOK` par défaut** (sans Ollama local) / `LOCAL_OLLAMA` opt-in, compose conditionnel Linux/Windows. Dogfooding `/tmp` → `academy-workstation-0.0.3+fpa-pilot-0.0.1.zip` (manifeste `CLOUD_BYOK`, `opencode.json` `ollama-cloud`, installeur sans Ollama). Rappel S-022 : **frontière FPA/Qualiopi = training**. ACADEMY-9 (support Qualiopi) est **transféré à training (TRN-13)** ; academy ne porte aucune trace de conformité et se limite à mesurer l'accessibilité de la boîte. Rappel historique S-016 : **ACADEMY-11-4 TERMINÉ + EPIC ACADEMY-11 CLOS (S-016)** — service compose one-shot `moodle-material` : il **applique** le plan stagé après le schéma Moodle, en pilotant les outils natifs de l'image (`moosh`). **Volume nommé `moodle-html:/var/www/html`** partagé par `moodle` et `moodle-material` (indispensable : `moosh` bootstrappe contre l'install). **Garde de rejeu** `sha256(plan.json)` → marqueur `.academy-applied-plan` dans le volume inscriptible (`moosh activity-add` **ne dédoublonne pas**). **Input tolérant** `GenerateInstallerTask.moodleMaterialFiles` (`@InputFiles @Optional`) : un re-run simple ré-rend un plan changé (fin de la staleness silencieuse). Lecture matériel partagée (`MoodleMaterialReader`). **Dogfooding réel `compose up`** : cours `formation-fpa` + sections + activités, contenu AsciiDoc en base, rejeu no-op — **3 bugs réels attrapés**. Gates 710 unit + 21 functional + 71 Cucumber 0 FAIL. **Ordre du jour pilote : ACADEMY-12-3** (dogfooding Windows réel, hôte requis), puis ACADEMY-10 (cadrage/décision pilote) ; ACADEMY-9 transféré à training.
 
 '''
 == Vision actée (S-002, arbitrage pilote)
@@ -51,7 +51,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-13 | CI de test obligatoire (unit + functionalTest + suites Cucumber) — l'artefact 0.0.2 est publié Central **sans aucun workflow** : 234 `@Test` et 84 `.feature` ne sont jamais exécutés automatiquement | ✅ TERMINÉ (S-017 / S-224) — `.github/workflows/test.yml` + garde `publish` (tag `v*`, `needs: test`)
 | ACADEMY-14 | Bundle hors-ligne de la boîte (images épinglées par digest + `docker save`/`load`, installation sans réseau, vérification de charge) — le compose référence `erseco/alpine-moodle:v5.2.3` par tag, donc la boîte exige le réseau | ✅ TERMINÉ (S-017 / S-224) — bundle + build workspace + `docker save` + pinning digest + installateur + dogfooding CI VERT (run `41362217647`) |
 | ACADEMY-15 | Accessibilité de la boîte : audit Moodle/opencode WCAG 2.1 AA, thème et navigation clavier, matériel accessible vérifié, porte d'acceptation et rapport d'écarts | 🟡 EN COURS (S-017→S-021) — matériel + Moodle statique + **porte d'acceptation agrégée** ✅ ; reste `GBL-011-4` (audiodescription capsule), matériel FPA réel, opencode (limite déclarée)
-| ACADEMY-16 | **Poste de travail apprenant** (Learner Workstation) — zip pré-construit où l'apprenant produit SPG/SPD/storyboard/capsule/dossier PDF, avec Moodle + opencode + BYOK + outillage | 🟡 EN COURS (S-023→S-024) — dossier `CADRAGE_EPIC_ACADEMY_16_LEARNER_WORKSTATION.adoc` ; 12 décisions `D-LWA-1..12`, 9 US ~24 pts ; **US-0 ✅ (S-023), US-1/US-2 ✅ (S-024)**, US-3→8 🟡 À FAIRE ; boroughs publics exposés comme **outils opencode** ; **Windows P0**
+| ACADEMY-16 | **Poste de travail apprenant** (Learner Workstation) — zip pré-construit où l'apprenant produit SPG/SPD/storyboard/capsule/dossier PDF, avec Moodle + opencode + BYOK + outillage | 🟡 EN COURS (S-023→S-025) — dossier `CADRAGE_EPIC_ACADEMY_16_LEARNER_WORKSTATION.adoc` ; 12 décisions `D-LWA-1..12`, 9 US ~24 pts ; **US-0 ✅ (S-023), US-1/US-2 ✅ (S-024), US-3/US-4 ✅ (S-025)** ; US-5→8 🟡 À FAIRE ; boroughs publics = **outils opencode**, **profil cloud par défaut** ; **Windows P0**
 |===
 
 '''
@@ -719,7 +719,7 @@ déclare ses limites.
 
 ---
 
-== 🟡 EPIC ACADEMY-16 — Poste de travail apprenant (S-023→S-024) — EN COURS
+== 🟡 EPIC ACADEMY-16 — Poste de travail apprenant (S-023→S-025) — EN COURS
 
 **Origine** — arbitrage pilote S-023 : *« l'acheteur est l'apprenant »*, le
 commercial est chez **talaria.school**. Le référentiel FPA exige que le
@@ -747,8 +747,8 @@ et `talaria T-FULFILLMENT US-0` (P0) n'a pas tranché le modèle de remise.
 | US-0 | Cadrage — décisions, schéma, options écartées, risques | 2 | ✅ TERMINÉ (S-023)
 | US-1 | `LearnerWorkstationManifest` (domaine pur + tests de contrat) | 3 | ✅ TERMINÉ (S-024)
 | US-2 | Tâche `buildLearnerWorkstation` (zip agrégé, outils opencode, projet Gradle généré) | 4 | ✅ TERMINÉ (S-024)
-| US-3 | `WorkflowGuideGenerator` (parcours + `AGENTS.md` + README apprenant) | 3 | 🟡 À FAIRE
-| US-4 | Profils BYOK (`cloud` défaut / `local-ollama` opt-in) | 2 | 🟡 À FAIRE
+| US-3 | `WorkflowGuideGenerator` (parcours + `AGENTS.md` + README apprenant) | 3 | ✅ TERMINÉ (S-025)
+| US-4 | Profils BYOK (`cloud` défaut / `local-ollama` opt-in) | 2 | ✅ TERMINÉ (S-025)
 | US-5 | `AcademyProgressExport` (`academy-report.json` opt-in) | 2 | 🟡 À FAIRE
 | US-6 | BDD + functional TestKit (zip, manifeste, README, profil) | 2 | 🟡 À FAIRE
 | US-7 | Dogfooding machine vierge (1 commande + 1 clé → production réelle) | 3 | 🟡 À FAIRE

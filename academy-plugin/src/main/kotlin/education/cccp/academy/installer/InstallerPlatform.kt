@@ -62,6 +62,13 @@ data class InstallerPlatform(
     val moodleMaterialEnabled: Boolean = false,
     val moodlePlan: MoodleImportPlan? = null,
     val offlineBundleEnabled: Boolean = false,
+    /**
+     * ACADEMY-16 / D-LWA-5 — whether the compose scaffold embeds the local
+     * Ollama runtime. Defaults to `true` (backward-compatible ACADEMY-6
+     * behaviour); the `CLOUD_BYOK` workstation profile disables it so a learner
+     * machine does not need the heavy local runtime.
+     */
+    val ollamaEnabled: Boolean = true,
     val imageDigests: Map<String, String> = emptyMap(),
 ) {
     init {
@@ -102,5 +109,6 @@ data class InstallerPlatform(
             provider = openCodeProvider,
             apiKeyEnvVar = openCodeApiKeyEnvVar?.takeIf { it.isNotBlank() },
             bridge = if (bridgeEnabled) BridgeGuide(host = bridgeHost, port = bridgePort) else null,
+            localRuntimeEnabled = ollamaEnabled,
         )
 }

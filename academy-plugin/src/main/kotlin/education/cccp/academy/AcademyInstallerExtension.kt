@@ -3,6 +3,7 @@ package education.cccp.academy
 import contracts.runtime.LlmProviderKind
 import education.cccp.academy.installer.TargetOs
 import education.cccp.academy.material.MaterialArtifactType
+import education.cccp.academy.workstation.WorkstationProfile
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
@@ -205,6 +206,12 @@ abstract class AcademyInstallerExtension {
 
     /** ACADEMY-15 — the acceptance report written by `auditAcademyAcceptance`. */
     abstract val acceptanceReportFile: RegularFileProperty
+
+    /**
+     * ACADEMY-16 — LLM profile of the learner workstation (D-LWA-5): `CLOUD_BYOK`
+     * (default, no local runtime) or `LOCAL_OLLAMA` (opt-in embedded runtime).
+     */
+    abstract val workstationProfile: Property<WorkstationProfile>
 
     /** ACADEMY-16 — training module identity embedded in the learner workstation. */
     abstract val workstationModuleId: Property<String>

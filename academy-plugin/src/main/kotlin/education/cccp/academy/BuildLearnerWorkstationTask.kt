@@ -1,5 +1,6 @@
 package education.cccp.academy
 
+import contracts.runtime.LlmProviderKind
 import education.cccp.academy.opencode.LearnerGuideGenerator
 import education.cccp.academy.opencode.OpenCodeCatalog
 import education.cccp.academy.opencode.OpenCodeConfig
@@ -9,6 +10,7 @@ import education.cccp.academy.opencode.WorkspaceDockerfileGenerator
 import education.cccp.academy.workstation.LearnerWorkstationManifest
 import education.cccp.academy.workstation.WorkstationFile
 import education.cccp.academy.workstation.WorkstationProfile
+import education.cccp.academy.workstation.WorkstationProfileResolver
 import education.cccp.academy.workstation.WorkstationProjectGenerator
 import education.cccp.academy.workstation.WorkstationReadmeGenerator
 import org.gradle.api.DefaultTask
@@ -88,6 +90,9 @@ abstract class BuildLearnerWorkstationTask : DefaultTask() {
     abstract val openCodeModel: Property<String>
 
     @get:Input
+    abstract val openCodeProvider: Property<LlmProviderKind>
+
+    @get:Input
     abstract val openCodeProviderUrl: Property<String>
 
     @get:Input
@@ -118,11 +123,20 @@ abstract class BuildLearnerWorkstationTask : DefaultTask() {
             Files.copy(file.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
         }
 
+        val resolved =
+            WorkstationProfileResolver.resolve(
+                profile = profile.get(),
+                configuredProvider = openCodeProvider.get(),
+                configuredProviderUrl = openCodeProviderUrl.get(),
+                configuredApiKeyEnvVar = openCodeApiKeyEnvVar.get().takeIf { it.isNotBlank() },
+            )
         val config =
             OpenCodeConfig(
-                providerUrl = openCodeProviderUrl.get(),
+                providerUrl = resolved.providerUrl,
                 model = openCodeModel.get(),
-                apiKeyEnvVar = openCodeApiKeyEnvVar.get().takeIf { it.isNotBlank() },
+                provider = resolved.provider,
+                apiKeyEnvVar = resolved.apiKeyEnvVar,
+                localRuntimeEnabled = resolved.ollamaEnabled,
             )
         write(staging, "project/Dockerfile", WorkspaceDockerfileGenerator.render(config))
         write(staging, "project/opencode.json", OpenCodeConfigGenerator.render(config))

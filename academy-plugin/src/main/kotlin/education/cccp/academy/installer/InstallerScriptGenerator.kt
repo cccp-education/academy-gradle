@@ -225,7 +225,8 @@ object InstallerScriptGenerator {
      * from `.env` — never embedded.
      */
     private fun composeBody(platform: InstallerPlatform): List<String> {
-        val workspaceEnv = mutableListOf("      OLLAMA_HOST: \${OLLAMA_HOST}")
+        val workspaceEnv = mutableListOf<String>()
+        if (platform.ollamaEnabled) workspaceEnv += "      OLLAMA_HOST: \${OLLAMA_HOST}"
         workspaceKeyEnvVar(platform)?.let { workspaceEnv += "      $it: \${$it}" }
         val moodleLines =
             mutableListOf(
@@ -272,9 +273,7 @@ object InstallerScriptGenerator {
             "    working_dir: /workspace",
             "    environment:",
             *workspaceEnv.toTypedArray(),
-            "    depends_on:",
-            "      ollama:",
-            "        condition: service_started",
+            *workspaceDependsOn(platform).toTypedArray(),
             "    networks:",
             "      - academy-net",
             "    profiles:",
@@ -293,19 +292,7 @@ object InstallerScriptGenerator {
             "      retries: 5",
             "    networks:",
             "      - academy-net",
-            "  ollama:",
-            "    image: ${platform.image("ollama/ollama")}",
-            "    volumes:",
-            "      - ollama-models:/root/.ollama",
-            "    ports:",
-            "      - \"11434:11434\"",
-            "    healthcheck:",
-            "      test: [\"CMD\", \"ollama\", \"list\"]",
-            "      interval: 30s",
-            "      timeout: 10s",
-            "      retries: 3",
-            "    networks:",
-            "      - academy-net",
+            *ollamaService(platform).toTypedArray(),
             "  portainer:",
             "    image: ${platform.image("portainer/portainer-ce")}",
             "    ports:",
@@ -339,11 +326,48 @@ object InstallerScriptGenerator {
             "",
             "volumes:",
             "  postgres-data:",
-            "  ollama-models:",
+            *ollamaVolume(platform).toTypedArray(),
             "  portainer-data:",
             *moodleHtmlVolume(platform).toTypedArray(),
         )
     }
+
+    /** Ollama is embedded only when the local profile is selected (ACADEMY-16 / D-LWA-5). */
+    private fun workspaceDependsOn(platform: InstallerPlatform): List<String> =
+        if (!platform.ollamaEnabled) {
+            emptyList()
+        } else {
+            listOf(
+                "    depends_on:",
+                "      ollama:",
+                "        condition: service_started",
+            )
+        }
+
+    /** The local Ollama service, omitted by the cloud BYOK profile (D-LWA-5). */
+    private fun ollamaService(platform: InstallerPlatform): List<String> =
+        if (!platform.ollamaEnabled) {
+            emptyList()
+        } else {
+            listOf(
+                "  ollama:",
+                "    image: ${platform.image("ollama/ollama")}",
+                "    volumes:",
+                "      - ollama-models:/root/.ollama",
+                "    ports:",
+                "      - \"11434:11434\"",
+                "    healthcheck:",
+                "      test: [\"CMD\", \"ollama\", \"list\"]",
+                "      interval: 30s",
+                "      timeout: 10s",
+                "      retries: 3",
+                "    networks:",
+                "      - academy-net",
+            )
+        }
+
+    /** The Ollama model volume, omitted with the local runtime (D-LWA-5). */
+    private fun ollamaVolume(platform: InstallerPlatform): List<String> = if (platform.ollamaEnabled) listOf("  ollama-models:") else emptyList()
 
     /**
      * The one-shot `moodle-material` service (ACADEMY-11-4, D-ACADEMY-11-5),
@@ -408,7 +432,7 @@ object InstallerScriptGenerator {
             add("MOODLE_USERNAME=admin")
             add("MOODLE_PASSWORD=")
             add("MOODLE_SITENAME=Academy")
-            add("OLLAMA_HOST=http://ollama:11434")
+            if (platform.ollamaEnabled) add("OLLAMA_HOST=http://ollama:11434")
             workspaceKeyEnvVar(platform)?.let { add("$it=") }
         }
 

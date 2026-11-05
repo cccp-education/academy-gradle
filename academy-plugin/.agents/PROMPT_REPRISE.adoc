@@ -1,7 +1,7 @@
 = PROMPT_REPRISE — academy-gradle
-:session: 024
+:session: 025
 :date: 2026-11-05
-:etat: Session 024 ✅ — ACADEMY-16 US-1/US-2 livrés + boroughs publics en outils opencode. Mission 025 : US-3 + US-4.
+:etat: Session 025 ✅ — ACADEMY-16 US-3/US-4 livrés (workflow FPA + profils BYOK). Mission 026 : US-6 + US-7.
 
 == Frontière (S-022, actée)
 
@@ -13,46 +13,48 @@ paiement, livraison) appartient à **talaria.school**.
 
 == Contexte hérité
 
-- S-024 — **ACADEMY-16 US-1/US-2 ✅** :
-  - `workstation.LearnerWorkstationManifest` + `WorkstationFile` (SHA-256,
-    JSON déterministe, chemins relatifs sûrs) + tests.
-  - Tâche `buildLearnerWorkstation` → zip `academy-workstation-<version>.zip`
-    (installateurs + `project/` + `material/` + `offline/` + README + manifeste).
-  - **Boroughs publics = outils opencode** : `.opencode/tools/cccp.ts` avec un
-    `tool()` par plugin public *enabled* (wrapper `gradle <task>`), généré par
-    `OpenCodeToolGenerator` ; projet Gradle généré (11 plugins, versions du
-    catalogue workspace) par `WorkstationProjectGenerator` ; l'installeur écrit
-    aussi outils + projet (parité Linux/Windows).
-  - **Dogfooding réel** `/tmp` : `academy-workstation-0.0.3+fpa-pilot-0.0.1.zip`
-    (11 entrées, manifeste `sha256` vérifié).
-  - **Correctif** : `./gradlew` → `gradle` (le workspace n'a pas de wrapper,
-    l'image `gradle:9.7.1-jdk25` porte `gradle`).
-  - Gates : compiles/validatePlugins/publishToMavenLocal VERTS ; **CI
-    `42068519966` VERTE** (Build & Test 2m15s).
+- S-025 — **ACADEMY-16 US-3/US-4 ✅** :
+  - `WorkflowGuideGenerator` : parcours FPA en 5 étapes (SPG/SPD **écrits par
+    le candidat** → slides → storyboard+capsule → dossier PDF → diagrammes),
+    outils `cccp_<borough>` et tâches exactes lues au catalogue ; `training`
+    privé explicitement **non exposé**. Injecté dans `AGENTS.md` + README.
+  - `WorkstationProfileResolver` + `workstationProfile` : **`CLOUD_BYOK` par
+    défaut** (bascule `OLLAMA_CLOUD` si le provider est encore local,
+    `ollamaEnabled=false`) / `LOCAL_OLLAMA` opt-in.
+  - `InstallerPlatform.ollamaEnabled` : compose conditionnel (service, volume,
+    `OLLAMA_HOST`) — parité Linux/Windows.
+  - **Changement de comportement assumé** : l'installeur n'embarque plus Ollama
+    par défaut (D-LWA-5) ; `workstationProfile.set(LOCAL_OLLAMA)` restaure
+    ACADEMY-6.
+  - **Dogfooding build** `/tmp` : manifeste `CLOUD_BYOK`, `opencode.json`
+    `ollama-cloud` + `{env:OLLAMA_API_KEY}`, installeur sans Ollama.
+  - Gates : compiles/validatePlugins/ktlintCheck/publishToMavenLocal VERTS ;
+    **preuve CI à obtenir par le push**.
+- S-024 — US-1/US-2 ✅ : manifeste `sha256`, zip `buildLearnerWorkstation`,
+  boroughs publics = outils opencode (`.opencode/tools/cccp.ts`), projet Gradle
+  généré, installeur câblé Linux/Windows.
 - S-023 — ACADEMY-16 cadré (10 constats, 12 décisions, 9 US).
 - S-022 — frontière FPA/Qualiopi = training (ACADEMY-9 → TRN-13).
-- S-021/S-020/S-019 — ACADEMY-15 acceptance, ACADEMY-10 Spring Boot (décision
-  pilote en attente), Moodle statique.
 
-== Mission de la prochaine session (025)
+== Mission de la prochaine session (026)
 
-. **US-3 `WorkflowGuideGenerator`** : parcours de certification complet
-   (SPG → SPD → slides → capsule → dossier PDF) injecté dans `AGENTS.md` et le
-   README apprenant, avec les **tâches exactes** des outils opencode
-   (`cccp_<borough>`) — zéro commande inventée.
-. **US-4 profils BYOK** : `cloud` (défaut, léger) / `local-ollama` (opt-in) ;
-   `.env` nom-seul, compose conditionnel, `opencode.json` cohérent.
-. Puis **US-6** (BDD + functional TestKit : zip, manifeste, outils, projet),
-   **US-7** (dogfooding machine vierge : 1 commande + 1 clé → production
-   réelle), **US-8** (Windows réel, P0).
+. **US-6 BDD + functional TestKit** : zip produit et cohérent, manifeste
+   `sha256` vérifiable, `project/.opencode/tools/cccp.ts` présent, projet Gradle
+   généré, profil `CLOUD_BYOK` (sans Ollama) et `LOCAL_OLLAMA` (avec Ollama).
+   Baby-step BDD strict (RED → GREEN), runner dédié (pattern S-082).
+. **US-7 dogfooding « machine vierge »** : 1 commande + 1 clé → Moodle up,
+   module pilote visible, production réelle SPG → slides → capsule → PDF.
+   Prérequis : un **module pilote manuel** (AsciiDoc + `metadata.json` EPIC K).
+. Puis **US-5** (export `academy-report.json` opt-in, zéro télémétrie) et
+   **US-8** (Windows réel, P0 — `ACADEMY-12-3`).
 
-== Décisions à ne pas rediscuter (S-023/S-024)
+== Décisions à ne pas rediscuter (S-023/S-024/S-025)
 
 * `D-LWA-2` — le livrable est un **zip** remis par talaria, pas un plugin.
 * `D-LWA-3`/`D-LWA-11` — le matériel est une **entrée** ; module pilote manuel autorisé.
-* `D-LWA-4` — boroughs publics exposés comme **outils opencode** ; versions
-  vérifiées au catalogue workspace (2026-11-05), jamais inventées.
-* `D-LWA-5` — défaut **cloud BYOK** ; Ollama opt-in (US-4).
+* `D-LWA-4` — boroughs publics exposés comme **outils opencode** ; le SPG/SPD
+  sont écrits par le candidat, `training` n'est jamais exposé.
+* `D-LWA-5` — **cloud BYOK par défaut** (sans Ollama) ; `LOCAL_OLLAMA` opt-in.
 * `D-LWA-8` — manifeste `sha256` vérifiable ; **aucun DRM** dans academy.
 * `D-LWA-9` — progression locale, export `academy-report.json` opt-in, zéro télémétrie.
 * `D-LWA-10` — Windows = **P0** (`ACADEMY-12-3`), dogfooding réel.
@@ -64,7 +66,7 @@ paiement, livraison) appartient à **talaria.school**.
 - **Local = Build, Tests = CI** : compiler localement, pousser, prouver par CI ;
   un run rouge se diagnostique par l'artefact JUnit XML (`test-results`).
 - **Vérifier la source avant de nommer** version/image/commande ; **dogfooding =
-  preuve réelle** (leçons S-007/S-011/S-016/S-019/S-024).
+  preuve réelle** (leçons S-007/S-011/S-016/S-019/S-024/S-025).
 - DAG N2 : academy importable par N3, jamais N3 → academy.
 - Zéro secret. `publishToMavenLocal` après toute modification de source.
 - Sur `academy`, la CI doit rester **verte** (`./gradlew build` → `check`).

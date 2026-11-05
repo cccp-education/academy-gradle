@@ -90,6 +90,21 @@ object WorkstationReadmeGenerator {
             |comme des outils. Demandez-lui par exemple : « produis mon SPG », puis
             |« génère mes slides », « génère ma capsule », « assemble mon dossier PDF ».
             |
+            |## Parcours de certification (résumé)
+            |
+            |1. Rédigez votre **SPG** puis votre **SPD** en AsciiDoc (c'est **votre**
+            |   production, évaluée par le jury) avec l'aide de l'agent.
+            |2. Générez vos slides avec l'outil `cccp_slider`.
+            |3. Écrivez le storyboard dans les notes du deck, puis générez la capsule
+            |   avec `cccp_capsule`.
+            |4. Assemblez votre dossier (PDF/EPUB/HTML) avec `cccp_document`.
+            |5. (Optionnel) Générez vos diagrammes avec `cccp_plantuml`.
+            |
+            |Le détail des tâches exactes est dans `project/AGENTS.md` (section
+            |« Certification workflow »). Les boroughs privés (`training`, `edster`,
+            |`workspace`, `waiter`, `quizz`) ne sont jamais exposés : le SPG/SPD reste
+            |la production personnelle du candidat.
+            |
             |## Outils exposés (boroughs publics)
             |
             |$tools

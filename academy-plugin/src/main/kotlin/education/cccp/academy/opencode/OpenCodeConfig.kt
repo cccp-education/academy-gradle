@@ -26,6 +26,9 @@ import contracts.runtime.LlmProviderKind
  *   [contracts.runtime.ByokLlmConfig])
  * @param bridge bridge information to document in the learner guide, or null
  *   when the bridge is disabled (ACADEMY-8-2)
+ * @param localRuntimeEnabled whether the compose scaffold embeds the local
+ *   Ollama runtime (ACADEMY-16 US-4) — the guide describes the stack truthfully
+ *   and the cloud BYOK profile sets it to `false`
  */
 data class OpenCodeConfig(
     val providerUrl: String,
@@ -33,6 +36,7 @@ data class OpenCodeConfig(
     val provider: LlmProviderKind = LlmProviderKind.OLLAMA_LOCAL,
     val apiKeyEnvVar: String? = null,
     val bridge: BridgeGuide? = null,
+    val localRuntimeEnabled: Boolean = true,
 ) {
     init {
         require(providerUrl.isNotBlank()) { "providerUrl must not be blank" }

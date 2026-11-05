@@ -8,6 +8,7 @@ import education.cccp.academy.material.MaterialRequirement
 import education.cccp.academy.moodle.MoodleImportPlan
 import education.cccp.academy.moodle.MoodleMaterialReader
 import education.cccp.academy.moodle.MoodlePlanBuilder
+import education.cccp.academy.workstation.WorkstationProfileResolver
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
@@ -70,6 +71,13 @@ abstract class GenerateInstallerTask : DefaultTask() {
     @TaskAction
     fun generate() {
         val extension = installerExtension.get()
+        val resolvedLlm =
+            WorkstationProfileResolver.resolve(
+                profile = extension.workstationProfile.get(),
+                configuredProvider = extension.openCodeProvider.get(),
+                configuredProviderUrl = extension.openCodeProviderUrl.get(),
+                configuredApiKeyEnvVar = extension.openCodeApiKeyEnvVar.get().takeIf { it.isNotBlank() },
+            )
         val platform =
             InstallerPlatform(
                 os = targetOs.get(),
@@ -81,9 +89,9 @@ abstract class GenerateInstallerTask : DefaultTask() {
                 credentialsEnvPrefix = extension.credentialsEnvPrefix.get(),
                 openCodeEnabled = extension.openCodeEnabled.get(),
                 openCodeModel = extension.openCodeModel.get(),
-                openCodeProviderUrl = extension.openCodeProviderUrl.get(),
-                openCodeProvider = extension.openCodeProvider.get(),
-                openCodeApiKeyEnvVar = extension.openCodeApiKeyEnvVar.get().takeIf { it.isNotBlank() },
+                openCodeProviderUrl = resolvedLlm.providerUrl,
+                openCodeProvider = resolvedLlm.provider,
+                openCodeApiKeyEnvVar = resolvedLlm.apiKeyEnvVar,
                 bridgeEnabled = extension.bridgeEnabled.get(),
                 bridgeHost = extension.bridgeHost.get(),
                 bridgePort = extension.bridgePort.get(),
@@ -91,6 +99,7 @@ abstract class GenerateInstallerTask : DefaultTask() {
                 moodleMaterialEnabled = extension.moodleImportEnabled.get(),
                 moodlePlan = moodlePlan(extension),
                 offlineBundleEnabled = extension.offlineBundleEnabled.get(),
+                ollamaEnabled = resolvedLlm.ollamaEnabled,
                 imageDigests = imageDigests(extension),
             )
 

@@ -1,0 +1,104 @@
+= Session 025 — ACADEMY-16 US-3/US-4 : parcours de certification + profils BYOK
+:date: 2026-11-05
+:session: 025
+:epic: ACADEMY-16
+:type: implémentation
+:statut: TERMINÉ (US-3 + US-4)
+
+== Mission
+
+Livrer le **parcours de certification** (US-3) et les **profils BYOK** (US-4) :
+
+. `WorkflowGuideGenerator` : la séquence FPA (SPG → SPD → slides → capsule →
+   dossier PDF → diagrammes), injectée dans `AGENTS.md` et le README, avec les
+   **outils opencode** et les **tâches exactes**.
+. `WorkstationProfileResolver` + `workstationProfile` : **`CLOUD_BYOK` par
+   défaut** (sans Ollama local) / `LOCAL_OLLAMA` opt-in, compose conditionnel.
+
+== US-3 — parcours de certification
+
+`opencode/WorkflowGuideGenerator.kt` :
+
+* 5 étapes, avec les outils `cccp_<borough>` et les tâches lues au catalogue :
+  1. **SPG/SPD** — écrits par le candidat en AsciiDoc (templates `material/`),
+     revus avec l'agent. **Aucune tâche Gradle** : c'est la production évaluée
+     par le jury.
+  2. **Slides** — `cccp_slider` (`generateDeck`, `generateDeckPipeline`, …).
+  3. **Storyboard + capsule** — `cccp_capsule` (`generateCapsuleVideo`, …).
+  4. **Dossier PDF/EPUB/HTML** — `cccp_document` (`bookPipeline`, `assembleBook`, …).
+  5. **Diagrammes** — `cccp_plantuml`.
+* Le borough privé `training` est explicitement **non exposé** : le guide ne
+  cite jamais `generateSPG`/`generateSPD` comme exécutables.
+* Injecté dans `AGENTS.md` (`LearnerGuideGenerator`) ; le README apprenant porte
+  un résumé FR et pointe vers la section.
+
+== US-4 — profils BYOK
+
+`workstation/WorkstationProfileResolver.kt` :
+
+* `LOCAL_OLLAMA` → `OLLAMA_LOCAL`, endpoint local, pas de clé, Ollama activé.
+* `CLOUD_BYOK` → Ollama désactivé ; si le provider configuré est encore le local,
+  bascule vers **`OLLAMA_CLOUD`** (`https://ollama.com/v1`, `OLLAMA_API_KEY`),
+  sinon conserve le provider/la clé configurés.
+* `InstallerPlatform.ollamaEnabled` : `composeBody`/`envBody` conditionnels
+  (service, volume `ollama-models`, `OLLAMA_HOST`, port 11434) — parité
+  Linux/Windows.
+* `OpenCodeConfig.localRuntimeEnabled` : le guide décrit la pile réelle
+  (cloud = « clé fournie par vous », local = « Ollama »).
+* `GenerateInstallerTask` et `buildLearnerWorkstation` utilisent le résolveur ;
+  `workstationProfile` est la source unique (plus de dérivation depuis le
+  provider).
+
+== Changement de comportement assumé
+
+Le profil par défaut passe à **`CLOUD_BYOK`** (D-LWA-5) : l'installeur n'embarque
+plus Ollama par défaut, et `opencode.json` pointe sur `ollama-cloud` avec
+`{env:OLLAMA_API_KEY}`. `workstationProfile.set(LOCAL_OLLAMA)` restaure le
+comportement ACADEMY-6 (runtime local).
+
+== Dogfooding réel (build, pas test)
+
+Consommateur `/tmp/opencode/academy-workstation-dogfood` :
+
+```
+academy-workstation-0.0.3+fpa-pilot-0.0.1.zip (11 entrées)
+```
+
+Vérifié :
+
+* manifeste `profile: CLOUD_BYOK` ;
+* `project/opencode.json` : `model: ollama-cloud/...`, `baseURL:
+  https://ollama.com/v1`, `apiKey: {env:OLLAMA_API_KEY}` ;
+* installeur Linux/Windows : **0** référence `ollama/ollama`, `OLLAMA_HOST` ou
+  `11434` ; `.env` documente `OLLAMA_API_KEY=` (vide) ;
+* README : « Cloud BYOK », parcours de certification, outils `cccp_*` ;
+* `AGENTS.md` : section « Certification workflow (FPA) » + phrase cloud.
+
+== Gates (Local = Build, Tests = CI)
+
+* `compileKotlin` + `compileTestKotlin` **VERTS**.
+* `validatePlugins` **VERT**.
+* `ktlintCheck` **VERT**.
+* `publishToMavenLocal` **VERT** (`academy-plugin 0.0.3`).
+* Dogfooding build `buildLearnerWorkstation` **VERT**.
+* Tests **non exécutés localement** (Local = Build, Tests = CI) ; la preuve de
+  la suite est le run CI du commit poussé (à obtenir).
+
+== Reste (EPIC ACADEMY-16)
+
+* US-6 BDD + functional TestKit (zip, manifeste, outils, projet, profils).
+* US-7 dogfooding « machine vierge » (1 commande + 1 clé → production réelle).
+* US-5 export `academy-report.json` opt-in.
+* US-8 Windows réel (P0).
+
+== Fichiers
+
+Créés : `opencode/WorkflowGuideGenerator.kt`,
+`workstation/WorkstationProfileResolver.kt`, + 3 tests
+(`WorkflowGuideGeneratorTest`, `WorkstationReadmeGeneratorTest`,
+`WorkstationProfileResolverTest`, `InstallerScriptGeneratorCloudProfileTest`).
+Modifiés : `OpenCodeConfig.kt`, `LearnerGuideGenerator.kt`,
+`WorkstationReadmeGenerator.kt`, `InstallerPlatform.kt`,
+`InstallerScriptGenerator.kt`, `GenerateInstallerTask.kt`,
+`BuildLearnerWorkstationTask.kt`, `AcademyInstallerExtension.kt`,
+`AcademyPlugin.kt`, `AcademyPluginTest.kt`.

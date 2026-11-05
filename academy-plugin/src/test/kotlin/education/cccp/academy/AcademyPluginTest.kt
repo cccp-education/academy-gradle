@@ -2,6 +2,7 @@ package education.cccp.academy
 
 import contracts.runtime.LlmProviderKind
 import education.cccp.academy.installer.TargetOs
+import education.cccp.academy.workstation.WorkstationProfile
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
 import kotlin.test.Test
@@ -46,6 +47,7 @@ class AcademyPluginTest {
         assertEquals("gpt-oss:120b-cloud", extension.openCodeModel.get())
         assertEquals("http://ollama:11434/v1", extension.openCodeProviderUrl.get())
         assertEquals(LlmProviderKind.OLLAMA_LOCAL, extension.openCodeProvider.get())
+        assertEquals(WorkstationProfile.CLOUD_BYOK, extension.workstationProfile.get())
         assertTrue(extension.openCodeApiKeyEnvVar.get().isBlank(), "no key variable by default")
         assertFalse(extension.bridgeEnabled.get(), "the bridge must be opt-in (no port opened by default)")
         assertEquals("127.0.0.1", extension.bridgeHost.get(), "the bridge binds locally by default")

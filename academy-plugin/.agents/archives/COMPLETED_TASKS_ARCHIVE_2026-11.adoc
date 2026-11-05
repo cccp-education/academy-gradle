@@ -112,3 +112,20 @@ _Session 024 (2026-11-05) — ACADEMY-16 US-1/US-2 TERMINÉS_
 - Gates : compiles, `validatePlugins`, `ktlintCheck`, `publishToMavenLocal`
   VERTS ; **preuve de la suite en attente du run CI du push**.
 - Reste : US-3→US-8.
+
+_Session 025 (2026-11-05) — ACADEMY-16 US-3/US-4 TERMINÉS_
+
+- US-3 `WorkflowGuideGenerator` : parcours FPA en 5 étapes (SPG/SPD **écrits par
+  le candidat** → slides → storyboard+capsule → dossier PDF → diagrammes),
+  outils `cccp_<borough>` + tâches exactes, `training` privé non exposé ;
+  injecté dans `AGENTS.md` + README.
+- US-4 `WorkstationProfileResolver` + `workstationProfile` : **`CLOUD_BYOK` par
+  défaut** (bascule `OLLAMA_CLOUD`, `ollamaEnabled=false`) / `LOCAL_OLLAMA`
+  opt-in ; compose conditionnel (service, volume, `OLLAMA_HOST`, port 11434),
+  parité Linux/Windows.
+- **Changement assumé** : plus d'Ollama par défaut (D-LWA-5).
+- Dogfooding build `/tmp` : manifeste `CLOUD_BYOK`, `opencode.json`
+  `ollama-cloud` + `{env:OLLAMA_API_KEY}`, installeur sans Ollama.
+- Gates : compiles, `validatePlugins`, `ktlintCheck`, `publishToMavenLocal`
+  VERTS ; **preuve de la suite en attente du run CI du push**.
+- Reste : US-5, US-6, US-7, US-8.

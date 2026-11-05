@@ -36,8 +36,8 @@ object LearnerGuideGenerator {
             |docker compose up -d
             |```
             |
-            |This starts Moodle (the course), PostgreSQL (its database), Ollama
-            |(the local LLM runtime) and Portainer (the Docker UI).
+            |This starts Moodle (the course), PostgreSQL (its database),
+            |${runtimeLine(config.localRuntimeEnabled)}
             |
             |## 2. Open the agent
             |
@@ -62,6 +62,8 @@ object LearnerGuideGenerator {
             |gradle bookPipeline
             |```
             |
+            |${WorkflowGuideGenerator.render()}
+            |
             |${bridgeSection(config.bridge)}
             |
             |## Exposed ecosystem tasks
@@ -84,6 +86,14 @@ object LearnerGuideGenerator {
             |
             """.trimMargin()
     }
+
+    /** The stack description must match the selected profile (ACADEMY-16 US-4). */
+    private fun runtimeLine(localRuntimeEnabled: Boolean): String =
+        if (localRuntimeEnabled) {
+            "Ollama (the local LLM runtime) and Portainer (the Docker UI)."
+        } else {
+            "Portainer (the Docker UI). The LLM is provided by your cloud key (BYOK)."
+        }
 
     /**
      * The webhook bridge section, rendered **only** when the bridge is enabled
