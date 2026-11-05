@@ -4,8 +4,11 @@ import education.cccp.academy.byok.ByokProviderCatalog
 import education.cccp.academy.material.MaterialGuideGenerator
 import education.cccp.academy.moodle.MoodleIngestionScriptGenerator
 import education.cccp.academy.opencode.LearnerGuideGenerator
+import education.cccp.academy.opencode.OpenCodeCatalog
 import education.cccp.academy.opencode.OpenCodeConfigGenerator
+import education.cccp.academy.opencode.OpenCodeToolGenerator
 import education.cccp.academy.opencode.WorkspaceDockerfileGenerator
+import education.cccp.academy.workstation.WorkstationProjectGenerator
 
 /**
  * Pure installer script generator (ACADEMY-1-1) — renders a deterministic,
@@ -535,6 +538,25 @@ object InstallerScriptGenerator {
             .lines()
             .forEach { appendLine(it) }
         appendLine("EOF")
+        // ACADEMY-16 — the public boroughs are exposed as opencode custom tools.
+        appendLine("mkdir -p \"\$APP_DIR/project/.opencode/tools\"")
+        val toolFile = OpenCodeToolGenerator.renderAll(OpenCodeCatalog.plugins)
+        appendLine("cat > \"\$APP_DIR/project/${toolFile.relativePath}\" <<'EOF'")
+        toolFile.content
+            .trimEnd()
+            .lines()
+            .forEach { appendLine(it) }
+        appendLine("EOF")
+        // ACADEMY-16 — the learner Gradle project that enables the exposed boroughs.
+        WorkstationProjectGenerator.render(OpenCodeCatalog.plugins).forEach { projectFile ->
+            val relative = projectFile.relativePath.removePrefix("project/")
+            appendLine("cat > \"\$APP_DIR/project/$relative\" <<'EOF'")
+            projectFile.content
+                .trimEnd()
+                .lines()
+                .forEach { appendLine(it) }
+            appendLine("EOF")
+        }
     }
 
     private fun StringBuilder.appendWindowsComposeScaffold(platform: InstallerPlatform) {
@@ -625,6 +647,24 @@ object InstallerScriptGenerator {
             .lines()
             .forEach { appendLine("echo ${escapeCmd(it)}") }
         appendLine(")")
+        // ACADEMY-16 — public boroughs as opencode custom tools + learner Gradle project.
+        appendLine("if not exist \"%APP_DIR%\\project\\.opencode\\tools\" mkdir \"%APP_DIR%\\project\\.opencode\\tools\"")
+        val toolFile = OpenCodeToolGenerator.renderAll(OpenCodeCatalog.plugins)
+        appendLine("> \"%APP_DIR%\\project\\.opencode\\tools\\${toolFile.relativePath.substringAfterLast('/')}\" (")
+        toolFile.content
+            .trimEnd()
+            .lines()
+            .forEach { appendLine("echo ${escapeCmd(it)}") }
+        appendLine(")")
+        WorkstationProjectGenerator.render(OpenCodeCatalog.plugins).forEach { projectFile ->
+            val relative = projectFile.relativePath.removePrefix("project/").replace("/", "\\")
+            appendLine("> \"%APP_DIR%\\project\\$relative\" (")
+            projectFile.content
+                .trimEnd()
+                .lines()
+                .forEach { appendLine("echo ${escapeCmd(it)}") }
+            appendLine(")")
+        }
     }
 
     /**

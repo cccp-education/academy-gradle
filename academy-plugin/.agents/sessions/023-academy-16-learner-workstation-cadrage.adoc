@@ -1,0 +1,88 @@
+= Session 023 — ACADEMY-16 cadré : Poste de travail apprenant
+:date: 2026-11-05
+:session: 023
+:epic: ACADEMY-16
+:type: cadrage (gouvernance pure)
+:statut: TERMINÉ
+
+== Mission
+
+Arbitrage pilote en amont : « l'acheteur est l'apprenant », le commercial est
+chez **talaria.school**, et academy doit cadrer le **poste de travail apprenant**
+(Learner Workstation) — l'atelier où le candidat FPA produit les livrables de sa
+certification (SPG, SPD, storyboard, capsule vidéo, dossier technique).
+
+== Contexte de la décision
+
+Le raisonnement initial « vendre la boîte à des organismes » a été corrigé par
+le pilote : la cible est l'apprenant. Le constat décisif est dans le corpus FPA
+lui-même — le référentiel exige du candidat qu'il **produise** ces artefacts
+(`scans/92.adoc`, `scans/95.adoc`). L'« usine » (planner/training + slider +
+capsule + document + bakery + opencode + BYOK) n'est donc pas un outil de
+production de cours : c'est **l'atelier de certification de l'apprenant**.
+
+== Audit (faits vérifiés)
+
+* `GenerateInstallerTask` produit un installeur **dans le build du consommateur** ;
+  il n'existe aucun `academy-workstation-<version>.zip` distribuable.
+* `MaterialReadiness.Empty` par défaut : la boîte est vide sans `materialDir`
+  (matériel produit par `training`, gate G1→G5) — académie consomme, ne produit pas.
+* `OpenCodeCatalog` (S-009) expose déjà **11 plugins publics vérifiés** ;
+  les tâches de production existent. Il manque le **parcours guidé**, pas les tâches.
+* BYOK existe, mais le défaut embarque Ollama (lourd) → profil cloud à décider.
+* **Zéro README** (`find README*` = 0) : un apprenant non-technique ne peut pas démarrer.
+* `ACADEMY-12-3` (Windows) ouvert alors que la cible est probablement Windows.
+* Aucun export de progression (`SessionMemoryContract` hors academy).
+* talaria `T-FULFILLMENT US-0` est **P0 non tranché** (4 options, dont LMS academy).
+
+== Livrable
+
+`.agents/CADRAGE_EPIC_ACADEMY_16_LEARNER_WORKSTATION.adoc` :
+
+* **10 constats** mesurés, **12 décisions** `D-LWA-1..12`.
+* Schéma du zip livrable (`install.sh` / README / manifeste / `project/` /
+  `material/` / `offline/` / `compose/`).
+* **9 US ~24 pts** : US-0 cadrage ✅, US-1 manifeste, US-2 tâche
+  `buildLearnerWorkstation`, US-3 parcours guidé, US-4 profils BYOK,
+  US-5 export de progression, US-6 BDD/TestKit, US-7 dogfooding machine vierge,
+  US-8 Windows réel.
+* **6 options écartées** (URL signée seule, SaaS, plugin seul, DRM, clé bundlée,
+  module training obligatoire) ; **8 risques + parades** ; critères de sortie ;
+  non-goals explicites.
+
+== Décisions structurantes
+
+* `D-LWA-2` — le livrable est un **zip pré-construit**, pas un plugin à exécuter.
+* `D-LWA-3` / `D-LWA-11` — le module pilote peut être **écrit à la main** :
+  la v1 ne dépend pas du gate `training`.
+* `D-LWA-4` — parcours SPG → SPD → slides → capsule → dossier PDF avec les
+  **tâches exactes** de `OpenCodeCatalog` (zéro commande inventée).
+* `D-LWA-8` — manifeste `sha256` vérifiable par talaria ; **aucun DRM**.
+* `D-LWA-9` — progression locale, export `academy-report.json` opt-in, zéro télémétrie.
+* `D-LWA-10` — Windows remonte en **P0** pour un produit apprenant.
+
+== Frontières respectées
+
+* **Academy ne produit pas le contenu** — `training` l'auteurise (S-022).
+* **Academy n'encaisse pas** — talaria (`T-PAYMENT`/`T-FULFILLMENT`).
+* **Academy ne porte pas de DRM** — Apache 2.0 ; le verrou est dans la couche privée.
+* **Pas de VPS / mono-utilisateur** — cohérent `AGENT.adoc`.
+
+== Ce qui n'a pas été fait
+
+* Aucun code, aucun test modifié — **cadrage pur** (pattern S-057/S-063).
+* Aucune publication, aucun bump de version.
+* La décision `T-FULFILLMENT US-0` (talaria) reste ouverte : elle conditionne
+  le modèle de remise du zip (lien signé + jeton recommandé).
+
+== Prochaine session
+
+**024** — US-1 `LearnerWorkstationManifest` (domaine pur + tests de contrat),
+puis US-2 `buildLearnerWorkstation`. Prérequis de démonstration : un module
+pilote manuel (AsciiDoc + `metadata.json` EPIC K) pour que le zip ne soit pas vide.
+
+== Gates
+
+Gouvernance pure : aucun build, aucun test exécuté (règle Local = Build,
+Tests = CI ; ici delta = 0 code). Vérification = cohérence des fichiers de
+gouvernance + absence de secret.

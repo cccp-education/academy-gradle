@@ -27,6 +27,15 @@ kotlin {
     }
 }
 
+// ACADEMY-16 — the workstation manifest records the academy version that
+// produced it. The plugin reads it from its own jar manifest, so the value
+// cannot drift from the published artifact.
+tasks.jar {
+    manifest {
+        attributes("Implementation-Version" to project.version)
+    }
+}
+
 repositories {
     mavenCentral()
     gradlePluginPortal()

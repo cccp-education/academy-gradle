@@ -19,7 +19,7 @@ class LearnerGuideGeneratorTest {
         assertTrue(guide.contains("Academy"))
         assertTrue(guide.contains("opencode"))
         assertTrue(guide.contains("docker compose"))
-        assertTrue(guide.contains("./gradlew"))
+        assertTrue(guide.contains("gradle generateDeck"))
     }
 
     @Test

@@ -35,6 +35,45 @@ class AcademyPlugin : Plugin<Project> {
         registerA11yTask(project, extension)
         registerMoodleA11yTask(project, extension)
         registerAcceptanceTask(project, extension)
+        registerWorkstationTask(project, extension)
+    }
+
+    /**
+     * Registers the learner workstation assembler (ACADEMY-16 US-2) — builds the
+     * distributable zip that talaria delivers after payment (D-LWA-2).
+     */
+    private fun registerWorkstationTask(
+        project: Project,
+        extension: AcademyInstallerExtension,
+    ) {
+        project.tasks.register("buildLearnerWorkstation", BuildLearnerWorkstationTask::class.java) { task ->
+            task.group = "academy"
+            task.description = "Builds the distributable learner workstation zip (installers + project + material + README + manifest)"
+            task.installersDir.set(extension.outputDir)
+            task.materialFiles.from(extension.materialDir)
+            task.offlineFiles.from(extension.offlineBundleFile, extension.offlineManifestFile)
+            task.applicationName.set(extension.applicationName)
+            task.applicationVersion.set(extension.applicationVersion)
+            task.academyVersion.set(
+                AcademyPlugin::class.java.getPackage()?.implementationVersion ?: "0.0.0-dev",
+            )
+            task.moduleId.set(extension.workstationModuleId)
+            task.moduleVersion.set(extension.workstationModuleVersion)
+            task.profile.set(
+                project.provider {
+                    if (extension.openCodeProvider.get() == LlmProviderKind.OLLAMA_LOCAL) {
+                        education.cccp.academy.workstation.WorkstationProfile.LOCAL_OLLAMA
+                    } else {
+                        education.cccp.academy.workstation.WorkstationProfile.CLOUD_BYOK
+                    }
+                },
+            )
+            task.openCodeModel.set(extension.openCodeModel)
+            task.openCodeProviderUrl.set(extension.openCodeProviderUrl)
+            task.openCodeApiKeyEnvVar.set(extension.openCodeApiKeyEnvVar)
+            task.outputDir.set(extension.workstationOutputDir)
+            task.dependsOn("buildAllInstallers")
+        }
     }
 
     /**
@@ -245,6 +284,11 @@ class AcademyPlugin : Plugin<Project> {
         extension.acceptanceStrict.convention(false)
         extension.acceptanceReportFile.convention(
             project.layout.buildDirectory.file("academy/a11y/acceptance-report.json"),
+        )
+        extension.workstationModuleId.convention("pilot")
+        extension.workstationModuleVersion.convention("0.0.1")
+        extension.workstationOutputDir.convention(
+            project.layout.buildDirectory.dir("academy/workstation"),
         )
     }
 

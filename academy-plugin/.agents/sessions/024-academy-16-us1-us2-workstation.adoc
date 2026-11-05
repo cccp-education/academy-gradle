@@ -1,0 +1,113 @@
+= Session 024 — ACADEMY-16 US-1/US-2 : poste de travail distribué + boroughs publics en outils opencode
+:date: 2026-11-05
+:session: 024
+:epic: ACADEMY-16
+:type: implémentation
+:statut: TERMINÉ (US-1 + US-2)
+
+== Mission
+
+Implémenter les deux premières US de l'EPIC ACADEMY-16 (cadré S-023) et intégrer
+les **boroughs publics** exposés dans opencode comme des **outils** :
+
+. `LearnerWorkstationManifest` — l'identité vérifiable du zip distribué.
+. `buildLearnerWorkstation` — le zip que talaria remet après paiement.
+. Les boroughs publics de `OpenCodeCatalog` deviennent des `tool()` opencode
+   (`.opencode/tools/cccp.ts`), avec un projet Gradle généré qui les active.
+
+== Livré
+
+=== US-1 — manifeste
+
+`workstation/LearnerWorkstationManifest.kt` :
+
+* `WorkstationProfile` (`CLOUD_BYOK` / `LOCAL_OLLAMA`), `WorkstationFile`
+  (chemin relatif sûr, SHA-256, taille), `LearnerWorkstationManifest`
+  (version workstation/academy, module, profil, fichiers triés).
+* JSON déterministe via kotlinx-serialization (`prettyPrint`, `encodeDefaults`).
+* Garde-fous : version non vide, chemins relatifs sans `..`/`\`, SHA-256
+  hexadécimal, pas de doublon, tri par chemin.
+* Tests `LearnerWorkstationManifestTest` (SHA-256 connu, tri, rejets).
+
+=== US-2 — zip distribué
+
+`BuildLearnerWorkstationTask` + tâche `buildLearnerWorkstation` :
+
+* Agrège les installateurs (`buildAllInstallers`), `project/`, `material/`
+  (tolérant), `offline/` (tolérant), README apprenant et manifeste.
+* Zip **déterministe** : entrées triées, timestamp ZIP epoch.
+* Le projet embarqué contient `Dockerfile`, `opencode.json`, `AGENTS.md`,
+  `.opencode/tools/cccp.ts`, `settings.gradle.kts`, `build.gradle.kts`.
+* `build.gradle.kts` de l'artefact porte le manifeste `Implementation-Version`
+  pour que le manifeste du workstation ne dérive pas de la version publiée.
+
+=== Boroughs publics en outils opencode
+
+* `OpenCodePlugin` gagne un `version` (vide = **désactivé**) ; les 11 entrées du
+  catalogue sont versionnées depuis le catalogue workspace (2026-11-05).
+* `OpenCodeToolGenerator` rend un fichier `.opencode/tools/cccp.ts` avec un
+  `tool()` par borough **enabled** ; le wrapper exécute `gradle <task>` dans le
+  workspace (doc opencode vérifiée : `.opencode/tools/`, filename = outil,
+  `<file>_<export>`).
+* `WorkstationProjectGenerator` rend `settings.gradle.kts` + `build.gradle.kts`
+  appliquant les plugins publics activés (versions vérifiées).
+* `InstallerScriptGenerator` écrit aussi les outils + le projet dans
+  `$APP_DIR/project/` (bash et batch, parité structurelle).
+* `LearnerGuideGenerator` documente les outils (`cccp_<borough>`).
+
+=== README apprenant (v1, US-3 enrichira)
+
+`WorkstationReadmeGenerator` : prérequis (Docker seul), 3 étapes, module/profil,
+outils exposés, limites assumées, vérification d'intégrité, règle des secrets.
+Prose en français (audience FPA), identifiants techniques en anglais.
+
+== Dogfooding réel (build, pas test)
+
+Consommateur `/tmp/opencode/academy-workstation-dogfood` (pattern Règle 2) :
+
+```
+./gradlew -p /tmp/opencode/academy-workstation-dogfood buildLearnerWorkstation
+→ academy-workstation-0.0.3+fpa-pilot-0.0.1.zip (11 entrées)
+```
+
+Contenu vérifié : `README-apprenant.md`, `installers/{linux,macos,windows}/…`,
+`project/{Dockerfile,opencode.json,AGENTS.md,build.gradle.kts,settings.gradle.kts}`,
+`project/.opencode/tools/cccp.ts`, `workstation-manifest.json` (10 fichiers
+hachés). L'installeur Linux et Windows contient bien les blocs
+`.opencode/tools/cccp.ts`, `build.gradle.kts`, `settings.gradle.kts`.
+
+== Découverte / correctif
+
+Le guide apprenant et le guide matériel citaient `./gradlew` alors que le
+workspace **n'a pas de wrapper** : l'image `gradle:9.7.1-jdk25` fournit `gradle`.
+Le test `LearnerGuideGeneratorTest` verrouillait donc une commande non
+vérifiée (leçon S-007). Corrigé : `gradle` partout (guide, material guide,
+test). Les outils opencode exécutent `gradle <task>`, cohérent avec l'image.
+
+== Gates (Local = Build, Tests = CI)
+
+* `compileKotlin` + `compileTestKotlin` **VERTS**.
+* `validatePlugins` **VERT**.
+* `ktlintCheck` **VERT** (formatage des chaînes multilignes et des signatures).
+* `publishToMavenLocal` **VERT** (`academy-plugin 0.0.3`).
+* Dogfooding build `buildLearnerWorkstation` **VERT** (zip + manifeste).
+* Aucun test exécuté localement ; la preuve de la suite est le run CI du commit
+  poussé (à obtenir).
+* Zéro secret.
+
+== Reste (EPIC ACADEMY-16)
+
+* US-3 parcours guidé complet + US-4 profils BYOK.
+* US-6 BDD/TestKit (zip, manifeste, outils, projet).
+* US-7 dogfooding « machine vierge » (1 commande + 1 clé → production réelle).
+* US-8 Windows réel (P0).
+
+== Fichiers
+
+Créés : `workstation/LearnerWorkstationManifest.kt`,
+`workstation/WorkstationProjectGenerator.kt`, `workstation/WorkstationReadmeGenerator.kt`,
+`opencode/OpenCodeToolGenerator.kt`, `BuildLearnerWorkstationTask.kt`,
++ 3 tests. Modifiés : `OpenCodePlugin.kt`, `OpenCodeCatalog.kt`,
+`AcademyInstallerExtension.kt`, `AcademyPlugin.kt`, `InstallerScriptGenerator.kt`,
+`LearnerGuideGenerator.kt`, `MaterialGuideGenerator.kt`, `build.gradle.kts`,
+`LearnerGuideGeneratorTest.kt`.

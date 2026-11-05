@@ -19,7 +19,7 @@ object LearnerGuideGenerator {
     fun render(config: OpenCodeConfig): String {
         val taskInventory =
             OpenCodeCatalog.plugins.joinToString("\n") { plugin ->
-                val tasks = plugin.tasks.joinToString(", ") { "`./gradlew $it`" }
+                val tasks = plugin.tasks.joinToString(", ") { "`gradle $it`" }
                 "- **${plugin.id}** — ${plugin.role}: $tasks"
             }
         val spec = ByokProviderCatalog.specFor(config.provider)
@@ -58,8 +58,8 @@ object LearnerGuideGenerator {
             |The agent exposes the public ecosystem tasks to you. A few entry points:
             |
             |```sh
-            |./gradlew generateDeck
-            |./gradlew bookPipeline
+            |gradle generateDeck
+            |gradle bookPipeline
             |```
             |
             |${bridgeSection(config.bridge)}
@@ -69,6 +69,10 @@ object LearnerGuideGenerator {
             |Only the public boroughs (`${OpenCodeCatalog.exposure().publicBoroughsRoot}`) are
             |invocable. The private boroughs — `training`, `edster`, `workspace`, `waiter`,
             |`quizz` — are never exposed to the learner.
+            |
+            |Each enabled borough is also exposed as an opencode tool (`cccp_<borough>`):
+            |the agent can call it directly, and the tool runs the corresponding Gradle
+            |task in this workspace.
             |
             |$taskInventory
             |
@@ -94,7 +98,7 @@ object LearnerGuideGenerator {
             |Start it with the opt-in task:
             |
             |```sh
-            |./gradlew serveWebhookBridge
+            |gradle serveWebhookBridge
             |```
             |
             |It listens on `$base` (loopback only — never hosted). Probe it:

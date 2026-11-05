@@ -1,0 +1,187 @@
+= Cadrage EPIC ACADEMY-16 — Poste de travail apprenant (Learner Workstation)
+:date: 2026-11-05
+:session: 023
+:epic: ACADEMY-16
+:origine: arbitrage pilote S-023 (« l'acheteur est l'apprenant ») + talaria `T-FULFILLMENT US-0` (P0) + ACADEMY-4/11/13/14/15
+:methode: Cadrage (gouvernance pure) — pattern S-057/S-063
+:statut: CADRÉ — décision pilote attendue (US-0 ✅, US-1→8 🟡)
+
+== Contexte
+
+L'arbitrage pilote du 2026-11-05 tranche la cible commerciale : **l'acheteur est
+l'apprenant**, et commercial packaging appartient à **talaria.school**. Le
+constat décisif est pédagogique, pas technique : le référentiel FPA exige du
+candidat qu'il **produise** un SPG, un SPD, un storyboard et une **capsule
+vidéo** pour son dossier technique (corpus FPA, pages 92/95 : « capsule
+vidéo », « storyboard », « annexer le scénario pédagogique et le storyboard »).
+
+Academy n'est donc pas une « boîte Moodle » : c'est le **poste de travail** où
+l'apprenant produit les livrables de sa certification, assisté par un agent
+(opencode) et un LLM (BYOK). Le manque actuel n'est pas le code de la boîte —
+il est **livrable** : academy produit un installeur *dans le build d'un
+consommateur Gradle*, pas un artefact que talaria peut remettre après `PAYE`.
+
+== Constats (audit S-023 — faits vérifiés)
+
+. *L'acheteur est l'apprenant* (arbitrage pilote S-023). Il doit produire les
+  livrables de certification — pas seulement consommer un PDF/MP4.
+. *Aucun artefact distribuable.* `GenerateInstallerTask` écrit dans
+  `build/academy/installers/` du **build consommateur**. Il n'existe pas de
+  `academy-workstation-<version>.zip` pré-construit à remettre à un acheteur.
+  Le dogfooding (`dogfood/build/academy/installers/linux/install.sh`) le prouve :
+  l'artefact est un *script généré localement*, pas un livrable.
+. *La boîte est vide sans matériel.* `MaterialReadiness.Empty` par défaut,
+  `materialDir` = `material/` ; le matériel est produit par `training` (gate
+  corpus G1→G5). Academy **consomme**, ne produit pas (frontière S-022).
+. *L'outillage de production existe déjà.* `OpenCodeCatalog` (S-009) catalogue
+  **11 plugins publics vérifiés** et `exposure()` lit le contrat N0
+  `ToolExposure`. Les tâches existent (`generateSPG`, `generateSPD`,
+  `generateDeckSlides`/`translateDeck`, `generateCapsuleVideo`,
+  `bookPipeline`/`convertDocument`, `publishSite`). *Il manque le parcours
+  guidé qui les enchaîne* — pas les tâches.
+. *BYOK existe, mais le défaut est lourd.* `academy.byok` couvre 5+ providers
+  (S-010), mais le compose embarque Ollama (Moodle + PostgreSQL + Ollama +
+  Portainer). Sur une machine d'apprenant, le profil **cloud BYOK** doit être
+  le défaut, Ollama l'opt-in.
+. *Zéro documentation apprenant.* `find README*` = **0 fichier** dans
+  `academy-plugin/`. Un candidat non-technique ne peut pas démarrer
+  (`./gradlew generateLinuxInstaller` est un geste de développeur).
+. *Windows non prouvé.* `ACADEMY-12-3` est ouvert alors que l'apprenant cible
+  est très probablement sur Windows — un `.bat` généré n'est pas une preuve.
+. *Aucun export de progression.* `SessionMemoryContract` est implémenté hors
+  academy (codex `PgVectorSessionMemory`), `bridge_events` est local. La page
+  `suivi` de talaria ne peut rien afficher sans un export consenti.
+. *Le fulfillment talaria est P0 non tranché.* `T-FULFILLMENT US-0` compare
+  quatre options — dont **(c) LMS academy/Moodle** — et n'a produit aucun
+  contrat d'accès (jeton, expiration, e-mail).
+. *Version publiée en retard.* Local `0.0.3`, Central `0.0.2` ; un zip livrable
+  doit être versionné et **immuable**.
+
+== Décisions
+
+|===
+| ID | Décision | US
+| D-LWA-1 | **L'acheteur est l'apprenant ; le poste est mono-utilisateur local** — aucun VPS, aucun multi-tenant, cohérent avec `AGENT.adoc` (« single-user build artefact, no VPS »). Le multi-apprenants est un problème d'établissement, hors de cet EPIC. | 1
+| D-LWA-2 | **Artefact distribuable = la sortie de l'EPIC.** Nouvelle tâche `buildLearnerWorkstation` → `build/academy/workstation/academy-workstation-<version>.zip` (installateurs + projet + matériel + bundle hors-ligne + README + manifeste). C'est **ce zip** que talaria remet, pas un plugin à exécuter. | 2
+| D-LWA-3 | **Le matériel est une entrée, jamais une production.** `materialDir` (pivot EPIC K `metadata.json` + AsciiDoc) est empaqueté **tel quel**. Academy ne l'auteurise pas (frontière S-022). Un **module pilote écrit à la main** suffit à valider la chaîne sans attendre G1→G5. | 2
+| D-LWA-4 | **Parcours de certification guidé.** `WorkflowGuideGenerator` produit `AGENTS.md` + `README-apprenant` avec les 5 étapes réelles — SPG → SPD → slides → capsule → dossier PDF — et les **noms de tâches exacts** issus de `OpenCodeCatalog`. Zéro commande inventée (leçon S-007 `moodle:4.5`). | 3
+| D-LWA-5 | **Profil LLM par défaut = cloud BYOK** (léger, pas d'Ollama local) ; profil `local-ollama` opt-in. `.env` documente le **nom** de la clé (valeur vide), jamais la valeur. | 4
+| D-LWA-6 | **Installation en une commande**, idempotente et reprenable : `install.sh` (Linux/macOS) / `install.bat` (Windows). Hôte = **Docker uniquement** (D-ACADEMY-6-10/12) ; ni Java ni Gradle sur l'hôte. | 2
+| D-LWA-7 | **README apprenant en français** (audience FPA) : prérequis, 3 étapes, dépannage, limites assumées (opencode TUI, Windows), taille du bundle hors-ligne. Les identifiants techniques restent en anglais. | 3
+| D-LWA-8 | **Manifeste vérifiable.** `workstation-manifest.json` : version workstation, version academy, module id, version matériel, `sha256` de chaque fichier. Talaria peut générer un lien signé et vérifier l'intégrité. **Aucun DRM dans academy** (Apache 2.0, forkeable) — le contrôle reste dans la couche privée. | 1
+| D-LWA-9 | **Progression locale par défaut, export opt-in.** `academy-report.json` généré à la demande et **uploadé par l'apprenant** vers `suivi` (consentement). Aucune télémétrie, aucun appel réseau implicite. | 5
+| D-LWA-10 | **Windows réel = prérequis P0** pour un produit apprenant : `ACADEMY-12-3` remonte en P0 et se prouve par dogfooding sur un hôte Windows, pas par un `.bat` généré. | 8
+| D-LWA-11 | **Un module pilote manuel** (AsciiDoc + `metadata.json` EPIC K) découple la v1 du gate `training`. La chaîne `training` remplace le module pilote **sans changer le poste**. | 2
+| D-LWA-12 | **Versionnement immuable** : `academy-workstation-<academyVersion>+<moduleVersion>`. Un zip publié n'est **jamais réécrit** ; un changement = nouvelle version. | 2
+|===
+
+== Schéma du poste de travail
+
+```
+academy-workstation-<version>.zip
+├── install.sh / install.bat        # 1 commande, idempotent, Docker only
+├── README-apprenant.md             # 3 étapes + dépannage + limites
+├── workstation-manifest.json       # versions + sha256 (vérifiable par talaria)
+├── project/                        # Dockerfile, opencode.json, AGENTS.md
+├── material/                       # module pilote (pivot EPIC K + AsciiDoc)
+├── offline/                        # images docker save + manifest (opt-in)
+└── compose/                        # Moodle + PostgreSQL + opencode + Portainer
+                                    # (+ Ollama seulement si profil local)
+```
+
+À l'installation :
+
+```
+install.sh
+  → provisionne Docker (Linux apt / macOS Colima / Windows WSL2+Desktop)
+  → écrit $HOME/.academy/{compose,project,material,seed}
+  → docker compose up -d
+  → Moodle http://localhost:8080  +  module déjà injecté (moodle-material)
+  → opencode / AGENTS.md : parcours SPG → SPD → slides → capsule → PDF
+```
+
+== US
+
+|===
+| # | US | Pts | Statut
+| US-0 | **Cadrage** — décisions D-LWA-1..12, schéma, options écartées, risques (ce document) | 2 | ✅ TERMINÉ (S-023)
+| US-1 | **`LearnerWorkstationManifest`** — domaine pur (version workstation/academy, module id, version matériel, profils, `sha256`), sérialisation JSON, tests de contrat | 3 | ✅ TERMINÉ (S-024)
+| US-2 | **Tâche `buildLearnerWorkstation`** — agrège installateurs + `project/` + `material/` + bundle hors-ligne + README + manifeste → zip ; `@InputFiles @Optional` tolérants ; idempotente | 4 | ✅ TERMINÉ (S-024) — inclut l'intégration des boroughs publics comme **outils opencode** (`.opencode/tools/cccp.ts`) + projet Gradle généré
+| US-3 | **`WorkflowGuideGenerator`** — parcours de certification (SPG → SPD → slides → capsule → dossier PDF) + `AGENTS.md` + `README-apprenant` ; tâches exactes issues de `OpenCodeCatalog` | 3 | 🟡 À FAIRE
+| US-4 | **Profils BYOK** — `cloud` (défaut) / `local-ollama` (opt-in) ; `.env` nom-seul, compose conditionnel | 2 | 🟡 À FAIRE
+| US-5 | **`AcademyProgressExport`** — `academy-report.json` opt-in (progression, modules, artefacts produits), aucune télémétrie | 2 | 🟡 À FAIRE
+| US-6 | **BDD + functional TestKit** — zip produit, manifeste cohérent, README présent, profil respecté, absence de secret | 2 | 🟡 À FAIRE
+| US-7 | **Dogfooding « machine vierge »** — 1 commande + 1 clé → Moodle up + module visible + production SPG/slides/capsule/PDF réelle | 3 | 🟡 À FAIRE
+| US-8 | **Windows réel** — dogfooding sur hôte Windows (couplé `ACADEMY-12-3`), installateur + poste complet | 3 | 🟡 À FAIRE
+|===
+
+_Total_ : 9 US, ~24 pts. _Méthode_ : baby-step DDD/TDD/BDD, English only sur le code.
+
+== Mise en œuvre S-024 (US-1 + US-2)
+
+* `LearnerWorkstationManifest` + `WorkstationFile` (domaine pur, SHA-256, JSON déterministe, chemins relatifs sûrs) + tests de contrat.
+* `BuildLearnerWorkstationTask` (`buildLearnerWorkstation`) : zip déterministe (entrées triées, timestamp ZIP epoch) — installateurs + `project/` + `material/` + `offline/` + README + manifeste.
+* `OpenCodeToolGenerator` : un fichier `.opencode/tools/cccp.ts` avec un `tool()` par borough public **enabled** (version non vide) ; le wrapper exécute `gradle <task>` dans le workspace. Doc opencode vérifiée le 2026-11-05 (`.opencode/tools/`, filename = outil, `<file>_<export>`).
+* `WorkstationProjectGenerator` : `settings.gradle.kts` + `build.gradle.kts` appliquant les plugins publics activés, versions vérifiées au catalogue workspace du 2026-11-05.
+* `InstallerScriptGenerator` : l'installeur écrit aussi les outils + le projet (parité Linux/Windows).
+* **Dogfooding réel** : consommateur `/tmp`, `buildLearnerWorkstation` → `academy-workstation-0.0.3+fpa-pilot-0.0.1.zip` (11 entrées), manifeste `sha256` vérifié, `build.gradle.kts` à 11 plugins, `install.sh`/`install.bat` câblés.
+* **Correctif révélé** : le guide apprenant citait `./gradlew` alors que le workspace n'a **pas** de wrapper (l'image porte `gradle`) → `gradle` partout (guide + material guide).
+* Gates : `compileKotlin`/`compileTestKotlin`/`validatePlugins`/`publishToMavenLocal` VERTS ; zéro test local (CI).
+
+== Options écartées
+
+|===
+| Option | Raison du rejet
+| (a) URL signée seule, sans poste de travail | Ne satisfait pas la production des livrables de certification (SPG/SPD/storyboard/capsule) — l'apprenant reste spectateur.
+| (b) Poste hébergé (SaaS) | Viole « aucun VPS / mono-utilisateur » ; coût d'exploitation et support incompatibles avec 60 €/module.
+| (c) Vendre le plugin Gradle seul | Un apprenant non-technique ne peut pas exécuter `./gradlew generateLinuxInstaller` ; ce n'est pas un produit.
+| (d) DRM/licence dans academy | Apache 2.0 = forkeable ; le verrou reste dans la couche privée (orchestration/transaction).
+| (e) Clé LLM bundlée | Coût LLM à ta charge + secret dans un artefact distribué — interdit.
+| (f) Module uniquement généré par `training` | Bloque la v1 sur le gate G1→G5 ; le module pilote manuel prouve la chaîne sans cette dépendance.
+|===
+
+== Risques et parades
+
+|===
+| Risque | Parade
+| Onboarding non-technique (Docker) | US-2/3/6 : zip + 1 commande + README apprenant + coach opencode ; US-7 prouve sur machine vierge.
+| Support coûteux à 60 €/module | L'agent opencode + le README absorbent le niveau 1 ; sinon le prix doit monter (décision commerciale talaria).
+| Matériel absent (gate training) | US-0/D-LWA-11 : module pilote manuel ; `inspectTrainingMaterial` reste explicite (`Empty`/`Incomplete`).
+| Windows non prouvé | US-8 P0 : dogfooding réel, pas un `.bat` généré.
+| Machine faible (Ollama lourd) | D-LWA-5 : défaut cloud BYOK, Ollama opt-in.
+| Bundle hors-ligne volumineux (Go) | Opt-in ; défaut réseau + images par digest.
+| `opencode` TUI = limite | Déclarée dans le README et le rapport d'acceptation ; jamais une promesse.
+| Faux vert (zip non testé) | US-6/7 : TestKit + installation réelle sur machine vierge.
+|===
+
+== Critères de sortie (Definition of Done)
+
+. Un **zip** `academy-workstation-<version>.zip` est produit par `buildLearnerWorkstation`.
+. Sur une **machine vierge + Docker**, `install.sh` (ou `install.bat`) démarre Moodle, injecte le module pilote et arme opencode en **< 15 min**, avec **une seule clé BYOK**.
+. L'apprenant produit, **sans commande inventée**, un SPG → des slides → une capsule → un dossier PDF.
+. `workstation-manifest.json` est vérifiable (`sha256` de chaque fichier).
+. `academy-report.json` est exportable (opt-in, zéro télémétrie).
+. **Windows** est prouvé par dogfooding réel (US-8).
+. Zéro secret dans l'artefact ; zéro DRM dans academy.
+
+== Ce que cet EPIC ne fait pas (non-goals)
+
+* **Auteuriser le contenu** — c'est `training` (gate G1→G5) ; academy consomme.
+* **Encaisser / gérer les droits** — c'est talaria (`T-PAYMENT`, `T-FULFILLMENT`) et la couche privée.
+* **Multi-tenant / SaaS** — hors périmètre mono-utilisateur.
+* **Migrer le bridge vers Spring Boot** (`ACADEMY-10`) — indépendant, non bloquant.
+* **Audiodescription vidéo** (`GBL-011-4`) — dépendance de `capsule`, indépendante.
+* **Publier sur Maven Central** — l'artefact livrable est le zip, pas le plugin.
+
+== Références
+
+|===
+| Document | Rôle
+| `office/metiers/FPA/.../scans/92.adoc`, `95.adoc` | Le référentiel FPA exige SPG/SPD/storyboard/capsule (source du cadrage)
+| `office/sites/talaria.school/BACKLOG.adoc` § T-FULFILLMENT / T-PAYMENT / T-LEGAL | Chaîne commerciale et fulfilment (P0 non tranché)
+| `.agents/CADRAGE_EPIC_ACADEMY_4_MATERIAL.adoc` | Frontière matériel : transport = bureau, academy lit
+| `.agents/CADRAGE_EPIC_ACADEMY_5_OPENCODE.adoc` | Catalogue de tâches exposées (`OpenCodeCatalog`, `ToolExposure`)
+| `.agents/CADRAGE_EPIC_ACADEMY_7_BYOK.adoc` | Profils BYOK et non-fuite de la clé
+| `.agents/CADRAGE_EPIC_ACADEMY_12_WINDOWS.adoc` | Matrice d'engines par OS (`ACADEMY-12-3` P0)
+| `.agents/CADRAGE_ACADEMY_14_OFFLINE_DOGFOOD.adoc` | Bundle hors-ligne (images pinnées par digest)
+|===

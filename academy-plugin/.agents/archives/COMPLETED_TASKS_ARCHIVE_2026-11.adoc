@@ -90,3 +90,25 @@ _Session 022 (2026-11-02) — Frontière FPA/Qualiopi = training_
 - Academy ne porte ni traces de conformité, ni revendication de certification ;
   elle expose des preuves d'accessibilité consommables par training.
 - Aucun code/test modifié.
+
+_Session 023 (2026-11-05) — ACADEMY-16 cadré_
+
+- Poste de travail apprenant (Learner Workstation) : 10 constats, 12 décisions
+  `D-LWA-1..12`, 9 US ~24 pts. Aucun code modifié.
+
+_Session 024 (2026-11-05) — ACADEMY-16 US-1/US-2 TERMINÉS_
+
+- US-1 `LearnerWorkstationManifest` (domaine pur, SHA-256, JSON déterministe,
+  chemins relatifs sûrs).
+- US-2 `buildLearnerWorkstation` (zip distribué : installateurs + `project/` +
+  matériel + offline + README + manifeste), zip déterministe.
+- Boroughs publics exposés comme **outils opencode** (`.opencode/tools/cccp.ts`,
+  un `tool()` par plugin enabled) + projet Gradle généré (11 plugins) ;
+  installeur câblé Linux/Windows.
+- Dogfooding **build** `/tmp` : `academy-workstation-0.0.3+fpa-pilot-0.0.1.zip`
+  (11 entrées, manifeste `sha256` vérifié).
+- Correctif : `./gradlew` → `gradle` (le workspace n'a pas de wrapper, l'image
+  porte `gradle`).
+- Gates : compiles, `validatePlugins`, `ktlintCheck`, `publishToMavenLocal`
+  VERTS ; **preuve de la suite en attente du run CI du push**.
+- Reste : US-3→US-8.

@@ -53,7 +53,7 @@ object MaterialGuideGenerator {
             appendLine("material satisfies this requirement:")
             appendLine()
             appendLine("```sh")
-            appendLine("./gradlew inspectTrainingMaterial")
+            appendLine("gradle inspectTrainingMaterial")
             appendLine("```")
         }.trimEnd('\n') + "\n"
 

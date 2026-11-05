@@ -205,4 +205,13 @@ abstract class AcademyInstallerExtension {
 
     /** ACADEMY-15 — the acceptance report written by `auditAcademyAcceptance`. */
     abstract val acceptanceReportFile: RegularFileProperty
+
+    /** ACADEMY-16 — training module identity embedded in the learner workstation. */
+    abstract val workstationModuleId: Property<String>
+
+    /** ACADEMY-16 — version of the embedded training module. */
+    abstract val workstationModuleVersion: Property<String>
+
+    /** ACADEMY-16 — destination directory of the distributable workstation zip. */
+    abstract val workstationOutputDir: DirectoryProperty
 }
