@@ -27,8 +27,8 @@ paiement, livraison) appartient à **talaria.school**.
     (11 entrées, manifeste `sha256` vérifié).
   - **Correctif** : `./gradlew` → `gradle` (le workspace n'a pas de wrapper,
     l'image `gradle:9.7.1-jdk25` porte `gradle`).
-  - Gates : compiles/validatePlugins/publishToMavenLocal VERTS ; **preuve CI
-    encore à obtenir par le push** (règle Local = Build, Tests = CI).
+  - Gates : compiles/validatePlugins/publishToMavenLocal VERTS ; **CI
+    `42068519966` VERTE** (Build & Test 2m15s).
 - S-023 — ACADEMY-16 cadré (10 constats, 12 décisions, 9 US).
 - S-022 — frontière FPA/Qualiopi = training (ACADEMY-9 → TRN-13).
 - S-021/S-020/S-019 — ACADEMY-15 acceptance, ACADEMY-10 Spring Boot (décision

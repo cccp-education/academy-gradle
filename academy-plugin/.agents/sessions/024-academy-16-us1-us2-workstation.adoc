@@ -91,8 +91,8 @@ test). Les outils opencode exécutent `gradle <task>`, cohérent avec l'image.
 * `ktlintCheck` **VERT** (formatage des chaînes multilignes et des signatures).
 * `publishToMavenLocal` **VERT** (`academy-plugin 0.0.3`).
 * Dogfooding build `buildLearnerWorkstation` **VERT** (zip + manifeste).
-* Aucun test exécuté localement ; la preuve de la suite est le run CI du commit
-  poussé (à obtenir).
+* Aucun test exécuté localement ; **CI `42068519966` VERTE** (Build & Test
+  2m15s, Verify POM generation, Publish skipped).
 * Zéro secret.
 
 == Reste (EPIC ACADEMY-16)
