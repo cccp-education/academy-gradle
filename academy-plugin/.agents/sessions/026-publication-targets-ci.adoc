@@ -1,0 +1,74 @@
+= Session 026 — Cibles de publication granulaires (Plugin Portal + Maven Central)
+:date: 2026-11-05
+:session: 026
+:epic: ACADEMY-13 (extension publication)
+:type: CI / publication (sans code métier)
+:statut: TERMINÉ
+
+== Mission
+
+Ajouter, **en plus** de Maven Central, la publication au **Gradle Plugin
+Portal** avec le compte **`cccp-education`** stocké dans les secrets GitHub, et
+rendre le choix de la cible **granulaire** (Portal, Central, ou les deux), la
+restriction Sonatype courant jusqu'au 2026-12-01.
+
+== Changements
+
+=== Workflow `.github/workflows/test.yml`
+
+* `workflow_dispatch` avec l'entrée `target` (choix) :
+  - `plugin-portal` (**défaut**),
+  - `maven-central`,
+  - `both`.
+* Job `publish` : déclenché sur un tag `v*` **ou** en `workflow_dispatch`,
+  toujours `needs: [test]`.
+* Étape **Gradle Plugin Portal** (`if: target != 'maven-central'`) :
+  `./gradlew publishPlugins --no-daemon` dans `academy-plugin`, avec
+  `GRADLE_PUBLISH_KEY`/`GRADLE_PUBLISH_SECRET` lus depuis les secrets
+  `CCCP_GRADLE_PUBLISH_KEY`/`CCCP_GRADLE_PUBLISH_SECRET` et `CI=true`.
+* Étapes **Maven Central** (`if: target == 'maven-central' || target == 'both'`) :
+  import GPG, configuration OSSRH, `publishAggregationToCentralPortal`.
+* Un tag `v*` publie donc par **défaut sur le Portal** (restriction Sonatype) ;
+  `maven-central`/`both` restent disponibles à la demande.
+
+=== Secrets GitHub (repo `cccp-education/academy-gradle`)
+
+Ajoutés (valeurs jamais affichées, lues depuis `~/.gradle/gradle.properties` du
+compte `cccp-education`) :
+
+|===
+| Secret | Rôle
+| `CCCP_GRADLE_PUBLISH_KEY` | clé API du compte `cccp-education`
+| `CCCP_GRADLE_PUBLISH_SECRET` | secret associé
+|===
+
+* `OSSRH_USERNAME`/`OSSRH_PASSWORD`/`GPG_PRIVATE_KEY`/`GPG_PASSPHRASE` ne sont
+  **pas** présents dans les secrets du dépôt : la cible `maven-central`/`both`
+  échouera tant qu'ils ne sont pas ajoutés (les publications Central passées
+  étaient locales). Cela n'affecte pas la cible `plugin-portal`.
+* Les variables d'environnement `GRADLE_PUBLISH_KEY`/`SECRET` de la session
+  locale appartiennent à un **autre compte** ; les secrets CI utilisent
+  explicitement le compte `cccp-education`.
+
+== Validation
+
+* YAML parsé (`ruby -ryaml`) : OK.
+* `./gradlew publishPlugins --validate-only` : OK (S-025).
+* Publication réelle `academy-plugin 0.0.3` sur le Portal : acceptée
+  (créée `2026-11-05 17:10:39`, S-025).
+* Aucun code/test métier modifié (Local = Build, Tests = CI : ici delta = 0).
+
+== Notes
+
+* La version **`0.0.3` est déjà consommée** sur le Portal : la prochaine
+  publication doit bumper (ex. `0.0.4`), puis pousser un tag ou lancer
+  `workflow_dispatch` avec `target=plugin-portal`.
+* Le job `publish` du workflow est tag/dispatch-gated : un push de branche
+  n'exécute que le job `test`.
+
+== Reste
+
+* EPIC ACADEMY-16 : US-6 (BDD/TestKit), US-7 (dogfooding machine vierge),
+  US-5 (export progression), US-8 (Windows P0).
+* Cible `maven-central` : ajouter les secrets OSSRH/GPG quand la restriction
+  Sonatype sera levée (2026-12-01).

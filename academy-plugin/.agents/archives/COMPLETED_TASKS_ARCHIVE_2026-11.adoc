@@ -127,5 +127,19 @@ _Session 025 (2026-11-05) — ACADEMY-16 US-3/US-4 TERMINÉS_
 - Dogfooding build `/tmp` : manifeste `CLOUD_BYOK`, `opencode.json`
   `ollama-cloud` + `{env:OLLAMA_API_KEY}`, installeur sans Ollama.
 - Gates : compiles, `validatePlugins`, `ktlintCheck`, `publishToMavenLocal`
-  VERTS ; **preuve de la suite en attente du run CI du push**.
+  VERTS ; **CI `42071295416` VERTE** ; **0.0.3 publié sur le Portal**.
 - Reste : US-5, US-6, US-7, US-8.
+
+_Session 026 (2026-11-05) — Cibles de publication granulaires_
+
+- `.github/workflows/test.yml` : `workflow_dispatch.inputs.target`
+  (`plugin-portal` défaut / `maven-central` / `both`) ; job `publish` tag **ou**
+  dispatch, `needs: [test]`.
+- Étape **Gradle Plugin Portal** (`publishPlugins`, secrets
+  `CCCP_GRADLE_PUBLISH_KEY`/`SECRET`, compte `cccp-education`) ; étapes Maven
+  Central conditionnées.
+- Secrets repo ajoutés (compte `cccp-education`, 2026-11-05 17:28) ; les env
+  locales `GRADLE_PUBLISH_*` appartiennent à un autre compte.
+- Un tag `v*` publie par défaut sur le Portal (restriction Sonatype →
+  2026-12-01) ; `0.0.3` déjà consommé → bumper `0.0.4`.
+- Aucun code/test métier modifié ; YAML parsé.

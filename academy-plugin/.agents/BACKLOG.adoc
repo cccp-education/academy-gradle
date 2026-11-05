@@ -580,6 +580,16 @@ ses coordonnées.
 *Dérive corrigée* : le catalogue du consommateur racine épinglait encore
 `academy-plugin = "0.0.1"` alors que le build est `0.0.2` → bump `0.0.2`.
 
+*Mise à jour S-026 — cibles de publication granulaires* : le job `publish`
+accepte `workflow_dispatch.inputs.target` (`plugin-portal` défaut,
+`maven-central`, `both`). La cible **Gradle Plugin Portal** utilise
+`CCCP_GRADLE_PUBLISH_KEY`/`CCCP_GRADLE_PUBLISH_SECRET` (compte
+`cccp-education`, secrets repo ajoutés le 2026-11-05) via `./gradlew
+publishPlugins` ; la cible Maven Central reste conditionnée à
+`maven-central`/`both`. Un tag `v*` publie par défaut sur le Portal
+(restriction Sonatype → 2026-12-01). Les secrets `OSSRH_*`/`GPG_*` restent à
+ajouter pour la cible Central.
+
 === ACADEMY-14 — Bundle hors-ligne (~5 pts) — ✅ TERMINÉ
 
 *Statut* : ✅ TERMINÉ (S-017 / S-224) — bundle, image workspace pré-construite,
