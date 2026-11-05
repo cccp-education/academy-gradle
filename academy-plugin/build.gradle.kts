@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.plugin.publish)
     // LINT-ADOPT-13 (S-336) — static analysis gate; the CI runs `./gradlew build`
     // → `check` includes ktlintCheck, so the gate is free (no extra step).
-    id("education.cccp.build.lint") version "0.0.13"
+    id("education.cccp.build.lint") version "0.0.14"
 }
 
 group = "education.cccp"
