@@ -1,7 +1,7 @@
 = PROMPT_REPRISE — academy-gradle
-:session: 026
+:session: 027
 :date: 2026-11-05
-:etat: Session 026 ✅ — cibles de publication granulaires (Plugin Portal cccp-education + Maven Central). Mission 027 : US-6 + US-7.
+:etat: Session 027 ✅ — compatibilité Gradle Plugin Portal déclarée + politique globale persistée. Mission 028 : US-6 + US-7.
 
 == Frontière (S-022, actée)
 
@@ -13,30 +13,24 @@ paiement, livraison) appartient à **talaria.school**.
 
 == Contexte hérité
 
-- S-026 — **cibles de publication granulaires** : `.github/workflows/test.yml`
-  accepte `workflow_dispatch.inputs.target` (`plugin-portal` défaut,
-  `maven-central`, `both`) ; le job `publish` est tag **ou** dispatch, toujours
-  `needs: [test]`. L'étape **Gradle Plugin Portal** utilise
-  `CCCP_GRADLE_PUBLISH_KEY`/`CCCP_GRADLE_PUBLISH_SECRET` (compte
-  `cccp-education`, secrets repo ajoutés le 2026-11-05 17:28) ; les étapes
-  Maven Central ne tournent que pour `maven-central`/`both`. Un tag `v*` publie
-  par défaut sur le **Portal** (restriction Sonatype → 2026-12-01). Les secrets
-  `OSSRH_*`/`GPG_*` ne sont **pas** dans le dépôt → la cible Central échouera
-  tant qu'ils ne sont pas ajoutés.
-- S-025 — **ACADEMY-16 US-3/US-4 ✅** : `WorkflowGuideGenerator` (parcours FPA
-  en 5 étapes, SPG/SPD écrits par le candidat, `training` non exposé),
-  `WorkstationProfileResolver` + `workstationProfile` (**`CLOUD_BYOK` par
-  défaut**, `LOCAL_OLLAMA` opt-in), compose conditionnel. **Publication
-  `academy-plugin 0.0.3` sur le Gradle Plugin Portal** (compte
-  `cccp-education`, créée 2026-11-05 17:10:39 ; page publique en attente de
-  revue). **`0.0.3` est consommé** : bumper `0.0.4` avant la prochaine
-  publication.
+- S-027 — **compatibilité Gradle Plugin Portal** : `plugin-publish 1.3.0 →
+  2.2.1` + `compatibility { configurationCache=false; isolatedProjects=false }`
+  sur le plugin academy (honnête, non prouvé) ; commit `efa1611` poussé, CI
+  `42077622882` VERTE. **Politique globale (S-225)** : Portal par défaut,
+  Maven Central/Sonatype **suspendu jusqu'au 2026-12-01** ; 16 dépôts rollés.
+- S-026 — **cibles de publication granulaires** : `workflow_dispatch.target`
+  (`plugin-portal` défaut / `maven-central` / `both`), tag `v*` = Portal ; job
+  `publish` tag/dispatch, `needs: [test]` ; secrets `CCCP_GRADLE_PUBLISH_KEY`/
+  `SECRET` (cccp-education) ajoutés.
+- S-025 — **ACADEMY-16 US-3/US-4 ✅** : `WorkflowGuideGenerator` (SPG/SPD
+  écrits par le candidat, `training` non exposé), `WorkstationProfileResolver`
+  (`CLOUD_BYOK` défaut / `LOCAL_OLLAMA` opt-in), compose conditionnel.
+  **`academy-plugin 0.0.3` publié sur le Portal** (revue en attente).
 - S-024 — US-1/US-2 ✅ : manifeste `sha256`, zip `buildLearnerWorkstation`,
   boroughs publics = outils opencode, projet Gradle généré.
 - S-023 — ACADEMY-16 cadré (10 constats, 12 décisions, 9 US).
-- S-022 — frontière FPA/Qualiopi = training (ACADEMY-9 → TRN-13).
 
-== Mission de la prochaine session (027)
+== Mission de la prochaine session (028)
 
 . **US-6 BDD + functional TestKit** : zip produit et cohérent, manifeste
    `sha256` vérifiable, `project/.opencode/tools/cccp.ts` présent, projet Gradle
@@ -48,17 +42,18 @@ paiement, livraison) appartient à **talaria.school**.
 . Puis **US-5** (export `academy-report.json` opt-in) et **US-8** (Windows réel,
    P0 — `ACADEMY-12-3`).
 
-== Publication (rappel S-025/S-026)
+== Publication (politique S-225/S-026)
 
-* Cible par défaut d'un tag `v*` : **Gradle Plugin Portal** (compte
-  `cccp-education`) — restriction Sonatype jusqu'au 2026-12-01.
-* Choix granulaire : `workflow_dispatch` → `target=plugin-portal|maven-central|both`.
-* `academy-plugin 0.0.3` est déjà sur le Portal : **bump `0.0.4`** avant la
-  prochaine publication.
+* **Portal par défaut** (`./gradlew publishPlugins`, Plugin Publish `2.2.1`,
+  compte `cccp-education`), **Maven Central/Sonatype suspendu jusqu'au
+  2026-12-01** ; nmcp conservé pour la reprise.
+* **`0.0.3` est consommé** sur le Portal : **bump `0.0.4`** avant la prochaine
+  publication (tag `v*` ou dispatch `target=plugin-portal`).
+* `compatibility` déjà déclarée ; la métadonnée sera visible avec `0.0.4`.
 * Ne pas utiliser les env locales `GRADLE_PUBLISH_KEY`/`SECRET` (autre compte) ;
   les secrets CI `CCCP_GRADLE_PUBLISH_*` sont les bons.
 
-== Décisions à ne pas rediscuter (S-023→S-026)
+== Décisions à ne pas rediscuter (S-023→S-027)
 
 * `D-LWA-2` — le livrable est un **zip** remis par talaria, pas un plugin.
 * `D-LWA-3`/`D-LWA-11` — le matériel est une **entrée** ; module pilote manuel autorisé.

@@ -143,3 +143,13 @@ _Session 026 (2026-11-05) — Cibles de publication granulaires_
 - Un tag `v*` publie par défaut sur le Portal (restriction Sonatype →
   2026-12-01) ; `0.0.3` déjà consommé → bumper `0.0.4`.
 - Aucun code/test métier modifié ; YAML parsé.
+
+_Session 027 (2026-11-05) — Compatibilité Gradle Plugin Portal (academy)_
+
+- `plugin-publish 1.3.0 → 2.2.1` + `compatibility { configurationCache=false;
+  isolatedProjects=false }` sur le plugin academy (déclaration honnête).
+- Commit `efa1611` poussé ; **CI `42077622882` VERTE**.
+- Politique globale S-225 : Portal par défaut, Maven Central/Sonatype suspendu
+  jusqu'au 2026-12-01 ; 16 dépôts rollés (S-036 conventions).
+- `academy-plugin 0.0.3` sur le Portal (revue en attente) ; `0.0.4` portera la
+  métadonnée de compatibilité.

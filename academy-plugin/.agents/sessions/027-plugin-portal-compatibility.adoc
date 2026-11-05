@@ -1,0 +1,54 @@
+= Session 027 — Compatibilité Gradle Plugin Portal (academy) + politique globale
+:date: 2026-11-05
+:session: 027
+:epic: ACADEMY-13 (publication) / GBL transverse
+:type: build / publication
+:statut: TERMINÉ
+
+== Mission
+
+Déclarer la compatibilité Gradle Plugin Portal
+(https://plugins.gradle.org/docs/publish-plugin#declaring-compatibility) et
+aligner la publication sur le **Portal**, Maven Central/Sonatype étant suspendu
+jusqu'au **2026-12-01** (décision pilote S-225).
+
+== Livré
+
+* `plugin-publish` `1.3.0 → 2.2.1` (`gradle/libs.versions.toml`) ;
+* `import org.gradle.plugin.compatibility.compatibility` ;
+* `compatibility { features { configurationCache.set(false);
+  isolatedProjects.set(false) } }` sur le plugin `academy` — déclaration
+  honnête : les tâches ne sont pas encore prouvées avec les fonctionnalités ;
+* commit `efa1611` poussé sur `main`.
+
+== Politique globale (S-225)
+
+* Cible par défaut : **Gradle Plugin Portal** (compte `cccp-education`,
+  `./gradlew publishPlugins`, Plugin Publish `2.2.1`) ; un tag `v*` publie par
+  défaut sur le Portal.
+* **Maven Central / Sonatype suspendu** jusqu'au 2026-12-01 ; méthode nmcp
+  conservée pour la reprise.
+* `compatibility` obligatoire sur chaque plugin ; `isolatedProjects` exige
+  2.2.1.
+* CI granulaire `workflow_dispatch.inputs.target` (`plugin-portal` défaut /
+  `maven-central` / `both`) — déjà livrée en S-026.
+* Rollout cross-borough : **16 dépôts** (voir `.agents/sessions/225-…` racine et
+  `conventions-plugin/.agents/sessions/036-…`).
+
+== Publication
+
+`academy-plugin 0.0.3` a été accepté sur le Portal le 2026-11-05 17:10:39
+(compte `cccp-education`, S-025) ; page publique en attente de revue. La
+métadonnée de compatibilité entrera avec **`0.0.4`**.
+
+== Gates (Local = Build, Tests = CI)
+
+* `compileKotlin` + `validatePlugins` **VERTS**.
+* **CI `42077622882` VERTE** (Build & Test) sur le commit `efa1611`.
+* Aucun test exécuté localement ; zéro secret.
+
+== Reste
+
+* ACADEMY-16 **US-6** (BDD + functional TestKit) et **US-7** (dogfooding
+  machine vierge), puis US-5 (export progression) et US-8 (Windows P0).
+* Bump `0.0.4` + publication Portal lorsque la compatibilité doit être visible.
