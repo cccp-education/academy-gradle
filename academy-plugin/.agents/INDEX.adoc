@@ -526,3 +526,6 @@ _Statut_ : ✅ CLOS côté academy (la boucle est un EPIC privé workspace-gradl
 |===
 
 '''
+== Session 028 — JitPack mirror (CNV-16)
+
+Publication JitPack de academy-plugin 0.0.3 + correctif signature conditionnelle (plugin-publish auto-signait). JitPack : 0.0.3 — POM HTTP 200 ; workflow Portal échec doublon attendu.
