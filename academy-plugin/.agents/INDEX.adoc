@@ -27,7 +27,7 @@ _Prochaine session_ : 028 — **ACADEMY-16 US-6 + US-7** : BDD + functional Test
 '''
 == REGLES ABSOLUES
 
-=== 1. COMMITS/GIT — INTERDICTION FORMELLE sans permission
+=== 1. COMMITS/GIT — AUTORISÉS (décision pilote 2026-11-11 : tous repos publics)
 === 2. PUBLISH TO MAVEN LOCAL — OBLIGATOIRE après toute modification de code source
 === 3. DAG N2 — importable par N3 runner-gradle, jamais importe N3
 === 4. PROCEDURE DE FIN DE SESSION — 6 ETAPES OBLIGATOIRES
