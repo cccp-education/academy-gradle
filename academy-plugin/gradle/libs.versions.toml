@@ -5,15 +5,15 @@ junit-platform = "1.14.3"
 cucumber = "7.34.3"
 assertj = "3.25.3"
 plugin-publish = "2.2.1"
-runtime-contracts = "0.0.1"
-opencode-session-contracts = "0.0.2"
+runtime-contracts = "0.0.136"
+opencode-session-contracts = "0.0.136"
 ktor = "3.2.0"
 kotlinx-serialization = "1.9.0"
 
 [libraries]
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
-runtime-contracts = { module = "education.cccp:runtime-contracts", version.ref = "runtime-contracts" }
-opencode-session-contracts = { module = "education.cccp:opencode-session-contracts", version.ref = "opencode-session-contracts" }
+runtime-contracts = { module = "com.github.cccp-education.workspace-bom:runtime-contracts", version.ref = "runtime-contracts" }
+opencode-session-contracts = { module = "com.github.cccp-education.workspace-bom:opencode-session-contracts", version.ref = "opencode-session-contracts" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }

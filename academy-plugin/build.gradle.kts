@@ -41,6 +41,7 @@ tasks.jar {
 repositories {
     mavenCentral()
     gradlePluginPortal()
+    maven("https://jitpack.io")
 }
 
 val functionalTest by sourceSets.creating {
