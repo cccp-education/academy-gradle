@@ -774,3 +774,17 @@ commande inventée ; manifeste `sha256` vérifiable ; Windows prouvé.
 
 *Non-goals* : auteuriser le contenu (training), encaisser (talaria), multi-tenant,
 Spring Boot (`ACADEMY-10`), audiodescription (`GBL-011-4`), publication Central.
+
+'''
+
+== Session 030 — CNV-17 (JitPack canal unique) — 2026-11-14
+
+Migration de publication terminée : `runtime-contracts` et
+`opencode-session-contracts` en coordonnées JitPack
+`com.github.cccp-education.workspace-bom:*:0.0.136` (fin de
+`education.cccp:*`), JitPack ajouté aux `repositories` projet, shim
+`conventions-plugin:0.0.17` sans préfixe `v`, JitPack en résolution de
+dépendances (racine, `academy-plugin`, `dogfood`). CI `Test` verte
+`43469596159` / `43463716893`. Aucun item backlog nouveau : la suite est de la
+**maintenance** ; **ACADEMY-10** reste ouvert (décision pilote attendue).
+Rapport `.agents/sessions/030-cnv-17-jitpack-channel.adoc`.

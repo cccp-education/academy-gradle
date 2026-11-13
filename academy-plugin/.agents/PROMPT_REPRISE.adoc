@@ -1,7 +1,7 @@
-= PROMPT_REPRISE — academy-gradle
-:session: 027
-:date: 2026-11-05
-:etat: Session 027 ✅ — compatibilité Gradle Plugin Portal déclarée + politique globale persistée. Mission 028 : US-6 + US-7.
+= PROMPT_REPRISE — academy-gradle (Session 030 terminée — CNV-17/JitPack)
+:session: 031
+:date: 2026-11-14
+:etat: Session 030 ✅ — JitPack canal unique. Mission 031 : maintenance (ACADEMY-10 toujours ouvert).
 
 == Frontière (S-022, actée)
 
@@ -11,67 +11,59 @@ porte **aucune** trace de conformité ni revendication de certification.
 **L'acheteur est l'apprenant** (arbitrage S-023) ; le commercial (vente,
 paiement, livraison) appartient à **talaria.school**.
 
-== Contexte hérité
+== Session 030 accomplie — CNV-17 : JitPack canal unique
 
-- S-027 — **compatibilité Gradle Plugin Portal** : `plugin-publish 1.3.0 →
-  2.2.1` + `compatibility { configurationCache=false; isolatedProjects=false }`
-  sur le plugin academy (honnête, non prouvé) ; commit `efa1611` poussé, CI
-  `42077622882` VERTE. **Politique globale (S-225)** : Portal par défaut,
-  Maven Central/Sonatype **suspendu jusqu'au 2026-12-01** ; 16 dépôts rollés.
-- S-026 — **cibles de publication granulaires** : `workflow_dispatch.target`
-  (`plugin-portal` défaut / `maven-central` / `both`), tag `v*` = Portal ; job
-  `publish` tag/dispatch, `needs: [test]` ; secrets `CCCP_GRADLE_PUBLISH_KEY`/
-  `SECRET` (cccp-education) ajoutés.
-- S-025 — **ACADEMY-16 US-3/US-4 ✅** : `WorkflowGuideGenerator` (SPG/SPD
-  écrits par le candidat, `training` non exposé), `WorkstationProfileResolver`
-  (`CLOUD_BYOK` défaut / `LOCAL_OLLAMA` opt-in), compose conditionnel.
-  **`academy-plugin 0.0.3` publié sur le Portal** (revue en attente).
+Décision pilote 2026-11-13 : JitPack devient le **canal unique** des artefacts
+publics `education.cccp` (un artefact = un canal = un nom = une version).
+Central (quota Sonatype jusqu'au 2026-12-01) et le Portal ne sont plus ciblés.
+
+* **Contrats N0** : `education.cccp:runtime-contracts:0.0.1` et
+  `education.cccp:opencode-session-contracts:0.0.2` →
+  `com.github.cccp-education.workspace-bom:{runtime,opencode-session}-contracts:0.0.136`.
+* **`repositories`** : `maven("https://jitpack.io")` ajouté au build projet.
+* **Shim** : `education.cccp.build.*` → tag JitPack
+  `conventions-plugin:0.0.17` (correctif : **sans** préfixe `v`).
+* **JitPack** en résolution de dépendances (racine, `academy-plugin`, `dogfood`).
+* Aucun code métier modifié, zéro test local. **CI `Test` verte** `43469596159`
+  (`f8597ab`) et `43463716893` (`9624cca`).
+
+Rapport : `.agents/sessions/030-cnv-17-jitpack-channel.adoc`.
+Cadrage : `conventions-gradle/conventions-plugin/.agents/CADRAGE_EPIC_CNV_17_JITPACK_PRIMARY.adoc`.
+
+== Contexte hérité (rappel)
+
+- S-029 — `MEM-WARN-ZERO` US-2 : `registering` → `register<Test>` (30 warnings → 0).
+- S-027 — `plugin-publish 2.2.1` + `compatibility` déclarée (honnête, non prouvée).
+- S-025 — **ACADEMY-16 US-3/US-4 ✅** : `WorkflowGuideGenerator`,
+  `WorkstationProfileResolver` (`CLOUD_BYOK` défaut / `LOCAL_OLLAMA` opt-in).
 - S-024 — US-1/US-2 ✅ : manifeste `sha256`, zip `buildLearnerWorkstation`,
   boroughs publics = outils opencode, projet Gradle généré.
-- S-023 — ACADEMY-16 cadré (10 constats, 12 décisions, 9 US).
+- S-020 — **ACADEMY-10-0** : cadrage Spring Boot WebFlux (12 décisions, 6 US
+  ~24 pts), décision pilote attendue.
 
-== Mission de la prochaine session (028)
+== État du code (sortie de session)
 
-. **US-6 BDD + functional TestKit** : zip produit et cohérent, manifeste
-   `sha256` vérifiable, `project/.opencode/tools/cccp.ts` présent, projet Gradle
-   généré, profil `CLOUD_BYOK` (sans Ollama) et `LOCAL_OLLAMA` (avec Ollama).
-   Baby-step BDD strict (RED → GREEN), runner dédié (pattern S-082).
-. **US-7 dogfooding « machine vierge »** : 1 commande + 1 clé → Moodle up,
-   module pilote visible, production réelle SPG → slides → capsule → PDF.
-   Prérequis : un **module pilote manuel** (AsciiDoc + `metadata.json` EPIC K).
-. Puis **US-5** (export `academy-report.json` opt-in) et **US-8** (Windows réel,
-   P0 — `ACADEMY-12-3`).
+* Version locale `0.0.3` ; publication par tag JitPack (`vX.Y.Z`).
+* Kotlin 2.4.10, Ktor 3.2.0, JDK 25 ; contrats N0 `0.0.136` (JitPack).
+* Working tree propre ; CI verte au dernier commit.
 
-== Publication (politique S-225/S-026)
+== Mission session 031 — maintenance
 
-* **Portal par défaut** (`./gradlew publishPlugins`, Plugin Publish `2.2.1`,
-  compte `cccp-education`), **Maven Central/Sonatype suspendu jusqu'au
-  2026-12-01** ; nmcp conservé pour la reprise.
-* **`0.0.3` est consommé** sur le Portal : **bump `0.0.4`** avant la prochaine
-  publication (tag `v*` ou dispatch `target=plugin-portal`).
-* `compatibility` déjà déclarée ; la métadonnée sera visible avec `0.0.4`.
-* Ne pas utiliser les env locales `GRADLE_PUBLISH_KEY`/`SECRET` (autre compte) ;
-  les secrets CI `CCCP_GRADLE_PUBLISH_*` sont les bons.
+. **ACADEMY-10** (Spring Boot WebFlux) : à reprendre **seulement** sur décision
+   pilote (cadrage S-020 prêt ; bump BOM/Jackson 3 = décision cross-borough).
+. **ACADEMY-16 US-5→US-8** : export `academy-report.json` opt-in, BDD/TestKit
+   du zip, dogfooding machine vierge, Windows réel (couplé `ACADEMY-12-3`).
+. **ACADEMY-12-3** : dogfooding Windows — exige un hôte Windows réel.
+. Maintenance ciblée si aucun arbitrage n'est donné.
 
-== Décisions à ne pas rediscuter (S-023→S-027)
+== Rappels
 
-* `D-LWA-2` — le livrable est un **zip** remis par talaria, pas un plugin.
-* `D-LWA-3`/`D-LWA-11` — le matériel est une **entrée** ; module pilote manuel autorisé.
-* `D-LWA-4` — boroughs publics exposés comme **outils opencode** ; le SPG/SPD
-  sont écrits par le candidat, `training` n'est jamais exposé.
-* `D-LWA-5` — **cloud BYOK par défaut** (sans Ollama) ; `LOCAL_OLLAMA` opt-in.
-* `D-LWA-8` — manifeste `sha256` vérifiable ; **aucun DRM** dans academy.
-* `D-LWA-9` — progression locale, export `academy-report.json` opt-in, zéro télémétrie.
-* `D-LWA-10` — Windows = **P0** (`ACADEMY-12-3`), dogfooding réel.
-
-== Rappels des ordres de mission
-
-- Gouvernance d'abord pour toute décision pilote (pattern S-057).
-- BDD/TDD baby-step strict, 1 fichier de test avant le code ; English only.
-- **Local = Build, Tests = CI** : compiler localement, pousser, prouver par CI ;
-  un run rouge se diagnostique par l'artefact JUnit XML (`test-results`).
-- **Vérifier la source avant de nommer** version/image/commande ; **dogfooding =
-  preuve réelle** (leçons S-007/S-011/S-016/S-019/S-024/S-025).
-- DAG N2 : academy importable par N3, jamais N3 → academy.
-- Zéro secret. `publishToMavenLocal` après toute modification de source.
-- Sur `academy`, la CI doit rester **verte** (`./gradlew build` → `check`).
+* **Local = Build, Tests = CI** : compiler/builder uniquement ; jamais
+  `test`/`check` local.
+* **Un artefact = un canal = un nom = une version** : ne jamais réintroduire une
+  coordonnée Central dans un catalogue publié.
+* Version = tag : bump **avant** le tag `vX.Y.Z`, version servie `X.Y.Z`.
+* Shim : `conventions-plugin:0.0.17` (sans `v`).
+* Gouvernance d'abord pour toute décision pilote (pattern S-057).
+* BDD/TDD baby-step strict, English only (code, Gherkin, commentaires).
+* Zéro `ProcessBuilder` dans le domaine pur ; les adapters portent l'I/O.

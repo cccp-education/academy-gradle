@@ -30,6 +30,7 @@
 | 025 | 2026-11-05 | ACADEMY-16 US-3/US-4 — parcours de certification + profils BYOK | 5 | **US-3** : `WorkflowGuideGenerator` (5 étapes FPA : SPG/SPD **écrits par le candidat** → slides → storyboard+capsule → dossier PDF → diagrammes, outils `cccp_<borough>` + tâches exactes, `training` privé non exposé) injecté dans `AGENTS.md` + README (résumé FR). **US-4** : `WorkstationProfileResolver` + `workstationProfile` (**`CLOUD_BYOK` par défaut**, bascule `OLLAMA_CLOUD` si provider local, `ollamaEnabled=false`) / `LOCAL_OLLAMA` opt-in ; `InstallerPlatform.ollamaEnabled` rend le compose conditionnel (service, volume, `OLLAMA_HOST`, port 11434) avec parité Linux/Windows ; `OpenCodeConfig.localRuntimeEnabled` aligne le guide. **Changement assumé** : plus d'Ollama par défaut (D-LWA-5). **Dogfooding** `/tmp` : manifeste `CLOUD_BYOK`, `opencode.json` `ollama-cloud` + `{env:OLLAMA_API_KEY}`, installeur sans Ollama, `.env` `OLLAMA_API_KEY=`. Gates : compiles/validatePlugins/ktlintCheck/publishToMavenLocal VERTS ; **CI `42071295416` VERTE** ; **0.0.3 publié sur le Gradle Plugin Portal** (compte `cccp-education`, page en attente de revue). |
 | 026 | 2026-11-05 | Cibles de publication granulaires — Plugin Portal `cccp-education` + Maven Central (CI) | 3 | `.github/workflows/test.yml` : `workflow_dispatch.inputs.target` (`plugin-portal` défaut / `maven-central` / `both`) ; job `publish` tag **ou** dispatch, toujours `needs: [test]` ; étape **Gradle Plugin Portal** (`publishPlugins`, `CCCP_GRADLE_PUBLISH_KEY`/`SECRET`, `CI=true`) et étapes Maven Central conditionnées. **Secrets repo ajoutés** (compte `cccp-education`, 2026-11-05 17:28), les env locales `GRADLE_PUBLISH_*` appartenant à un autre compte. Un tag `v*` publie par défaut sur le Portal (restriction Sonatype → 2026-12-01) ; les cibles Central exigent encore `OSSRH_*`/`GPG_*`. YAML parsé ; aucun code/test métier modifié ; `0.0.3` déjà consommé → bumper `0.0.4` pour la prochaine. |
 | 027 | 2026-11-05 | Compatibilité Gradle Plugin Portal (academy) + politique globale | 2 | `plugin-publish 1.3.0 → 2.2.1` + `import org.gradle.plugin.compatibility.compatibility` + `compatibility { configurationCache=false; isolatedProjects=false }` sur le plugin academy (déclaration honnête, les tâches ne sont pas prouvées avec les fonctionnalités). Commit `efa1611` poussé ; **CI `42077622882` VERTE** (Build & Test). Politique globale (S-225) : **Portal par défaut**, Maven Central/Sonatype **suspendu jusqu'au 2026-12-01** ; nmcp conservé pour la reprise ; 16 dépôts rollés (S-036 conventions). `academy-plugin 0.0.3` déjà sur le Portal (revue en attente) ; `0.0.4` portera la métadonnée. Aucun test local, zéro secret. |
+|===
 
 == Session 028 — JitPack mirror (CNV-16) — 2026-11-09
 
@@ -43,3 +44,13 @@ Publication JitPack de academy-plugin 0.0.3 + correctif signature conditionnelle
 (`TaskProvider` conservé pour `tasks.check { dependsOn(…) }`) ; iso-comportement ;
 `ktlintFormat` n'a touché que `build.gradle.kts`. CI `43357288198` verte. Rapport
 `.agents/sessions/029-mem-warn-zero-us2-academy.adoc`.
+
+== Session 030 — CNV-17 : JitPack canal unique — 2026-11-14
+
+Contrats N0 (`runtime-contracts`, `opencode-session-contracts`) en coordonnées
+JitPack `com.github.cccp-education.workspace-bom:*:0.0.136` (fin de
+`education.cccp:*`), JitPack ajouté aux `repositories` projet, shim
+`conventions-plugin:0.0.17` **sans préfixe `v`**, JitPack en résolution de
+dépendances (racine, `academy-plugin`, `dogfood`). CI `Test` **verte**
+`43469596159` / `43463716893`. Zéro test local, zéro secret. EPIC ACADEMY-10
+toujours ouvert. Rapport `.agents/sessions/030-cnv-17-jitpack-channel.adoc`.
