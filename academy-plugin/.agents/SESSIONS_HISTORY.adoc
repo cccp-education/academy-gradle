@@ -36,3 +36,10 @@
 Publication JitPack de academy-plugin 0.0.3 + correctif signature conditionnelle (plugin-publish auto-signait). JitPack : 0.0.3 — POM HTTP 200 ; workflow Portal échec doublon attendu. Shim `useModule` pour
 `education.cccp.build.*` (tag JitPack `0.0.15`). Rapport
 `academy-plugin/.agents/sessions/028-jitpack-mirror.adoc`.
+
+== Session 029 — `MEM-WARN-ZERO` US-2 (`registering` → `register<Test>`) — 2026-11-13
+
+10 délégués dépréciés (Gradle 9.6 → 10, 30 warnings) → `val x = tasks.register<Test>("…")`
+(`TaskProvider` conservé pour `tasks.check { dependsOn(…) }`) ; iso-comportement ;
+`ktlintFormat` n'a touché que `build.gradle.kts`. CI `43357288198` verte. Rapport
+`.agents/sessions/029-mem-warn-zero-us2-academy.adoc`.

@@ -153,3 +153,9 @@ _Session 027 (2026-11-05) — Compatibilité Gradle Plugin Portal (academy)_
   jusqu'au 2026-12-01 ; 16 dépôts rollés (S-036 conventions).
 - `academy-plugin 0.0.3` sur le Portal (revue en attente) ; `0.0.4` portera la
   métadonnée de compatibilité.
+
+== S-029 — `MEM-WARN-ZERO` US-2 ✅
+
+* 10 `val x by tasks.registering(Test::class)` → `val x = tasks.register<Test>("x")…`
+  (30 warnings Gradle 9.6 → 0), `TaskProvider` conservé (graphe inchangé).
+* CI `43357288198` verte.
