@@ -159,3 +159,12 @@ _Session 027 (2026-11-05) — Compatibilité Gradle Plugin Portal (academy)_
 * 10 `val x by tasks.registering(Test::class)` → `val x = tasks.register<Test>("x")…`
   (30 warnings Gradle 9.6 → 0), `TaskProvider` conservé (graphe inchangé).
 * CI `43357288198` verte.
+
+== S-031 — GBL-013 vague 2 : build gate dans l'image ✅
+
+* `ci/run.sh` (`fast`/`test` = `build`, `publish` avec `PUBLISH_TARGET=pom`).
+* Job `test` épinglé sur `cccpeducation/cccp-ci-base@sha256:4722c1bc…` ;
+  `setup-java` supprimé ; reporter conservé ; publication Portal/Central hôte.
+* Run `43507449629` VERT (commit `e539a2f`).
+* Rapport `.agents/sessions/031-gbl-013-wave2.adoc`.
+

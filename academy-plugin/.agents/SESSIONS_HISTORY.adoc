@@ -54,3 +54,12 @@ JitPack `com.github.cccp-education.workspace-bom:*:0.0.136` (fin de
 dépendances (racine, `academy-plugin`, `dogfood`). CI `Test` **verte**
 `43469596159` / `43463716893`. Zéro test local, zéro secret. EPIC ACADEMY-10
 toujours ouvert. Rapport `.agents/sessions/030-cnv-17-jitpack-channel.adoc`.
+
+== Session 031 — GBL-013 vague 2 : build gate dans l'image — 2026-11-14
+
+`ci/run.sh` (`fast`/`test` = `build`, `publish` avec `PUBLISH_TARGET=pom`) ;
+job `test` épinglé sur `cccpeducation/cccp-ci-base@sha256:4722c1bc…` ;
+`setup-java` supprimé ; `continue-on-error` + reporter conservés ; POM keyless
+délégué au contrat ; publication Portal/Central reste hôte. Run `43507449629`
+**VERT** (commit `e539a2f`). Rapport `.agents/sessions/031-gbl-013-wave2.adoc`.
+

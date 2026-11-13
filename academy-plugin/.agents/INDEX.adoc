@@ -5,6 +5,7 @@
 _Regles absolues_ : voir `AGENT.adoc`
 _DAG_ : N2 — Plugin Gradle de consommation (Regle 4bis)
 _Projet_ : academy-gradle (education.cccp.academy)
+_Derniere mise a jour_ : 2026-11-14 (Session 031 — **GBL-013 vague 2** ✅ — `ci/run.sh` (`build`, `publish` POM) ; job `test` épinglé sur `cccpeducation/cccp-ci-base@sha256:4722c1bc…` ; publication Portal/Central reste hôte ; run `43507449629` VERT).
 _Frontiere_ : **FPA et Qualiopi appartiennent a training (Newark)**. Academy consomme le materiel produit par training et mesure l'accessibilite de la boite ; elle ne porte aucune trace de conformite ni revendication de certification (ACADEMY-9 transfere a TRN-13, S-022).
 
 _Session terminee_ : 030 — **CNV-17 JitPack canal unique** : contrats N0 (`runtime-contracts`, `opencode-session-contracts`) en coordonnées `com.github.cccp-education.workspace-bom:*:0.0.136`, JitPack ajouté aux `repositories` projet, shim `conventions-plugin:0.0.17` sans préfixe `v`, JitPack en résolution de dépendances (racine, `academy-plugin`, `dogfood`). CI `Test` verte `43469596159` / `43463716893`. Rapport `.agents/sessions/030-cnv-17-jitpack-channel.adoc`.

@@ -1,7 +1,16 @@
-= PROMPT_REPRISE — academy-gradle (Session 030 terminée — CNV-17/JitPack)
-:session: 031
+= PROMPT_REPRISE — academy-gradle (Session 031 terminée — GBL-013 vague 2)
+:session: 032
 :date: 2026-11-14
-:etat: Session 030 ✅ — JitPack canal unique. Mission 031 : maintenance (ACADEMY-10 toujours ouvert).
+:etat: Session 031 ✅ — GBL-013 vague 2 : build gate dans l'image (run `43507449629` VERT). Mission 032 : maintenance (ACADEMY-10 toujours ouvert).
+
+== Session 031 — GBL-013 vague 2 : build gate dans l'image
+
+* `ci/run.sh` (`build`, `publish` POM keyless).
+* Job `test` épinglé sur `cccpeducation/cccp-ci-base@sha256:4722c1bc…` ;
+  `setup-java` supprimé ; `continue-on-error` + reporter conservés.
+* Publication Portal/Central reste hôte.
+* Run `43507449629` **VERT** (commit `e539a2f`). Rapport
+  `.agents/sessions/031-gbl-013-wave2.adoc`.
 
 == Frontière (S-022, actée)
 
