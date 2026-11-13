@@ -1,0 +1,55 @@
+= Session 029 — `MEM-WARN-ZERO` US-2 : `registering` → `register<Test>` (academy)
+:toc:
+
+:_date_: 2026-11-13
+:_borough_: Bagdad (academy-gradle, N2)
+:_session_precedente_: 028 (JitPack mirror)
+:_statut_: ✅ 10 délégués dépréciés supprimés — iso-comportement
+
+'''
+
+== EPIC rattaché
+
+`MEM-WARN-ZERO` US-2 (porteur MEMPHIS, cadrage
+`workspace-bom/.agents/CADRAGE_EPIC_MEM_WARN_ZERO.adoc`).
+
+'''
+
+== Livré
+
+`academy-plugin/build.gradle.kts` — 10 tâches Cucumber dédiées
+(`cucumberTestInstaller`, `OpenCode`, `Byok`, `Bridge`, `Material`, `Moodle`,
+`Env`, `A11y`, `MoodleA11y`, `Acceptance`) :
+
+[source,kotlin]
+----
+// avant — délégué déprécié (Gradle 9.6 → 10)
+val cucumberTestInstaller by tasks.registering(Test::class) { … }
+// après
+val cucumberTestInstaller =
+    tasks.register<Test>("cucumberTestInstaller") { … }
+----
+
+Les variables restent des `TaskProvider` : les `tasks.check { dependsOn(...) }`
+référencent toujours les mêmes tâches. Corps des blocs **inchangé** (groupe,
+description, `testClassesDirs`, `classpath`, `useJUnitPlatform`, `filter`,
+`systemProperty`, `shouldRunAfter`, `outputs.upToDateWhen`) ; seul l'indentage
+suit le style ktlint (`multiline-expression-wrapping`).
+
+'''
+
+== Mesure
+
+* **Avant** : 10 × `by tasks.registering(Test::class)` = 30 lignes `w:` (Gradle
+  9.6).
+* **Après** : `grep -c "by tasks.registering"` = **0**. Preuve = log CI du commit
+  (script recompilé dans le job).
+* Local = Build : `compileKotlin`, `compileTestKotlin`, `ktlintCheck` — VERTS
+  (`ktlintFormat` n'a touché **que** `build.gradle.kts`, `git diff --stat`
+  prouve 1 fichier).
+
+'''
+
+== Reste `MEM-WARN-ZERO`
+
+US-3 `conventions` (3), US-4 `plantuml` (2), US-5/US-6 `buildDir`, US-7 gate.

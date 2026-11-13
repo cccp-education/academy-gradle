@@ -122,241 +122,251 @@ tasks.named<Test>("test") {
 
 // ── ACADEMY-1-2 — Dedicated Cucumber runner for academy_installer.feature (pattern S-082) ──
 // Scoped to AcademyInstallerCucumberRunner so only the installer feature runs.
-val cucumberTestInstaller by tasks.registering(Test::class) {
-    group = "verification"
-    description = "Runs the academy_installer.feature Cucumber suite (ACADEMY-1-2)"
-    testClassesDirs = sourceSets.getByName("test").output.classesDirs
-    classpath = configurations.getByName("testRuntimeClasspath") +
-        sourceSets.getByName("test").output +
-        sourceSets.getByName("main").output
-    useJUnitPlatform {
-        excludeEngines("junit-jupiter")
+val cucumberTestInstaller =
+    tasks.register<Test>("cucumberTestInstaller") {
+        group = "verification"
+        description = "Runs the academy_installer.feature Cucumber suite (ACADEMY-1-2)"
+        testClassesDirs = sourceSets.getByName("test").output.classesDirs
+        classpath = configurations.getByName("testRuntimeClasspath") +
+            sourceSets.getByName("test").output +
+            sourceSets.getByName("main").output
+        useJUnitPlatform {
+            excludeEngines("junit-jupiter")
+        }
+        filter {
+            includeTestsMatching("education.cccp.academy.bdd.AcademyInstallerCucumberRunner")
+        }
+        systemProperty("cucumber.junit-platform.naming-strategy", "long")
+        systemProperty("cucumber.features", "src/test/resources/features/academy_installer.feature")
+        systemProperty("cucumber.filter.tags", "@installer and not @wip and not @integration")
+        shouldRunAfter(tasks.named("test"))
+        outputs.upToDateWhen { false }
     }
-    filter {
-        includeTestsMatching("education.cccp.academy.bdd.AcademyInstallerCucumberRunner")
-    }
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
-    systemProperty("cucumber.features", "src/test/resources/features/academy_installer.feature")
-    systemProperty("cucumber.filter.tags", "@installer and not @wip and not @integration")
-    shouldRunAfter(tasks.named("test"))
-    outputs.upToDateWhen { false }
-}
 
 tasks.check { dependsOn(cucumberTestInstaller) }
 
 // ── ACADEMY-5-1 — Dedicated Cucumber runner for academy_opencode.feature (pattern S-082) ──
 // Scoped to AcademyOpenCodeCucumberRunner so only the opencode feature runs.
-val cucumberTestOpenCode by tasks.registering(Test::class) {
-    group = "verification"
-    description = "Runs the academy_opencode.feature Cucumber suite (ACADEMY-5-1)"
-    testClassesDirs = sourceSets.getByName("test").output.classesDirs
-    classpath = configurations.getByName("testRuntimeClasspath") +
-        sourceSets.getByName("test").output +
-        sourceSets.getByName("main").output
-    useJUnitPlatform {
-        excludeEngines("junit-jupiter")
+val cucumberTestOpenCode =
+    tasks.register<Test>("cucumberTestOpenCode") {
+        group = "verification"
+        description = "Runs the academy_opencode.feature Cucumber suite (ACADEMY-5-1)"
+        testClassesDirs = sourceSets.getByName("test").output.classesDirs
+        classpath = configurations.getByName("testRuntimeClasspath") +
+            sourceSets.getByName("test").output +
+            sourceSets.getByName("main").output
+        useJUnitPlatform {
+            excludeEngines("junit-jupiter")
+        }
+        filter {
+            includeTestsMatching("education.cccp.academy.bdd.AcademyOpenCodeCucumberRunner")
+        }
+        systemProperty("cucumber.junit-platform.naming-strategy", "long")
+        systemProperty("cucumber.features", "src/test/resources/features/academy_opencode.feature")
+        systemProperty("cucumber.filter.tags", "@opencode and not @wip and not @integration")
+        shouldRunAfter(tasks.named("test"))
+        outputs.upToDateWhen { false }
     }
-    filter {
-        includeTestsMatching("education.cccp.academy.bdd.AcademyOpenCodeCucumberRunner")
-    }
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
-    systemProperty("cucumber.features", "src/test/resources/features/academy_opencode.feature")
-    systemProperty("cucumber.filter.tags", "@opencode and not @wip and not @integration")
-    shouldRunAfter(tasks.named("test"))
-    outputs.upToDateWhen { false }
-}
 
 tasks.check { dependsOn(cucumberTestOpenCode) }
 
 // ── ACADEMY-7-3 — Dedicated Cucumber runner for academy_byok.feature (pattern S-082) ──
 // Scoped to AcademyByokCucumberRunner so only the byok feature runs.
-val cucumberTestByok by tasks.registering(Test::class) {
-    group = "verification"
-    description = "Runs the academy_byok.feature Cucumber suite (ACADEMY-7-3)"
-    testClassesDirs = sourceSets.getByName("test").output.classesDirs
-    classpath = configurations.getByName("testRuntimeClasspath") +
-        sourceSets.getByName("test").output +
-        sourceSets.getByName("main").output
-    useJUnitPlatform {
-        excludeEngines("junit-jupiter")
+val cucumberTestByok =
+    tasks.register<Test>("cucumberTestByok") {
+        group = "verification"
+        description = "Runs the academy_byok.feature Cucumber suite (ACADEMY-7-3)"
+        testClassesDirs = sourceSets.getByName("test").output.classesDirs
+        classpath = configurations.getByName("testRuntimeClasspath") +
+            sourceSets.getByName("test").output +
+            sourceSets.getByName("main").output
+        useJUnitPlatform {
+            excludeEngines("junit-jupiter")
+        }
+        filter {
+            includeTestsMatching("education.cccp.academy.bdd.AcademyByokCucumberRunner")
+        }
+        systemProperty("cucumber.junit-platform.naming-strategy", "long")
+        systemProperty("cucumber.features", "src/test/resources/features/academy_byok.feature")
+        systemProperty("cucumber.filter.tags", "@byok and not @wip and not @integration")
+        shouldRunAfter(tasks.named("test"))
+        outputs.upToDateWhen { false }
     }
-    filter {
-        includeTestsMatching("education.cccp.academy.bdd.AcademyByokCucumberRunner")
-    }
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
-    systemProperty("cucumber.features", "src/test/resources/features/academy_byok.feature")
-    systemProperty("cucumber.filter.tags", "@byok and not @wip and not @integration")
-    shouldRunAfter(tasks.named("test"))
-    outputs.upToDateWhen { false }
-}
 
 tasks.check { dependsOn(cucumberTestByok) }
 
 // ── ACADEMY-8-3 — Dedicated Cucumber runner for academy_bridge.feature (pattern S-082) ──
 // Scoped to AcademyBridgeCucumberRunner so only the bridge feature runs.
-val cucumberTestBridge by tasks.registering(Test::class) {
-    group = "verification"
-    description = "Runs the academy_bridge.feature Cucumber suite (ACADEMY-8-3)"
-    testClassesDirs = sourceSets.getByName("test").output.classesDirs
-    classpath = configurations.getByName("testRuntimeClasspath") +
-        sourceSets.getByName("test").output +
-        sourceSets.getByName("main").output
-    useJUnitPlatform {
-        excludeEngines("junit-jupiter")
+val cucumberTestBridge =
+    tasks.register<Test>("cucumberTestBridge") {
+        group = "verification"
+        description = "Runs the academy_bridge.feature Cucumber suite (ACADEMY-8-3)"
+        testClassesDirs = sourceSets.getByName("test").output.classesDirs
+        classpath = configurations.getByName("testRuntimeClasspath") +
+            sourceSets.getByName("test").output +
+            sourceSets.getByName("main").output
+        useJUnitPlatform {
+            excludeEngines("junit-jupiter")
+        }
+        filter {
+            includeTestsMatching("education.cccp.academy.bdd.AcademyBridgeCucumberRunner")
+        }
+        systemProperty("cucumber.junit-platform.naming-strategy", "long")
+        systemProperty("cucumber.features", "src/test/resources/features/academy_bridge.feature")
+        systemProperty("cucumber.filter.tags", "@bridge and not @wip and not @integration")
+        shouldRunAfter(tasks.named("test"))
+        outputs.upToDateWhen { false }
     }
-    filter {
-        includeTestsMatching("education.cccp.academy.bdd.AcademyBridgeCucumberRunner")
-    }
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
-    systemProperty("cucumber.features", "src/test/resources/features/academy_bridge.feature")
-    systemProperty("cucumber.filter.tags", "@bridge and not @wip and not @integration")
-    shouldRunAfter(tasks.named("test"))
-    outputs.upToDateWhen { false }
-}
 
 tasks.check { dependsOn(cucumberTestBridge) }
 
 // ── ACADEMY-4-3 — Dedicated Cucumber runner for academy_material.feature (pattern S-082) ──
 // Scoped to AcademyMaterialCucumberRunner so only the material feature runs.
-val cucumberTestMaterial by tasks.registering(Test::class) {
-    group = "verification"
-    description = "Runs the academy_material.feature Cucumber suite (ACADEMY-4-3)"
-    testClassesDirs = sourceSets.getByName("test").output.classesDirs
-    classpath = configurations.getByName("testRuntimeClasspath") +
-        sourceSets.getByName("test").output +
-        sourceSets.getByName("main").output
-    useJUnitPlatform {
-        excludeEngines("junit-jupiter")
+val cucumberTestMaterial =
+    tasks.register<Test>("cucumberTestMaterial") {
+        group = "verification"
+        description = "Runs the academy_material.feature Cucumber suite (ACADEMY-4-3)"
+        testClassesDirs = sourceSets.getByName("test").output.classesDirs
+        classpath = configurations.getByName("testRuntimeClasspath") +
+            sourceSets.getByName("test").output +
+            sourceSets.getByName("main").output
+        useJUnitPlatform {
+            excludeEngines("junit-jupiter")
+        }
+        filter {
+            includeTestsMatching("education.cccp.academy.bdd.AcademyMaterialCucumberRunner")
+        }
+        systemProperty("cucumber.junit-platform.naming-strategy", "long")
+        systemProperty("cucumber.features", "src/test/resources/features/academy_material.feature")
+        systemProperty("cucumber.filter.tags", "@material and not @wip and not @integration")
+        shouldRunAfter(tasks.named("test"))
+        outputs.upToDateWhen { false }
     }
-    filter {
-        includeTestsMatching("education.cccp.academy.bdd.AcademyMaterialCucumberRunner")
-    }
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
-    systemProperty("cucumber.features", "src/test/resources/features/academy_material.feature")
-    systemProperty("cucumber.filter.tags", "@material and not @wip and not @integration")
-    shouldRunAfter(tasks.named("test"))
-    outputs.upToDateWhen { false }
-}
 
 tasks.check { dependsOn(cucumberTestMaterial) }
 
 // ── ACADEMY-11-3 — Dedicated Cucumber runner for academy_moodle.feature (pattern S-082) ──
 // Scoped to AcademyMoodleCucumberRunner so only the moodle feature runs.
-val cucumberTestMoodle by tasks.registering(Test::class) {
-    group = "verification"
-    description = "Runs the academy_moodle.feature Cucumber suite (ACADEMY-11-3)"
-    testClassesDirs = sourceSets.getByName("test").output.classesDirs
-    classpath = configurations.getByName("testRuntimeClasspath") +
-        sourceSets.getByName("test").output +
-        sourceSets.getByName("main").output
-    useJUnitPlatform {
-        excludeEngines("junit-jupiter")
+val cucumberTestMoodle =
+    tasks.register<Test>("cucumberTestMoodle") {
+        group = "verification"
+        description = "Runs the academy_moodle.feature Cucumber suite (ACADEMY-11-3)"
+        testClassesDirs = sourceSets.getByName("test").output.classesDirs
+        classpath = configurations.getByName("testRuntimeClasspath") +
+            sourceSets.getByName("test").output +
+            sourceSets.getByName("main").output
+        useJUnitPlatform {
+            excludeEngines("junit-jupiter")
+        }
+        filter {
+            includeTestsMatching("education.cccp.academy.bdd.AcademyMoodleCucumberRunner")
+        }
+        systemProperty("cucumber.junit-platform.naming-strategy", "long")
+        systemProperty("cucumber.features", "src/test/resources/features/academy_moodle.feature")
+        systemProperty("cucumber.filter.tags", "@moodle and not @wip and not @integration")
+        shouldRunAfter(tasks.named("test"))
+        outputs.upToDateWhen { false }
     }
-    filter {
-        includeTestsMatching("education.cccp.academy.bdd.AcademyMoodleCucumberRunner")
-    }
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
-    systemProperty("cucumber.features", "src/test/resources/features/academy_moodle.feature")
-    systemProperty("cucumber.filter.tags", "@moodle and not @wip and not @integration")
-    shouldRunAfter(tasks.named("test"))
-    outputs.upToDateWhen { false }
-}
 
 tasks.check { dependsOn(cucumberTestMoodle) }
 
 // ── ACADEMY-12-1 — Dedicated Cucumber runner for academy_env.feature (pattern S-082) ──
 // Scoped to AcademyEnvCucumberRunner so only the environment feature runs.
-val cucumberTestEnv by tasks.registering(Test::class) {
-    group = "verification"
-    description = "Runs the academy_env.feature Cucumber suite (ACADEMY-12-1)"
-    testClassesDirs = sourceSets.getByName("test").output.classesDirs
-    classpath = configurations.getByName("testRuntimeClasspath") +
-        sourceSets.getByName("test").output +
-        sourceSets.getByName("main").output
-    useJUnitPlatform {
-        excludeEngines("junit-jupiter")
+val cucumberTestEnv =
+    tasks.register<Test>("cucumberTestEnv") {
+        group = "verification"
+        description = "Runs the academy_env.feature Cucumber suite (ACADEMY-12-1)"
+        testClassesDirs = sourceSets.getByName("test").output.classesDirs
+        classpath = configurations.getByName("testRuntimeClasspath") +
+            sourceSets.getByName("test").output +
+            sourceSets.getByName("main").output
+        useJUnitPlatform {
+            excludeEngines("junit-jupiter")
+        }
+        filter {
+            includeTestsMatching("education.cccp.academy.bdd.AcademyEnvCucumberRunner")
+        }
+        systemProperty("cucumber.junit-platform.naming-strategy", "long")
+        systemProperty("cucumber.features", "src/test/resources/features/academy_env.feature")
+        systemProperty("cucumber.filter.tags", "@env and not @wip and not @integration")
+        shouldRunAfter(tasks.named("test"))
+        outputs.upToDateWhen { false }
     }
-    filter {
-        includeTestsMatching("education.cccp.academy.bdd.AcademyEnvCucumberRunner")
-    }
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
-    systemProperty("cucumber.features", "src/test/resources/features/academy_env.feature")
-    systemProperty("cucumber.filter.tags", "@env and not @wip and not @integration")
-    shouldRunAfter(tasks.named("test"))
-    outputs.upToDateWhen { false }
-}
 
 tasks.check { dependsOn(cucumberTestEnv) }
 
 // ── ACADEMY-15 — Dedicated Cucumber runner for academy_a11y.feature (pattern S-082) ──
 // Scoped to AcademyA11yCucumberRunner so only the accessibility feature runs.
-val cucumberTestA11y by tasks.registering(Test::class) {
-    group = "verification"
-    description = "Runs the academy_a11y.feature Cucumber suite (ACADEMY-15)"
-    testClassesDirs = sourceSets.getByName("test").output.classesDirs
-    classpath = configurations.getByName("testRuntimeClasspath") +
-        sourceSets.getByName("test").output +
-        sourceSets.getByName("main").output
-    useJUnitPlatform {
-        excludeEngines("junit-jupiter")
+val cucumberTestA11y =
+    tasks.register<Test>("cucumberTestA11y") {
+        group = "verification"
+        description = "Runs the academy_a11y.feature Cucumber suite (ACADEMY-15)"
+        testClassesDirs = sourceSets.getByName("test").output.classesDirs
+        classpath = configurations.getByName("testRuntimeClasspath") +
+            sourceSets.getByName("test").output +
+            sourceSets.getByName("main").output
+        useJUnitPlatform {
+            excludeEngines("junit-jupiter")
+        }
+        filter {
+            includeTestsMatching("education.cccp.academy.bdd.AcademyA11yCucumberRunner")
+        }
+        systemProperty("cucumber.junit-platform.naming-strategy", "long")
+        systemProperty("cucumber.features", "src/test/resources/features/academy_a11y.feature")
+        systemProperty("cucumber.filter.tags", "@a11y and not @wip and not @integration")
+        shouldRunAfter(tasks.named("test"))
+        outputs.upToDateWhen { false }
     }
-    filter {
-        includeTestsMatching("education.cccp.academy.bdd.AcademyA11yCucumberRunner")
-    }
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
-    systemProperty("cucumber.features", "src/test/resources/features/academy_a11y.feature")
-    systemProperty("cucumber.filter.tags", "@a11y and not @wip and not @integration")
-    shouldRunAfter(tasks.named("test"))
-    outputs.upToDateWhen { false }
-}
 
 tasks.check { dependsOn(cucumberTestA11y) }
 
 // ── ACADEMY-15 / GBL-011-5 — Dedicated Cucumber runner for academy_moodle_a11y.feature ──
 // Scoped to AcademyMoodleA11yCucumberRunner so only the Moodle accessibility feature runs.
-val cucumberTestMoodleA11y by tasks.registering(Test::class) {
-    group = "verification"
-    description = "Runs the academy_moodle_a11y.feature Cucumber suite (ACADEMY-15 / GBL-011-5)"
-    testClassesDirs = sourceSets.getByName("test").output.classesDirs
-    classpath = configurations.getByName("testRuntimeClasspath") +
-        sourceSets.getByName("test").output +
-        sourceSets.getByName("main").output
-    useJUnitPlatform {
-        excludeEngines("junit-jupiter")
+val cucumberTestMoodleA11y =
+    tasks.register<Test>("cucumberTestMoodleA11y") {
+        group = "verification"
+        description = "Runs the academy_moodle_a11y.feature Cucumber suite (ACADEMY-15 / GBL-011-5)"
+        testClassesDirs = sourceSets.getByName("test").output.classesDirs
+        classpath = configurations.getByName("testRuntimeClasspath") +
+            sourceSets.getByName("test").output +
+            sourceSets.getByName("main").output
+        useJUnitPlatform {
+            excludeEngines("junit-jupiter")
+        }
+        filter {
+            includeTestsMatching("education.cccp.academy.bdd.AcademyMoodleA11yCucumberRunner")
+        }
+        systemProperty("cucumber.junit-platform.naming-strategy", "long")
+        systemProperty("cucumber.features", "src/test/resources/features/academy_moodle_a11y.feature")
+        systemProperty("cucumber.filter.tags", "@moodle-a11y and not @wip and not @integration")
+        shouldRunAfter(tasks.named("test"))
+        outputs.upToDateWhen { false }
     }
-    filter {
-        includeTestsMatching("education.cccp.academy.bdd.AcademyMoodleA11yCucumberRunner")
-    }
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
-    systemProperty("cucumber.features", "src/test/resources/features/academy_moodle_a11y.feature")
-    systemProperty("cucumber.filter.tags", "@moodle-a11y and not @wip and not @integration")
-    shouldRunAfter(tasks.named("test"))
-    outputs.upToDateWhen { false }
-}
 
 tasks.check { dependsOn(cucumberTestMoodleA11y) }
 
 // ── ACADEMY-15 / GBL-011-5 — Dedicated Cucumber runner for academy_acceptance.feature ──
 // Scoped to AcademyAcceptanceCucumberRunner so only the box acceptance feature runs.
-val cucumberTestAcceptance by tasks.registering(Test::class) {
-    group = "verification"
-    description = "Runs the academy_acceptance.feature Cucumber suite (ACADEMY-15 / GBL-011-5)"
-    testClassesDirs = sourceSets.getByName("test").output.classesDirs
-    classpath = configurations.getByName("testRuntimeClasspath") +
-        sourceSets.getByName("test").output +
-        sourceSets.getByName("main").output
-    useJUnitPlatform {
-        excludeEngines("junit-jupiter")
+val cucumberTestAcceptance =
+    tasks.register<Test>("cucumberTestAcceptance") {
+        group = "verification"
+        description = "Runs the academy_acceptance.feature Cucumber suite (ACADEMY-15 / GBL-011-5)"
+        testClassesDirs = sourceSets.getByName("test").output.classesDirs
+        classpath = configurations.getByName("testRuntimeClasspath") +
+            sourceSets.getByName("test").output +
+            sourceSets.getByName("main").output
+        useJUnitPlatform {
+            excludeEngines("junit-jupiter")
+        }
+        filter {
+            includeTestsMatching("education.cccp.academy.bdd.AcademyAcceptanceCucumberRunner")
+        }
+        systemProperty("cucumber.junit-platform.naming-strategy", "long")
+        systemProperty("cucumber.features", "src/test/resources/features/academy_acceptance.feature")
+        systemProperty("cucumber.filter.tags", "@acceptance and not @wip and not @integration")
+        shouldRunAfter(tasks.named("test"))
+        outputs.upToDateWhen { false }
     }
-    filter {
-        includeTestsMatching("education.cccp.academy.bdd.AcademyAcceptanceCucumberRunner")
-    }
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
-    systemProperty("cucumber.features", "src/test/resources/features/academy_acceptance.feature")
-    systemProperty("cucumber.filter.tags", "@acceptance and not @wip and not @integration")
-    shouldRunAfter(tasks.named("test"))
-    outputs.upToDateWhen { false }
-}
 
 tasks.check { dependsOn(cucumberTestAcceptance) }
 
