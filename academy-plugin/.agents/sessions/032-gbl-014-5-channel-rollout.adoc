@@ -1,0 +1,79 @@
+= Session 032 — GBL-014-5 / GBL-014-4 / GBL-013-10 (academy)
+:toc:
+
+:_date_: 2026-11-15
+:_borough_: Bagdad (academy-gradle, N2)
+:_session_precedente_: 031 (GBL-013 vague 2 : build gate dans l'image)
+:_statut_: ✅ rollout livré, CI verte
+
+== Contexte
+
+Session globale 229 (2026-11-15). Deux chantiers transverses touchent le
+borough (racine, `academy-plugin` et `dogfood`) :
+
+. **GBL-014-5** — le canal de publication devient une **propriété du build**
+   (`-Pchannel`, défaut `jitpack`), jamais une branche. Un tag `vX.Y.Z` sert le
+   même commit sur les deux canaux.
+. **GBL-014-4** — shim `conventions-plugin` `0.0.18 → 0.0.19`.
+. **GBL-013-10** — dernière LTS Node : actions `node24`-natives et image CI
+   `cccp-ci-base` rebâtie sur Node 26.13.1.
+
+Cadrages : `.agents/CADRAGE_EPIC_GBL_014_DUAL_CHANNEL.adoc` et
+`.agents/CADRAGE_EPIC_GBL_013_PORTABILITE_CI.adoc` (racine workspace).
+
+== Changements
+
+* `12c5292` — **GBL-014-5** : `settings.gradle.kts` conditionnels sur
+  `providers.gradleProperty("channel").getOrElse("jitpack")` sur les **trois**
+  builds — racine, `academy-plugin`, `dogfood` ; dépôt JitPack + shim
+  `useModule(...)` **seulement** en `jitpack` ; `ci/run.sh` passe
+  `-Pchannel="$channel"` sur `build` et sur `generatePomFileForPluginMavenPublication`
+  (`publish` POM keyless). Note : la gate `verifyChannel` n'était pas encore
+  remontée par les conventions au moment du commit — suivie par le rollout
+  `conventions-plugin 0.0.20`.
+* `b896289` — **GBL-014-4** : shim `conventions-plugin` `0.0.18 → 0.0.19`
+  (racine + `academy-plugin` + `dogfood`). Aucun pin `0.0.20` dans ce lot.
+* `5e03c6f` — **GBL-013-10** : `test.yml` (`checkout@v7`, `setup-java@v6`,
+  `setup-gradle@v6`, `upload-artifact@v7`) et `offline-dogfood.yml`
+  (`checkout@v7`, `setup-gradle@v6`, `upload-artifact@v7`).
+* `8f41f84` — **GBL-013-10** : image `cccp-ci-base` re-pinée
+  `sha256:03ead3787ed8f09068cc582191e4cd8f5e48e3ce696fe53836ecd826de57ea1f`
+  (Node 26.13.1).
+* `b35da20` — commit de **cadrage ACADEMY-17** (épreuve de savoir-faire par
+  livrable, quiz optionnel) déjà présent dans la fenêtre du 2026-11-15 ; il est
+  antérieur à la clôture et **n'appartient pas** au rollout.
+* Aucun code de production modifié ; aucun test exécuté en local
+  (Local = Build, Tests = CI).
+
+== Preuves CI
+
+| Commit | Workflow | Run | Résultat
+| `12c5292` | `Test` | `43660567736` | ⚠️ `cancelled` (run concurrent)
+| `b35da20` | `Test` | `43660719961` | ✅ (arbre `12c5292` + docs)
+| `b896289` | `Test` | `43670867999` | ✅
+| `5e03c6f` | `Test` | `43685736987` | ✅
+| `8f41f84` | `Test` | `43690063795` | ✅
+
+Le run du commit de rollout a été **annulé** (push rapproché) ; la preuve
+verte du changement de canal est le run du commit suivant (`b35da20`), qui
+contient le même arbre de build. Zéro secret, zéro publication, zéro bump.
+
+== Fichiers touchés
+
+* `settings.gradle.kts`
+* `academy-plugin/settings.gradle.kts`
+* `dogfood/settings.gradle.kts`
+* `ci/run.sh`
+* `.github/workflows/test.yml`
+* `.github/workflows/offline-dogfood.yml`
+
+== Reste à faire
+
+* **ACADEMY-10** (Spring Boot WebFlux) : à reprendre **seulement** sur décision
+  pilote (cadrage S-020 ; bump BOM/Jackson 3 = décision cross-borough).
+* **ACADEMY-16 US-5→US-8** : export `academy-report.json` opt-in, BDD/TestKit
+  du zip, dogfooding machine vierge, Windows réel (couplé `ACADEMY-12-3`).
+* **ACADEMY-17** : cadrage livré (`b35da20`) — implémentation à planifier.
+* Transverse : `bakery` (catalogue relabellé reverté), `container-provision` et
+  racines agrégateurs sans `verifyChannel`, Sonatype 130791 après reset
+  (GBL-014 US-6/US-7), GBL-013 US-7 (workflows `office` bloqués).

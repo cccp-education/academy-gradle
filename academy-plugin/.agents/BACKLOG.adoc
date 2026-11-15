@@ -861,3 +861,15 @@ dépendances (racine, `academy-plugin`, `dogfood`). CI `Test` verte
 `43469596159` / `43463716893`. Aucun item backlog nouveau : la suite est de la
 **maintenance** ; **ACADEMY-10** reste ouvert (décision pilote attendue).
 Rapport `.agents/sessions/030-cnv-17-jitpack-channel.adoc`.
+
+== Session 032 — GBL-014-5 (canal) + GBL-014-4 (shim) + GBL-013-10 (Node 26)
+
+_Note de gouvernance (aucune US créée)._ Canal conditionnel (`-Pchannel`,
+défaut `jitpack`) sur les 3 builds (racine, `academy-plugin`, `dogfood`) +
+`ci/run.sh -Pchannel` (`build`, `publish` POM) (`12c5292`) ; shim
+`conventions-plugin 0.0.19` (`b896289`) ; actions `node24`-natives
+(`test.yml`, `offline-dogfood.yml`) et image `cccp-ci-base` re-pinée
+`sha256:03ead378…` (Node 26.13.1) (`5e03c6f`, `8f41f84`).
+**✅ TERMINÉ (S-032)** — CI `Test` verte (`43660719961`, `43670867999`,
+`43685736987`, `43690063795`) ; run du commit de rollout annulé
+(`43660567736`). Rapport `.agents/sessions/032-gbl-014-5-channel-rollout.adoc`.

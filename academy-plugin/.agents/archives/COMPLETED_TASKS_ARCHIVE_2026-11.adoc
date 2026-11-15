@@ -168,3 +168,15 @@ _Session 027 (2026-11-05) — Compatibilité Gradle Plugin Portal (academy)_
 * Run `43507449629` VERT (commit `e539a2f`).
 * Rapport `.agents/sessions/031-gbl-013-wave2.adoc`.
 
+== S-032 — GBL-014-5 / GBL-014-4 / GBL-013-10 ✅
+
+* Canal conditionnel (`-Pchannel`, défaut `jitpack`) sur les 3 builds (racine,
+  `academy-plugin`, `dogfood`) ; `ci/run.sh` passe `-Pchannel` sur `build` et
+  `publish` POM (`12c5292`).
+* Shim `conventions-plugin 0.0.19` (`b896289`) ; actions `node24`-natives
+  (`test.yml`, `offline-dogfood.yml`) (`5e03c6f`) ; image
+  `cccp-ci-base@sha256:03ead378…` Node 26.13.1 (`8f41f84`).
+* CI `Test` verte (`43660719961`, `43670867999`, `43685736987`,
+  `43690063795`) ; run du commit de rollout annulé (`43660567736`).
+* Rapport `.agents/sessions/032-gbl-014-5-channel-rollout.adoc`.
+

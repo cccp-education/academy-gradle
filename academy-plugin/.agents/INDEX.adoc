@@ -5,6 +5,7 @@
 _Regles absolues_ : voir `AGENT.adoc`
 _DAG_ : N2 — Plugin Gradle de consommation (Regle 4bis)
 _Projet_ : academy-gradle (education.cccp.academy)
+_Derniere mise a jour_ : 2026-11-15 (Session 032 — **GBL-014-5** canal conditionnel (`-Pchannel`, défaut `jitpack`) sur les 3 builds (racine, `academy-plugin`, `dogfood`), **GBL-014-4** shim `conventions-plugin 0.0.19`, **GBL-013-10** actions `node24`-natives (`test.yml`, `offline-dogfood.yml`) + image `cccp-ci-base@sha256:03ead378…` Node 26.13.1 ; CI `Test` verte `43660719961`, `43670867999`, `43685736987`, `43690063795` — le run du commit de rollout `43660567736` a été annulé. Rapport `.agents/sessions/032-gbl-014-5-channel-rollout.adoc`.)
 _Derniere mise a jour_ : 2026-11-14 (Session 031 — **GBL-013 vague 2** ✅ — `ci/run.sh` (`build`, `publish` POM) ; job `test` épinglé sur `cccpeducation/cccp-ci-base@sha256:4722c1bc…` ; publication Portal/Central reste hôte ; run `43507449629` VERT).
 _Frontiere_ : **FPA et Qualiopi appartiennent a training (Newark)**. Academy consomme le materiel produit par training et mesure l'accessibilite de la boite ; elle ne porte aucune trace de conformite ni revendication de certification (ACADEMY-9 transfere a TRN-13, S-022).
 
