@@ -17,14 +17,16 @@ verify_pom() {
 }
 
 job="${1:-}"
+# GBL-014 — publication channel (jitpack default until the Sonatype reset).
+channel="${CHANNEL:-jitpack}"
 case "$job" in
   fast|test)
-    ./gradlew build --no-daemon --console=plain
+    ./gradlew build -Pchannel="$channel" --no-daemon --console=plain
     ;;
   publish)
     case "${PUBLISH_TARGET:-pom}" in
       pom)
-        ./gradlew generatePomFileForPluginMavenPublication --no-daemon --console=plain
+        ./gradlew generatePomFileForPluginMavenPublication -Pchannel="$channel" --no-daemon --console=plain
         verify_pom
         ;;
       *)
