@@ -2,7 +2,7 @@
 :toc:
 :toclevels: 2
 
-_Dernière mise à jour_ : 2026-11-05 (session 025) — **ACADEMY-16 US-3/US-4 TERMINÉS** : parcours de certification FPA (SPG/SPD écrits par le candidat → slides → capsule → dossier PDF) injecté dans `AGENTS.md` + README ; profil **`CLOUD_BYOK` par défaut** (sans Ollama local) / `LOCAL_OLLAMA` opt-in, compose conditionnel Linux/Windows. Dogfooding `/tmp` → `academy-workstation-0.0.3+fpa-pilot-0.0.1.zip` (manifeste `CLOUD_BYOK`, `opencode.json` `ollama-cloud`, installeur sans Ollama). Rappel S-022 : **frontière FPA/Qualiopi = training**. ACADEMY-9 (support Qualiopi) est **transféré à training (TRN-13)** ; academy ne porte aucune trace de conformité et se limite à mesurer l'accessibilité de la boîte. Rappel historique S-016 : **ACADEMY-11-4 TERMINÉ + EPIC ACADEMY-11 CLOS (S-016)** — service compose one-shot `moodle-material` : il **applique** le plan stagé après le schéma Moodle, en pilotant les outils natifs de l'image (`moosh`). **Volume nommé `moodle-html:/var/www/html`** partagé par `moodle` et `moodle-material` (indispensable : `moosh` bootstrappe contre l'install). **Garde de rejeu** `sha256(plan.json)` → marqueur `.academy-applied-plan` dans le volume inscriptible (`moosh activity-add` **ne dédoublonne pas**). **Input tolérant** `GenerateInstallerTask.moodleMaterialFiles` (`@InputFiles @Optional`) : un re-run simple ré-rend un plan changé (fin de la staleness silencieuse). Lecture matériel partagée (`MoodleMaterialReader`). **Dogfooding réel `compose up`** : cours `formation-fpa` + sections + activités, contenu AsciiDoc en base, rejeu no-op — **3 bugs réels attrapés**. Gates 710 unit + 21 functional + 71 Cucumber 0 FAIL. **Ordre du jour pilote : ACADEMY-12-3** (dogfooding Windows réel, hôte requis), puis ACADEMY-10 (cadrage/décision pilote) ; ACADEMY-9 transféré à training.
+_Dernière mise à jour_ : 2026-11-15 — **EPIC ACADEMY-17 CADRÉ** (épreuve de savoir-faire par **livrable**, le **quiz reste autorisé mais optionnel** ; activité Moodle `assign` + contrat N0 `DeliverableSpec`/`DeliverableReport` + validation exécutable dans `document`) — décision pilote : un geste professionnel se prouve par la production de l'apprenant, sans obligation de quiz. 9 décisions `D-ACADEMY-17-1..9`, 7 US ~20 pts ; **v1 manuelle non bloquée**. ; 2026-11-05 (session 025) — **ACADEMY-16 US-3/US-4 TERMINÉS** : parcours de certification FPA (SPG/SPD écrits par le candidat → slides → capsule → dossier PDF) injecté dans `AGENTS.md` + README ; profil **`CLOUD_BYOK` par défaut** (sans Ollama local) / `LOCAL_OLLAMA` opt-in, compose conditionnel Linux/Windows. Dogfooding `/tmp` → `academy-workstation-0.0.3+fpa-pilot-0.0.1.zip` (manifeste `CLOUD_BYOK`, `opencode.json` `ollama-cloud`, installeur sans Ollama). Rappel S-022 : **frontière FPA/Qualiopi = training**. ACADEMY-9 (support Qualiopi) est **transféré à training (TRN-13)** ; academy ne porte aucune trace de conformité et se limite à mesurer l'accessibilité de la boîte. Rappel historique S-016 : **ACADEMY-11-4 TERMINÉ + EPIC ACADEMY-11 CLOS (S-016)** — service compose one-shot `moodle-material` : il **applique** le plan stagé après le schéma Moodle, en pilotant les outils natifs de l'image (`moosh`). **Volume nommé `moodle-html:/var/www/html`** partagé par `moodle` et `moodle-material` (indispensable : `moosh` bootstrappe contre l'install). **Garde de rejeu** `sha256(plan.json)` → marqueur `.academy-applied-plan` dans le volume inscriptible (`moosh activity-add` **ne dédoublonne pas**). **Input tolérant** `GenerateInstallerTask.moodleMaterialFiles` (`@InputFiles @Optional`) : un re-run simple ré-rend un plan changé (fin de la staleness silencieuse). Lecture matériel partagée (`MoodleMaterialReader`). **Dogfooding réel `compose up`** : cours `formation-fpa` + sections + activités, contenu AsciiDoc en base, rejeu no-op — **3 bugs réels attrapés**. Gates 710 unit + 21 functional + 71 Cucumber 0 FAIL. **Ordre du jour pilote : ACADEMY-12-3** (dogfooding Windows réel, hôte requis), puis ACADEMY-10 (cadrage/décision pilote) ; ACADEMY-9 transféré à training.
 
 '''
 == Vision actée (S-002, arbitrage pilote)
@@ -52,6 +52,7 @@ Le borough Bagdad (academy-gradle) livre une **ressource autonome** qui contient
 | ACADEMY-14 | Bundle hors-ligne de la boîte (images épinglées par digest + `docker save`/`load`, installation sans réseau, vérification de charge) — le compose référence `erseco/alpine-moodle:v5.2.3` par tag, donc la boîte exige le réseau | ✅ TERMINÉ (S-017 / S-224) — bundle + build workspace + `docker save` + pinning digest + installateur + dogfooding CI VERT (run `41362217647`) |
 | ACADEMY-15 | Accessibilité de la boîte : audit Moodle/opencode WCAG 2.1 AA, thème et navigation clavier, matériel accessible vérifié, porte d'acceptation et rapport d'écarts | 🟡 EN COURS (S-017→S-021) — matériel + Moodle statique + **porte d'acceptation agrégée** ✅ ; reste `GBL-011-4` (audiodescription capsule), matériel FPA réel, opencode (limite déclarée)
 | ACADEMY-16 | **Poste de travail apprenant** (Learner Workstation) — zip pré-construit où l'apprenant produit SPG/SPD/storyboard/capsule/dossier PDF, avec Moodle + opencode + BYOK + outillage | 🟡 EN COURS (S-023→S-025) — dossier `CADRAGE_EPIC_ACADEMY_16_LEARNER_WORKSTATION.adoc` ; 12 décisions `D-LWA-1..12`, 9 US ~24 pts ; **US-0 ✅ (S-023), US-1/US-2 ✅ (S-024), US-3/US-4 ✅ (S-025)** ; US-5→8 🟡 À FAIRE ; boroughs publics = **outils opencode**, **profil cloud par défaut** ; **Windows P0**
+| ACADEMY-17 | **Épreuve de savoir-faire (V2)** — évaluer un **geste professionnel** par le **livrable de l'apprenant** (sans obligation de QCM) : activité Moodle `assign`, contrat N0 `DeliverableSpec`/`DeliverableReport`, validation exécutable dans `document`, agrégation du rapport côté academy | 🟡 CADRÉ (2026-11-15) — 9 décisions `D-ACADEMY-17-1..9`, 7 US ~20 pts ; **quiz autorisé mais optionnel** (aucun module n'est tenu d'en avoir) ; **v1 manuelle** (page + grille + envoi) non bloquée
 |===
 
 '''
@@ -500,6 +501,8 @@ diagnostic. À ordonnancer sur décision pilote.
 | 2026-11-02 | S-020 : **ACADEMY-10-0 cadrage détaillé** Spring Boot WebFlux — faits vérifiés (Boot 4.1.2 GA, Jackson 3.1.7/3.2.4, r2dbc-postgresql 1.1.3, catalogue academy autonome → **pas de bump BOM requis**), **spike exécuté** (Boot 4.1.2 + Kotlin 2.4.10 + WebFlux + coroutines + Jackson 3, `GET /health` 200), 12 décisions proposées, 7 options écartées, 6 US ~24 pts, plan fichier par fichier, risques. Décision pilote attendue. |
 | 2026-11-02 | S-021 : **ACADEMY-15-5 porte d'acceptation agrégée** — `AcademyA11yReport` + `AcademyA11yAcceptance` (conjonction des couches, gap déclaré, limites non levables), tâche `auditAcademyAcceptance` opt-in/advisory ; 16 unit + 6 BDD `@acceptance` + 5 functional TestKit ; dogfooding réel S-018/S-019 → `DEGRADED` (2 couches, Moodle `VERIFIED`), limite périmée du matériel corrigée ; **CI `41374808984` VERTE**. |
 | 2026-11-02 | S-022 : **Frontière corrigée — FPA/Qualiopi = training** (décision pilote). **ACADEMY-9 (Qualiopi) transféré à training (TRN-13)** ; les mentions « traçabilité Qualiopi » justifiant la persistance `bridge_events` deviennent une **traçabilité technique locale** ; « matériel FPA réel » → « matériel de formation réel produit par training ». Academy ne porte aucune trace de conformité ni revendication de certification ; elle expose des preuves d'accessibilité consommables. Aucun code modifié. |
+| 2026-11-15 | **EPIC ACADEMY-17 CADRÉ** (gouvernance pure, zéro code) — **épreuve de savoir-faire (V2)** : un geste professionnel se prouve par le **livrable de l'apprenant**, sans obligation de QCM (le quiz reste **autorisé mais optionnel** ; la conformité Qualiopi reste hors academy, training/TRN-13). Constat mesuré : `MoodleActivityType` n'a **pas** de `assign`, `MaterialArtifactType` décrit les artefacts producteurs (donc pas le livrable apprenant), aucune grille de correction n'existe. Principe : la preuve est **exécutable** (livrable AsciiDoc → parse + constructions requises + rendu HTML/PDF) ; `document` produit `deliverable-report.json`, academy **agrège** (patron `ProducerReportInspector`, S-018) et mappe l'épreuve sur `assign` via `moosh`. 9 décisions `D-ACADEMY-17-1..9`, 7 US ~20 pts, risque nommé (`moosh activity-add assign` + `assignsubmission_file` non vérifiés sur l'image), **v1 manuelle non bloquée**. |
+| 2026-11-15 | **Rollback pilote sur le quiz** (même jour) : le quiz **n'est plus réservé aux formations Qualiopi** — il **reste supporté et devient optionnel** (aucun module n'est tenu d'en avoir). `D-ACADEMY-17-1` et `D-ACADEMY-17-9` réécrites ; EPIC, TODO et ligne de mise à jour réalignés. L'épreuve par livrable (`assign`, V2 de l'EPIC) reste **indépendante** du quiz. |
 |===
 
 '''
@@ -526,6 +529,7 @@ diagnostic. À ordonnancer sur décision pilote.
 [x] ACADEMY-15 (Moodle statique) : `MoodleAccessibilityInspector` + `MoodleA11yAuditor` + port/adapter HTTP + tâche opt-in `auditMoodleAccessibility`, 25 unit + 8 BDD `@moodle-a11y` + 5 functional TestKit, dogfooding réel Moodle 5.2.3, bug compose `SITE_URL` corrigé — **TERMINÉ S-019** (opencode reste une limite déclarée)
 [x] ACADEMY-15-5 (porte d'acceptation agrégée) : `AcademyA11yReport` + `AcademyA11yAcceptance` (conjonction, gap déclaré, limites non levables), tâche `auditAcademyAcceptance` opt-in/advisory, 16 unit + 6 BDD `@acceptance` + 5 functional TestKit, dogfooding réel S-018/S-019 — **TERMINÉ S-021**
 [ ] ACADEMY-12-3 : dogfooding environnement Windows réel (`install.bat`, `docker compose config`, parité, images tirées) — ne pas livrer sans preuve
+[ ] ACADEMY-17 : **épreuve de savoir-faire (V2)** — `assign` Moodle + `DeliverableSpec`/`DeliverableReport` (N0) + `validateLearnerDeliverable` (document) + agrégation academy ; **quiz autorisé mais optionnel** (rollback pilote 2026-11-15) ; 7 US ~20 pts, **CADRÉ 2026-11-15**, v1 manuelle non bloquée
 [x] ACADEMY-10-0 : cadrage détaillé Spring Boot WebFlux — `CADRAGE_EPIC_ACADEMY_10_SPRING_BOOT.adoc` (faits vérifiés 2026-11-02, spike Boot 4.1.2 exécuté, 12 décisions, 7 options écartées, 6 US, plan fichier par fichier) — **TERMINÉ S-020**, décision pilote attendue pour 10-1→10-6
 [ ] ACADEMY-10 : migration du bridge Ktor → Spring Boot WebFlux (cadrage détaillé S-020) — à ordonnancer sur décision pilote ; **pas de bump BOM requis pour compiler** (catalogue academy autonome), alignement MEMPHIS = décision séparée ; Boot 4.1.2 GA + Jackson 3
 [x] ACADEMY-9 : support Qualiopi — **TRANSFÉRÉ à training (TRN-13) S-022** : Qualiopi = domaine formation ; academy ne porte pas de traces de conformité (elle expose seulement ses rapports d'accessibilité)
@@ -774,6 +778,75 @@ commande inventée ; manifeste `sha256` vérifiable ; Windows prouvé.
 
 *Non-goals* : auteuriser le contenu (training), encaisser (talaria), multi-tenant,
 Spring Boot (`ACADEMY-10`), audiodescription (`GBL-011-4`), publication Central.
+
+'''
+
+== 🟡 EPIC ACADEMY-17 — Épreuve de savoir-faire : évaluation par livrable (V2) — CADRÉ
+
+**Origine** — décision pilote du 2026-11-15. Le premier module vendu n'est pas une
+formation Qualiopi mais un **geste professionnel** (« Initiation à AsciiDoc »). Or un
+geste ne s'évalue pas par restitution : la preuve de la transmission du savoir-faire
+est **le livrable de l'apprenant**. Le **quiz reste autorisé mais optionnel** : aucun
+module n'est tenu d'en avoir. La conformité Qualiopi, elle, reste hors academy
+(frontière `training` / TRN-13, D-ACADEMY-9).
+
+**Constat mesuré** — l'épreuve n'est pas exprimable aujourd'hui :
+
+* `MoodleActivityType` = `label`, `page`, `quiz`, `resource`, `url` — **pas de `assign`** :
+  le plan Moodle ne sait pas exprimer un dépôt de livrable ;
+* `MaterialArtifactType` décrit les **artefacts producteurs** (SPG, SPD, SLIDES,
+  DOCUMENT, CAPSULE, QUIZ) — le livrable est produit par **l'apprenant**, ce n'est pas
+  un matériel ;
+* aucune grille de correction n'existe : la seule évaluation câblée est le quiz.
+
+**Principe** — la preuve est **exécutable**. Le livrable est un document AsciiDoc :
+il se vérifie mécaniquement (parse, constructions requises, rendu HTML/PDF) avec la
+stack déjà en place. Academy **ne corrige pas** : elle consomme un **rapport** produit
+par `document` (même patron que l'accessibilité — `ProducerReportInspector`, S-018) et
+se contente de **mapper** l'épreuve sur une activité Moodle.
+
+|===
+| # | US | Pts | Statut
+| US-0 | Cadrage — contrat d'épreuve, frontières, risque `moosh assign`, découpage v1/v2 | 2 | 🟡 À FAIRE
+| US-1 | Contrat N0 `DeliverableSpec` / `DeliverableFinding` / `DeliverableReport` dans `runtime-contracts` | 3 | 🟡 À FAIRE
+| US-2 | `MoodleActivityType.ASSIGN` + mapping épreuve → `assign` + plan (`MoodleImportPlan`) | 3 | 🟡 À FAIRE
+| US-3 | `document` : tâche `validateLearnerDeliverable` → `deliverable-report.json` | 4 | 🟡 À FAIRE
+| US-4 | academy : agrégation du rapport d'épreuve + verdict + feedback | 3 | 🟡 À FAIRE
+| US-5 | BDD + functional TestKit (plan `assign`, script `moosh`, rapport agrégé) | 2 | 🟡 À FAIRE
+| US-6 | Dogfooding réel : module AsciiDoc déposé → rapport → verdict | 3 | 🟡 À FAIRE
+|===
+
+*Total* : 7 US, ~20 pts. *Méthode* : baby-step DDD/TDD/BDD.
+
+*Critère de sortie* — sur une instance Moodle réelle : le cours porte une activité
+`assign` qui accepte un fichier ; l'apprenant dépose son `.adoc` + son HTML/PDF ; le
+`deliverable-report.json` nomme chaque construction manquante (fichier + ligne) et rend
+un verdict `ACCEPTED` / `REJECTED` **reproductible** (deux runs identiques).
+
+*Non-goals* — auteuriser le contenu (training), la conformité Qualiopi (training,
+TRN-13), la correction du style rédactionnel (relecture humaine, advisory), l'upload
+vers un stockage externe, la notation automatique de la qualité pédagogique.
+
+*Risque nommé* — `moosh activity-add assign` et l'activation de `assignsubmission_file`
+ne sont **pas vérifiés** sur `erseco/alpine-moodle:v5.2.3`. US-2 commence par une
+preuve sur l'image, pas par du code.
+
+'''
+
+== Décisions ACADEMY-17 — Épreuve de savoir-faire (cadrage 2026-11-15)
+
+|===
+| ID | Décision | Rationale
+| D-ACADEMY-17-1 | **Le quiz est autorisé mais optionnel** : aucun module n'est tenu d'en avoir. Pour un geste professionnel, l'épreuve est un **livrable** ; pour une formation Qualiopi, quiz et épreuve peuvent coexister. | Un geste s'évalue par production ; le quiz reste un outil légitime quand il sert l'apprentissage.
+| D-ACADEMY-17-2 | L'épreuve n'entre **pas** dans `MaterialArtifactType` : un `AssessmentSpec` distinct sépare le **matériel** (producteur) de l'**épreuve** (apprenant). | Éviter le mélange des vocabulaires ; un type inconnu reste ignoré (D-ACADEMY-4-6).
+| D-ACADEMY-17-3 | La correction est **exécutable** et portée par `document` (parse + rendu). Academy ne lit **jamais** le corps AsciiDoc. | Frontière § 3.3 conservée ; zéro couplage N2→N2.
+| D-ACADEMY-17-4 | Academy consomme un **rapport** (`deliverable-report.json`), patron `ProducerReportInspector` (S-018). | Même mécanisme que l'accessibilité : academy agrège, elle ne corrige pas.
+| D-ACADEMY-17-5 | Un seul module Moodle réel : `assign` (`mod/assign`), piloté par `moosh`. Toute autre voie (forum, e-mail, page) est une **dégradation v1**. | Vocabulaire Moodle réel, jamais inventé (D-ACADEMY-11-7).
+| D-ACADEMY-17-6 | La **v1 manuelle** (page consigne + grille + envoi par message) reste valide et **n'est pas bloquée** par cet EPIC. | La première vente ne dépend pas de la V2.
+| D-ACADEMY-17-7 | La grille est **déclarative et versionnée** (`DeliverableSpec`) : le verdict machine est reproductible ; la relecture humaine reste un complément advisory. | « Prouvé » = reproductible, pas une impression.
+| D-ACADEMY-17-8 | Aucune trace de conformité Qualiopi dans academy ; l'épreuve produit une **preuve technique** consommable par training. | Frontière S-022 reconduite.
+| D-ACADEMY-17-9 | `QUIZ` **reste pleinement supporté** (`MaterialArtifactType.QUIZ`, `MoodleActivityType.QUIZ`, mapping `quiz`, `moosh activity-add quiz`) et **optionnel** : aucun matériel n'est tenu d'en déclarer un. | Ni dormant, ni obligatoire : le mapping existant sert dès qu'un module en a un, geste ou Qualiopi.
+|===
 
 '''
 
